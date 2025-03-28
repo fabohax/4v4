@@ -2,7 +2,7 @@
 
 **4V4** is a digital playground for 3D avatars, built on the Stacks blockchain. This full-stack dApp enables users to mint, list, and trade 3D avatars as NFTs using STX or other SIP-010 tokens—plus future support for sBTC. It demonstrates how to build scalable and expressive NFT platforms using Clarity smart contracts, Next.js, and the Hiro Platform.
 
-⚠️ This project is intended for educational and development purposes only. Contracts have not been audited for production.
+⚠️ This project is intended for development purposes only. Contracts have not been audited for production.
 
 ---
 
