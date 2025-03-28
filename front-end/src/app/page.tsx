@@ -71,7 +71,7 @@ export default function BrowsePage() {
             <VStack spacing={4}>
               <Text fontSize="xl">No NFTs listed yet</Text>
               <Button as="a" href="/my-nfts" colorScheme="blue" size="lg" px={8}>
-                List Your First NFT
+                Mint your Avatar
               </Button>
             </VStack>
           </Center>

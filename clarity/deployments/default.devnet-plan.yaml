@@ -25,17 +25,17 @@ plan:
             path: "./.cache/requirements/SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.clar"
             clarity-version: 1
         - contract-publish:
-            contract-name: funny-dog
+            contract-name: avatar-minter
             expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             cost: 21410
-            path: contracts/funny-dog.clar
+            path: contracts/avatar-minter.clar
             anchor-block-only: true
             clarity-version: 1
         - contract-publish:
-            contract-name: nft-marketplace
+            contract-name: 4v4-marketplace
             expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             cost: 92780
-            path: contracts/nft-marketplace.clar
+            path: contracts/4v4-marketplace.clar
             anchor-block-only: true
             clarity-version: 1
       epoch: "2.0"

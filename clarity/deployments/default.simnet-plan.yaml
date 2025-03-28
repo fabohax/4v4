@@ -60,16 +60,16 @@ plan:
             path: "./.cache/requirements/SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.clar"
             clarity-version: 1
         - emulated-contract-publish:
-            contract-name: funny-dog
+            contract-name: avatar-minter
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/funny-dog.clar
+            path: contracts/avatar-minter.clar
             clarity-version: 1
       epoch: "2.0"
     - id: 1
       transactions:
         - emulated-contract-publish:
-            contract-name: nft-marketplace
+            contract-name: 4v4-marketplace
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/nft-marketplace.clar
+            path: contracts/4v4-marketplace.clar
             clarity-version: 3
       epoch: "3.0"
