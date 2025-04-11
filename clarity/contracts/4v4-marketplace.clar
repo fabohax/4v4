@@ -1,4 +1,4 @@
-;; 4V4 Marketplace Contract - Enhanced Version
+;; 4V4 Marketplace Contract
 
 ;; Traits
 (use-trait nft-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
@@ -73,13 +73,18 @@
   )
 )
 
-;; NFT/FT Transfer Helpers
-(define-private (safe-transfer-nft (contract <nft-trait>) (token-id uint) (from principal) (to principal))
-  (try! (contract-call? contract transfer token-id from to))
+;; NFT Transfer Helper
+(define-private (safe-transfer-nft (contract principal) (token-id uint) (from principal) (to principal))
+  (match (contract-call? contract transfer token-id from to)
+    result (ok result)
+    (err u5001))
 )
 
-(define-private (safe-transfer-ft (contract <ft-trait>) (amount uint) (from principal) (to principal))
-  (try! (contract-call? contract transfer amount from to none))
+;; FT Transfer Helper
+(define-private (safe-transfer-ft (contract principal) (amount uint) (from principal) (to principal))
+  (match (contract-call? contract transfer amount from to none)
+    result (ok result)
+    (err u5002))
 )
 
 ;; Internal Royalty Call (Optional)
@@ -99,7 +104,7 @@
 
 ;; Listing Creation
 (define-public (list-asset
-  (nft-asset-contract <nft-trait>)
+  (nft-asset-contract principal)
   (nft-asset {
     taker: (optional principal),
     token-id: uint,
@@ -109,16 +114,17 @@
   })
 )
   (let ((listing-id (var-get listing-nonce)))
-    (asserts! (is-whitelisted (contract-of nft-asset-contract)) ERR_ASSET_CONTRACT_NOT_WHITELISTED)
-    (asserts! (> (get expiry nft-asset) burn-block-height) ERR_EXPIRY_IN_PAST)
+    (asserts! (is-whitelisted nft-asset-contract) ERR_ASSET_CONTRACT_NOT_WHITELISTED)
+    (asserts! (> (get expiry nft-asset) block-height) ERR_EXPIRY_IN_PAST)
     (asserts! (> (get price nft-asset) u0) ERR_PRICE_ZERO)
     (asserts! (match (get payment-asset-contract nft-asset)
-      payment-asset (is-whitelisted payment-asset) true) ERR_PAYMENT_CONTRACT_NOT_WHITELISTED)
+      payment-asset (is-whitelisted payment-asset)
+      true) ERR_PAYMENT_CONTRACT_NOT_WHITELISTED)
 
     (try! (safe-transfer-nft nft-asset-contract (get token-id nft-asset) tx-sender (as-contract tx-sender)))
 
     (map-set listings listing-id (merge
-      { maker: tx-sender, nft-asset-contract: (contract-of nft-asset-contract) }
+      { maker: tx-sender, nft-asset-contract: nft-asset-contract }
       nft-asset
     ))
     (var-set listing-nonce (+ listing-id u1))
@@ -143,12 +149,12 @@
 )
 
 ;; Cancel Listing
-(define-public (cancel-listing (listing-id uint) (nft-asset-contract <nft-trait>))
+(define-public (cancel-listing (listing-id uint) (nft-asset-contract principal))
   (let ((listing (unwrap! (map-get? listings listing-id) ERR_UNKNOWN_LISTING)))
     (asserts! (is-eq (get maker listing) tx-sender) ERR_UNAUTHORISED)
-    (asserts! (is-eq (get nft-asset-contract listing) (contract-of nft-asset-contract)) ERR_NFT_ASSET_MISMATCH)
+    (asserts! (is-eq (get nft-asset-contract listing) nft-asset-contract) ERR_NFT_ASSET_MISMATCH)
     (map-delete listings listing-id)
-    (as-contract (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
+    (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
     (print (cancel-event listing-id))
     (ok true)
   )
@@ -171,7 +177,7 @@
   (begin
     (asserts! (not (is-eq (get maker listing) tx-sender)) ERR_MAKER_TAKER_EQUAL)
     (asserts! (match (get taker listing) intended (is-eq intended tx-sender) true) ERR_UNINTENDED_TAKER)
-    (asserts! (< burn-block-height (get expiry listing)) ERR_LISTING_EXPIRED)
+    (asserts! (< block-height (get expiry listing)) ERR_LISTING_EXPIRED)
     (asserts! (is-eq (get nft-asset-contract listing) nft-asset-contract) ERR_NFT_ASSET_MISMATCH)
     (asserts! (is-eq (get payment-asset-contract listing) payment-asset-contract) ERR_PAYMENT_ASSET_MISMATCH)
     (ok true)
@@ -179,11 +185,11 @@
 )
 
 ;; Fulfil (STX)
-(define-public (fulfil-listing-stx (listing-id uint) (nft-asset-contract <nft-trait>))
+(define-public (fulfil-listing-stx (listing-id uint) (nft-asset-contract principal))
   (let ((listing (unwrap! (map-get? listings listing-id) ERR_UNKNOWN_LISTING)))
-    (try! (assert-can-fulfil (contract-of nft-asset-contract) none listing))
+    (try! (assert-can-fulfil nft-asset-contract none listing))
     (try! (pay-royalty nft-asset-contract (get token-id listing) (get price listing) tx-sender))
-    (try! (as-contract (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender)))
+    (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
     (try! (stx-transfer? (get price listing) tx-sender (get maker listing)))
     (map-delete listings listing-id)
     (print (sale-event listing-id tx-sender))
@@ -192,16 +198,13 @@
 )
 
 ;; Fulfil (FT)
-(define-public (fulfil-listing-ft (listing-id uint) (nft-asset-contract <nft-trait>) (payment-asset-contract <ft-trait>))
+(define-public (fulfil-listing-ft (listing-id uint) (nft-asset-contract principal) (payment-asset-contract principal))
   (let ((listing (unwrap! (map-get? listings listing-id) ERR_UNKNOWN_LISTING)))
-    (try! (assert-can-fulfil (contract-of nft-asset-contract) (some (contract-of payment-asset-contract)) listing))
-    (try! (as-contract (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender)))
+    (try! (assert-can-fulfil nft-asset-contract (some payment-asset-contract) listing))
+    (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
     (try! (safe-transfer-ft payment-asset-contract (get price listing) tx-sender (get maker listing)))
     (map-delete listings listing-id)
     (print (sale-event listing-id tx-sender))
     (ok listing-id)
   )
 )
-
-;; Fulfil (sBTC placeholder - requires wrapping logic in future)
-;; TODO: Add proper sBTC support
