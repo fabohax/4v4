@@ -17,6 +17,7 @@
 ;; Storage
 (define-data-var last-token-id uint u0)
 (define-data-var base-uri (string-ascii 256) "ipfs://QmInitialCID/")
+(define-map token-uri-map { id: uint } { uri: (string-ascii 256) })
 (define-data-var metadata-frozen bool false)
 
 ;; Whitelist: {user: {allowed, minted}}
@@ -34,6 +35,15 @@
     (var-set base-uri new-uri)
     (ok true)
   ))
+
+(define-public (set-token-uri (id uint) (uri (string-ascii 256)))
+  (match (nft-get-owner? avatar id)
+    owner
+      (begin
+        (asserts! (is-eq tx-sender owner) (err u401))
+        (map-set token-uri-map { id: id } { uri: uri })
+        (ok true))
+    (err u401)))
 
 (define-public (freeze-metadata)
   (begin
@@ -56,15 +66,18 @@
       (asserts! (<= token-id COLLECTION_LIMIT) ERR_SOLD_OUT)
       (match (map-get? whitelist {user: tx-sender})
         whitelist-entry
-          (let ((allowed (get allowed whitelist-entry))
-                (minted (get minted whitelist-entry)))
-            (asserts! (< minted allowed) ERR_WHITELIST_LIMIT)
-            (try! (nft-mint? avatar token-id recipient))
-            (map-set whitelist {user: tx-sender} {allowed: allowed, minted: (+ minted u1)})
-            (var-set last-token-id token-id)
-            (ok token-id))
-        none (err ERR_UNAUTHORIZED))
-    )))
+          (let (
+              (allowed (get allowed whitelist-entry))
+              (minted (get minted whitelist-entry))
+            )
+            (begin
+              (asserts! (< minted allowed) ERR_WHITELIST_LIMIT)
+              (try! (nft-mint? avatar token-id recipient))
+              (map-set whitelist {user: tx-sender} {allowed: allowed, minted: (+ minted u1)})
+              (var-set last-token-id token-id)
+              (ok token-id)))
+        (err u401)))))
+
 
 ;; Public Mint (post-whitelist phase)
 (define-public (mint-public)
@@ -87,7 +100,9 @@
   (ok (var-get last-token-id)))
 
 (define-read-only (get-token-uri (id uint))
-  (ok (some (var-get base-uri))))
+  (match (map-get? token-uri-map { id: id })
+    entry (ok (some (get uri entry)))
+    (ok none)))
 
 (define-read-only (get-owner (id uint))
   (ok (nft-get-owner? avatar id)))

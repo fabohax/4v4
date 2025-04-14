@@ -1,7 +1,7 @@
 {
-  "name": "nft-market-place",
+  "name": "4v4",
   "version": "1.0.0",
-  "description": "nft market place smart contract example",
+  "description": "3d nft place",
   "type": "module",
   "scripts": {
     "test": "vitest run -- --manifest-path ./Clarinet.toml",
