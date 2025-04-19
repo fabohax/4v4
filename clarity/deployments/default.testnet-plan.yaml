@@ -20,10 +20,10 @@ plan:
     - id: 1
       transactions:
         - contract-publish:
-            contract-name: minter
+            contract-name: market
             expected-sender: ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS
-            cost: 36560
-            path: contracts/minter.clar
+            cost: 71410
+            path: contracts/market.clar
             anchor-block-only: true
             clarity-version: 3
       epoch: "3.1"
