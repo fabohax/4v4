@@ -1,0 +1,18 @@
+---
+id: 0
+name: Testnet deployment
+network: testnet
+stacks-node: "https://api.testnet.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoind.testnet.stacks.co:18332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: minter
+            expected-sender: ST3SPYPCPDEM87M8R5VH35H96K9D8C5G61TTCXT2M
+            cost: 3668
+            path: contracts/minter.clar
+            anchor-block-only: true
+            clarity-version: 3
+      epoch: "3.1"

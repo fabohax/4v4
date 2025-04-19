@@ -1,6 +1,6 @@
 [project]
-name = 'clarity'
-description = ''
+name = '4v4-marketplace'
+description = 'Demonstrates a minimalistic NFT marketplace that allows users to list NFT for sale'
 authors = []
 telemetry = true
 cache_dir = './.cache'
@@ -8,23 +8,19 @@ cache_dir = './.cache'
 [[project.requirements]]
 contract_id = 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait'
 
-[accounts.deployer]
-mnemonic = "sail mercy toe kick earth life oval kid critic lizard shoulder exchange"
+[[project.requirements]]
+contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
 
 [contracts.minter]
 path = 'contracts/minter.clar'
-clarity_version = 3
-epoch = 3.1
+clarity_version = 1
+epoch = 2.0
 
 [repl.analysis]
-passes = ['check_checker']
+passes = []
 
 [repl.analysis.check_checker]
 strict = false
-trusted_sender = false
+trusted_sender = true
 trusted_caller = false
 callee_filter = false
-
-[repl.remote_data]
-enabled = false
-api_url = 'https://api.hiro.so'
