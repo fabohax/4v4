@@ -1,6 +1,6 @@
 [project]
-name = 'clarity'
-description = ''
+name = '4v4'
+description = '3D NFT Market'
 authors = []
 telemetry = true
 cache_dir = './.cache'
