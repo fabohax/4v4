@@ -70,7 +70,7 @@ export default function BrowsePage() {
           <Center minH="50vh">
             <VStack spacing={4}>
               <Text fontSize="xl">No NFTs listed yet</Text>
-              <Button as="a" href="/my-nfts" colorScheme="blue" size="lg" px={8}>
+              <Button as="a" href="/mint" colorScheme="blue" size="lg" px={8}>
                 Mint your Avatar
               </Button>
             </VStack>
