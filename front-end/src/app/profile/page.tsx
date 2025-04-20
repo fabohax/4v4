@@ -33,7 +33,7 @@ import CenterPanel from '@/components/features/avatar/CenterPanel';
 
 import { getModelFromDB } from '@/utils/IDB'; 
 
-export default function MyNFTsPage() {
+export default function ProfilePage() {
   const [lastTxId, setLastTxId] = useState<string | null>(null);
   const currentAddress = useCurrentAddress();
   const network = useNetwork();
@@ -282,7 +282,6 @@ export default function MyNFTsPage() {
           </div>
         </div>
         <div className='overflow-y-auto'>
-          <h2 className="text-xl font-semibold my-4">Mint Avatar</h2>
           {error && <p className="text-red-500 mb-2">{error}</p>}
           {transactionHash && <p className="text-green-500 mb-2">Transaction Hash: {transactionHash}</p>}
   
@@ -420,7 +419,7 @@ export default function MyNFTsPage() {
             <span className='text-sm'>* Optional</span>
           </div>
           <div className="flex justify-end">
-            <Button type="button" variant="outline" className="text-white mr-2">
+            <Button type="button" className="bg-white text-black hover:bg-white mr-2">
               Cancel
             </Button>
             <Button onClick={handleMint} disabled={minting} className='border-2 border-black'>
