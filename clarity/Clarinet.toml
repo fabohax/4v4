@@ -11,13 +11,8 @@ contract_id = 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait'
 [accounts.deployer]
 mnemonic = "sail mercy toe kick earth life oval kid critic lizard shoulder exchange"
 
-[contracts.minter]
-path = 'contracts/minter.clar'
-clarity_version = 3
-epoch = 3.1
-
-[contracts.market]
-path = 'contracts/market.clar'
+[contracts.avatar-minter]
+path = 'contracts/avatar-minter.clar'
 clarity_version = 3
 epoch = 3.1
 

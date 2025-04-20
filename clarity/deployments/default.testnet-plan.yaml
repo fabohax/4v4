@@ -20,10 +20,10 @@ plan:
     - id: 1
       transactions:
         - contract-publish:
-            contract-name: market
+            contract-name: avatar-minter
             expected-sender: ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS
-            cost: 71410
-            path: contracts/market.clar
+            cost: 40740
+            path: contracts/avatar-minter.clar
             anchor-block-only: true
             clarity-version: 3
       epoch: "3.1"

@@ -15,7 +15,7 @@ import {
 import { NftCard } from '@/components/marketplace/NftCard';
 import { useNftHoldings, useGetTxId } from '@/hooks/useNftHoldings';
 import { formatValue } from '@/lib/clarity-utils';
-import { mintFunnyDogNFT } from '@/lib/nft/operations';
+import { mintAvatar } from '@/lib/nft/operations';
 import { useNetwork } from '@/lib/use-network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { ExternalLinkIcon } from '@chakra-ui/icons';
@@ -41,18 +41,20 @@ export default function ProfilePage() {
   const { data: nftHoldings, isLoading: nftHoldingsLoading } = useNftHoldings(currentAddress || '');
   const { data: txData } = useGetTxId(lastTxId || '');
   const toast = useToast();
-  const [name, setName] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [modelFile, setModelFile] = useState<File | null>(null);
-  const [imageFile] = useState<File | null>(null);
-  const [externalUrl, setExternalUrl] = useState<string>('');
-  const [attributes, setAttributes] = useState<string>('');
-  const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('');
-  const [customizationData, setCustomizationData] = useState<string>('');
-  const [edition, setEdition] = useState<string>('');
-  const [royalties, setRoyalties] = useState<string>('');
-  const [properties, setProperties] = useState<string>('');
-  const [location, setLocation] = useState<string>('');
+
+  // Default placeholder values for testing
+  const [name, setName] = useState<string>('Test Avatar');
+  const [description, setDescription] = useState<string>('This is a test avatar for minting.');
+  const [modelFile, setModelFile] = useState<File | null>(null); // File upload will still be required
+  const [imageFile, setImageFile] = useState<File | null>(null); // Optional file upload
+  const [externalUrl, setExternalUrl] = useState<string>('https://example.com');
+  const [attributes, setAttributes] = useState<string>('{"style": "futuristic", "rarity": "Rare"}');
+  const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('{"glb", "fbx"}');
+  const [customizationData, setCustomizationData] = useState<string>('{"color": "blue", "accessory": "hat"}');
+  const [edition, setEdition] = useState<string>('100');
+  const [royalties, setRoyalties] = useState<string>('10%');
+  const [properties, setProperties] = useState<string>('{"polygonCount": 5000}');
+  const [location, setLocation] = useState<string>('lat: -12.72596, lon: -77.89962');
   const [tokenURI, setTokenURI] = useState<string>('');
   const [soulbound, setSoulbound] = useState<boolean>(false);
   const [minting, setMinting] = useState<boolean>(false);
@@ -60,8 +62,8 @@ export default function ProfilePage() {
   const [error, setError] = useState<string>('');
   const [secondaryColor] = useState<string>('#ffffff');
   const [background] = useState<string>('#f5f5f5');
-  const [modelUrl, setModelUrl] = useState<string | null>("/models/default.glb");
-  const [lightIntensity] = useState<number>(11); 
+  const [modelUrl, setModelUrl] = useState<string | null>('/models/default.glb');
+  const [lightIntensity] = useState<number>(11);
 
   const router = useRouter();
 
@@ -85,12 +87,15 @@ export default function ProfilePage() {
     }
   }, [txData, toast]);
 
-  const handleMintNFT = async () => {
-    if (!network || !currentAddress) return;
-
+  const handleMintNFT = async (metadataCid: string) => {
+    if (!network || !currentAddress) {
+      setError("Network or wallet not connected.");
+      return;
+    }
+  
     try {
-      const txOptions = mintFunnyDogNFT(network, currentAddress);
-
+      const txOptions = mintAvatar(network, metadataCid); // Pass metadata CID
+  
       if (shouldUseDirectCall()) {
         const { txid } = await executeContractCall(txOptions, currentWallet);
         setLastTxId(txid);
@@ -101,7 +106,7 @@ export default function ProfilePage() {
         });
         return;
       }
-
+  
       await openContractCall({
         ...txOptions,
         onFinish: (data) => {
@@ -122,6 +127,7 @@ export default function ProfilePage() {
       });
     } catch (error) {
       console.error('Error minting NFT:', error);
+      setError('Failed to mint NFT. Please try again.');
       toast({
         title: 'Error',
         description: 'Failed to mint NFT',
@@ -146,102 +152,71 @@ export default function ProfilePage() {
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const image = e.target.files?.[0];
     if (image) {
-      setModelFile(image);
+      setImageFile(image);
     }
   };
 
   const handleMint = async () => {
-
     if (!name || !description || !modelFile) {
-        setError("Please fill in all the essential information and upload your model.");
-        return;
+      setError("Please fill in all the essential information and upload your model.");
+      return;
     }
-
+  
     setMinting(true);
     setError('');
     setTransactionHash('');
-
+  
     try {
-        const formData = new FormData();
-        formData.append('file', modelFile);
-        if (imageFile) {
-            formData.append('imageFile', imageFile);
-        }
-        formData.append('name', name);
-        formData.append('description', description);
-        formData.append('externalUrl', externalUrl);
-        formData.append('attributes', JSON.stringify(attributes ? attributes.split(',').map(attr => ({ trait_type: attr.trim() })) :[]));
-        formData.append('interoperabilityFormats', JSON.stringify(interoperabilityFormats ? interoperabilityFormats.split(',').map(format => format.trim()) :[]));
-        formData.append('customizationData', customizationData);
-        formData.append('edition', edition);
-        formData.append('royalties', royalties);
-        formData.append('properties', properties);
-        formData.append('location', location);
-        formData.append('soulbound', soulbound.toString());
-
-        const uploadRequest = await fetch("/api/files", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!uploadRequest.ok) {
-            const errorData = await uploadRequest.json();
-            const errorMessage = errorData.error || "Failed to upload file"; 
-            setError(errorMessage); 
-            throw new Error(errorMessage);
-        }
-
-        const signedUrl = await uploadRequest.json();
-        console.log("Signed URL:", signedUrl);
-        const tokenURI = signedUrl.tokenURI; 
-
-        console.log("Token URI:", tokenURI);
-
-        setTokenURI(tokenURI);
-
-        alert('Avatar minted successfully! Transaction Hash: ');
-        // onClose();
-        router.push('/profile');
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          console.error("Error:", e.message);
-          setError(e.message);
-        } else {
-          console.error("Unknown error:", e);
-          setError("An unexpected error occurred.");
-        }
-      }      
-    };
-
-  const MintCard = () => (
-    <Box borderWidth="1px" borderRadius="lg" overflow="hidden" bg="white" boxShadow="md">
-      <Box position="relative" paddingTop="100%">
-        <Center position="absolute" top={0} left={0} right={0} bottom={0} bg="gray.100"></Center>
-      </Box>
-      <VStack p={4} spacing={3} align="stretch">
-        <Text fontWeight="bold" fontSize="lg">
-          Funny Dog NFT
-        </Text>
-        <Text fontSize="sm" color="gray.600">
-          Mint a new Funny Dog NFT to your collection
-        </Text>
-        <Button onClick={handleMintNFT} size="sm">
-          Mint NFT
-        </Button>
-        {lastTxId && (
-          <Link
-            href={getExplorerLink(lastTxId, network)}
-            isExternal
-            color="blue.500"
-            fontSize="sm"
-            textAlign="center"
-          >
-            View your latest transaction <ExternalLinkIcon mx="2px" />
-          </Link>
-        )}
-      </VStack>
-    </Box>
-  );
+      const formData = new FormData();
+      formData.append('file', modelFile);
+      if (imageFile) {
+        formData.append('imageFile', imageFile);
+      }
+      formData.append('name', name);
+      formData.append('description', description);
+      formData.append('externalUrl', externalUrl);
+      formData.append('attributes', attributes);
+      formData.append('interoperabilityFormats', interoperabilityFormats);
+      formData.append('customizationData', customizationData);
+      formData.append('edition', edition);
+      formData.append('royalties', royalties);
+      formData.append('properties', properties);
+      formData.append('location', location);
+      formData.append('soulbound', soulbound.toString());
+  
+      const metadataResponse = await fetch('/api/files', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!metadataResponse.ok) {
+        const errorData = await metadataResponse.json();
+        const errorMessage = errorData.error || 'Failed to upload metadata to IPFS';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+  
+      const { tokenURI } = await metadataResponse.json();
+  
+      console.log('Token URI:', tokenURI);
+  
+      // Call handleMintNFT with the token URI
+      await handleMintNFT(tokenURI);
+  
+      alert('Avatar minted successfully!');
+      router.push('/profile');
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        console.error('Error:', e.message);
+        setError(e.message);
+      } else {
+        console.error('Unknown error:', e);
+        setError('An unexpected error occurred.');
+      }
+    } finally {
+      setMinting(false);
+    }
+  };
 
   if (!currentAddress) {
     return (
@@ -430,7 +405,7 @@ export default function ProfilePage() {
         {tokenURI}
         <VStack spacing={6} align="stretch" className='my-8'>
           <Text fontSize="2xl" fontWeight="bold">
-            My Models
+            Models
           </Text>
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           ...
