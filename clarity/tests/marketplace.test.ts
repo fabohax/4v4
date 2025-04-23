@@ -6,7 +6,7 @@ let simnet: Awaited<ReturnType<typeof initSimnet>>;
 let accounts: Map<string, string>;
 
 const CONTRACT_ADDRESS = "ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS";
-const CONTRACT_NAME="marketplace";
+const CONTRACT_NAME = "marketplace";
 
 beforeEach(async () => {
   simnet = await initSimnet();
@@ -15,172 +15,123 @@ beforeEach(async () => {
 
 const mintAndTransferNFT = async (wallet: string, tokenId: number) => {
   await simnet.mineBlock([
-    tx.callPublicFn("minter", "mint-public", [], wallet),
-    tx.callPublicFn("minter", "transfer", [
+    tx.callPublicFn("avatar-minter", "mint", [Cl.standardPrincipal(wallet)], wallet),
+    tx.callPublicFn("avatar-minter", "transfer", [
       Cl.uint(tokenId),
       Cl.standardPrincipal(wallet),
-      Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
+      Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_NAME),
     ], wallet),
   ]);
 };
 
 describe("marketplace", () => {
-  it("Admin can whitelist NFT contract", async () => {
-    const deployer = accounts.get("deployer")!;
-    const result = await simnet.mineBlock([
-      tx.callPublicFn(CONTRACT_NAME, "set-whitelisted", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.bool(true),
-      ], deployer),
-    ]);
-    expect(result[0].result).toEqual(Cl.ok(Cl.bool(true)));
-  });
-
-  it("User can list NFT for sale after minting", async () => {
+  it("User can list NFT for sale", async () => {
     const wallet1 = accounts.get("wallet_1")!;
     await mintAndTransferNFT(wallet1, 1);
 
     const result = await simnet.mineBlock([
       tx.callPublicFn(CONTRACT_NAME, "list-asset", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.tuple({
-          taker: Cl.none(),
-          ["token-id"]: Cl.uint(1),
-          expiry: Cl.uint(999999999),
-          price: Cl.uint(1000),
-          ["payment-asset-contract"]: Cl.none(),
-        }),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(999999999),
+        Cl.uint(1000),
       ], wallet1),
     ]);
 
-    expect(result[0].result.type).toBe(ClarityType.ResponseOk);
+    expect(result[0].result).toEqual(Cl.ok(Cl.uint(0))); // Listing ID should be 0
   });
 
-  it("User can cancel listing", async () => {
+  it("User can cancel a listing", async () => {
     const wallet1 = accounts.get("wallet_1")!;
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
       tx.callPublicFn(CONTRACT_NAME, "list-asset", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.tuple({
-          taker: Cl.none(),
-          ["token-id"]: Cl.uint(1),
-          expiry: Cl.uint(999999999),
-          price: Cl.uint(1000),
-          ["payment-asset-contract"]: Cl.none(),
-        }),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(999999999),
+        Cl.uint(1000),
       ], wallet1),
     ]);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn(CONTRACT_NAME, "cancel-listing", [
-        Cl.uint(0),
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-      ], wallet1),
+      tx.callPublicFn(CONTRACT_NAME, "cancel-listing", [Cl.uint(0)], wallet1),
     ]);
+
     expect(result[0].result).toEqual(Cl.ok(Cl.bool(true)));
   });
 
-  it("Another user can fulfil listing with STX", async () => {
+  it("Another user can fulfil a listing", async () => {
     const wallet1 = accounts.get("wallet_1")!;
     const wallet2 = accounts.get("wallet_2")!;
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
       tx.callPublicFn(CONTRACT_NAME, "list-asset", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.tuple({
-          taker: Cl.none(),
-          ["token-id"]: Cl.uint(1),
-          expiry: Cl.uint(999999999),
-          price: Cl.uint(1000),
-          ["payment-asset-contract"]: Cl.none(),
-        }),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(999999999),
+        Cl.uint(1000),
       ], wallet1),
     ]);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn(CONTRACT_NAME, "fulfil-listing-stx", [
-        Cl.uint(0),
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-      ], wallet2),
+      tx.callPublicFn(CONTRACT_NAME, "fulfil-listing", [Cl.uint(0)], wallet2),
     ]);
 
-    expect(result[0].result).toEqual(Cl.ok(Cl.uint(0)));
+    expect(result[0].result).toEqual(Cl.ok(Cl.uint(0))); // Listing ID should be 0
   });
 
-  it("Batch listing works correctly", async () => {
+  it("Cannot list NFT with expiry in the past", async () => {
     const wallet1 = accounts.get("wallet_1")!;
     await mintAndTransferNFT(wallet1, 1);
-    await mintAndTransferNFT(wallet1, 2);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn(CONTRACT_NAME, "list-assets-batch", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.list([
-          Cl.tuple({
-            taker: Cl.none(),
-            ["token-id"]: Cl.uint(1),
-            expiry: Cl.uint(999999999),
-            price: Cl.uint(1000),
-            ["payment-asset-contract"]: Cl.none(),
-          }),
-          Cl.tuple({
-            taker: Cl.none(),
-            ["token-id"]: Cl.uint(2),
-            expiry: Cl.uint(999999999),
-            price: Cl.uint(2000),
-            ["payment-asset-contract"]: Cl.none(),
-          }),
-        ]),
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(0), // Expiry in the past
+        Cl.uint(1000),
       ], wallet1),
     ]);
 
-    expect(result[0].result.type).toBe(ClarityType.ResponseOk);
+    expect(result[0].result.type).toBe(ClarityType.ResponseErr);
   });
 
-  it("Retrieve all listings", async () => {
+  it("Cannot list NFT with price of zero", async () => {
     const wallet1 = accounts.get("wallet_1")!;
+    await mintAndTransferNFT(wallet1, 1);
+
+    const result = await simnet.mineBlock([
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(999999999),
+        Cl.uint(0), // Price of zero
+      ], wallet1),
+    ]);
+
+    expect(result[0].result.type).toBe(ClarityType.ResponseErr);
+  });
+
+  it("Cannot fulfil an expired listing", async () => {
+    const wallet1 = accounts.get("wallet_1")!;
+    const wallet2 = accounts.get("wallet_2")!;
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
       tx.callPublicFn(CONTRACT_NAME, "list-asset", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.tuple({
-          taker: Cl.none(),
-          ["token-id"]: Cl.uint(1),
-          expiry: Cl.uint(999999999),
-          price: Cl.uint(1000),
-          ["payment-asset-contract"]: Cl.none(),
-        }),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], "avatar-minter"),
+        Cl.uint(1),
+        Cl.uint(0), // Expiry in the past
+        Cl.uint(1000),
       ], wallet1),
     ]);
 
-    const result = await simnet.callReadOnlyFn(CONTRACT_NAME, "get-all-listings", [], wallet1);
-
-    if (result.result.type === ClarityType.List) {
-      expect(result.result.list.length).toBeGreaterThan(0);
-    } else {
-      throw new Error("Expected a list but got a different ClarityValue type");
-    }
-  });
-
-  it("Retrieve all whitelisted contracts", async () => {
-    const deployer = accounts.get("deployer")!;
-    await simnet.mineBlock([
-      tx.callPublicFn(CONTRACT_NAME, "set-whitelisted", [
-        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
-        Cl.bool(true),
-      ], deployer),
+    const result = await simnet.mineBlock([
+      tx.callPublicFn(CONTRACT_NAME, "fulfil-listing", [Cl.uint(0)], wallet2),
     ]);
 
-    const result = await simnet.callReadOnlyFn(CONTRACT_NAME, "get-whitelisted-contracts", [], deployer);
-
-    if (result.result.type === ClarityType.List) {
-      expect(result.result.list.length).toBeGreaterThan(0);
-    } else {
-      throw new Error("Expected a list but got a different ClarityValue type");
-    }
+    expect(result[0].result.type).toBe(ClarityType.ResponseErr);
   });
 });

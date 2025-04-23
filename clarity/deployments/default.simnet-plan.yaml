@@ -64,12 +64,17 @@ plan:
             emulated-sender: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9
             path: "./.cache/requirements/SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.clar"
             clarity-version: 1
-      epoch: "2.1"
+      epoch: "2.0"
     - id: 1
       transactions:
         - emulated-contract-publish:
-            contract-name: minter
+            contract-name: avatar-minter
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/minter.clar
+            path: contracts/avatar-minter.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: marketplace
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/marketplace.clar
             clarity-version: 3
       epoch: "3.1"
