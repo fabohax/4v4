@@ -5,14 +5,12 @@ import { describe, it, expect, beforeEach } from "vitest";
 let simnet: Awaited<ReturnType<typeof initSimnet>>;
 let accounts: Map<string, string>;
 
-const MINTER_CONTRACT_ID = "ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS.minter";
-let MARKET_CONTRACT_ID: string; 
+const CONTRACT_ADDRESS = "ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS";
+const CONTRACT_NAME="marketplace";
 
 beforeEach(async () => {
   simnet = await initSimnet();
   accounts = simnet.getAccounts();
-  const deployer = accounts.get("deployer")!;
-  MARKET_CONTRACT_ID = `${deployer}.marketplace`;
 });
 
 const mintAndTransferNFT = async (wallet: string, tokenId: number) => {
@@ -21,17 +19,17 @@ const mintAndTransferNFT = async (wallet: string, tokenId: number) => {
     tx.callPublicFn("minter", "transfer", [
       Cl.uint(tokenId),
       Cl.standardPrincipal(wallet),
-      Cl.contractPrincipal(MARKET_CONTRACT_ID.split(".")[0], MARKET_CONTRACT_ID.split(".")[1]),
+      Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
     ], wallet),
   ]);
 };
 
-describe("market", () => {
+describe("marketplace", () => {
   it("Admin can whitelist NFT contract", async () => {
     const deployer = accounts.get("deployer")!;
     const result = await simnet.mineBlock([
-      tx.callPublicFn("market", "set-whitelisted", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "set-whitelisted", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.bool(true),
       ], deployer),
     ]);
@@ -43,8 +41,8 @@ describe("market", () => {
     await mintAndTransferNFT(wallet1, 1);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn("market", "list-asset", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.tuple({
           taker: Cl.none(),
           ["token-id"]: Cl.uint(1),
@@ -63,8 +61,8 @@ describe("market", () => {
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
-      tx.callPublicFn("market", "list-asset", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.tuple({
           taker: Cl.none(),
           ["token-id"]: Cl.uint(1),
@@ -76,9 +74,9 @@ describe("market", () => {
     ]);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn("market", "cancel-listing", [
+      tx.callPublicFn(CONTRACT_NAME, "cancel-listing", [
         Cl.uint(0),
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
       ], wallet1),
     ]);
     expect(result[0].result).toEqual(Cl.ok(Cl.bool(true)));
@@ -90,8 +88,8 @@ describe("market", () => {
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
-      tx.callPublicFn("market", "list-asset", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.tuple({
           taker: Cl.none(),
           ["token-id"]: Cl.uint(1),
@@ -103,9 +101,9 @@ describe("market", () => {
     ]);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn("market", "fulfil-listing-stx", [
+      tx.callPublicFn(CONTRACT_NAME, "fulfil-listing-stx", [
         Cl.uint(0),
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
       ], wallet2),
     ]);
 
@@ -118,8 +116,8 @@ describe("market", () => {
     await mintAndTransferNFT(wallet1, 2);
 
     const result = await simnet.mineBlock([
-      tx.callPublicFn("market", "list-assets-batch", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "list-assets-batch", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.list([
           Cl.tuple({
             taker: Cl.none(),
@@ -147,8 +145,8 @@ describe("market", () => {
     await mintAndTransferNFT(wallet1, 1);
 
     await simnet.mineBlock([
-      tx.callPublicFn("market", "list-asset", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "list-asset", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.tuple({
           taker: Cl.none(),
           ["token-id"]: Cl.uint(1),
@@ -159,7 +157,7 @@ describe("market", () => {
       ], wallet1),
     ]);
 
-    const result = await simnet.callReadOnlyFn("market", "get-all-listings", [], wallet1);
+    const result = await simnet.callReadOnlyFn(CONTRACT_NAME, "get-all-listings", [], wallet1);
 
     if (result.result.type === ClarityType.List) {
       expect(result.result.list.length).toBeGreaterThan(0);
@@ -171,13 +169,13 @@ describe("market", () => {
   it("Retrieve all whitelisted contracts", async () => {
     const deployer = accounts.get("deployer")!;
     await simnet.mineBlock([
-      tx.callPublicFn("market", "set-whitelisted", [
-        Cl.contractPrincipal(MINTER_CONTRACT_ID.split(".")[0], MINTER_CONTRACT_ID.split(".")[1]),
+      tx.callPublicFn(CONTRACT_NAME, "set-whitelisted", [
+        Cl.contractPrincipal(CONTRACT_ADDRESS.split(".")[0], CONTRACT_ADDRESS.split(".")[1]),
         Cl.bool(true),
       ], deployer),
     ]);
 
-    const result = await simnet.callReadOnlyFn("market", "get-whitelisted-contracts", [], deployer);
+    const result = await simnet.callReadOnlyFn(CONTRACT_NAME, "get-whitelisted-contracts", [], deployer);
 
     if (result.result.type === ClarityType.List) {
       expect(result.result.list.length).toBeGreaterThan(0);
