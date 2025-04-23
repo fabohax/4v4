@@ -1,3 +1,9 @@
+export interface NetworkDetails {
+  explorerUrl: string;
+  chain: Network;
+  coreApiUrl: string;
+}
+
 export type Network = 'mainnet' | 'testnet' | 'devnet';
 
 export function getPersistedNetwork(): Network {
@@ -9,7 +15,7 @@ export function getPersistedNetwork(): Network {
         storedNetwork === 'testnet' ||
         storedNetwork === 'devnet'
       ) {
-        return storedNetwork as Network;
+        return storedNetwork as unknown as Network;
       }
     } catch (error) {
       console.error('Failed to access network from localStorage:', error);
@@ -21,7 +27,7 @@ export function getPersistedNetwork(): Network {
 export function persistNetwork(newNetwork: Network): void {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('network', newNetwork);
+      localStorage.setItem('network', JSON.stringify(newNetwork));
     } catch (error) {
       console.error('Failed to set network in localStorage:', error);
     }

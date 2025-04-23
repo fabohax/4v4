@@ -1,7 +1,9 @@
 'use client';
 import { createContext, FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { getPersistedNetwork, persistNetwork } from '@/lib/network';
 import { Network } from '@/lib/network';
+import { getNetwork } from '@/lib/use-network';
+// Removed the redefinition of NetworkType as it is already defined in /src/lib/network
+
 interface HiroWallet {
   isWalletOpen: boolean;
   isWalletConnected: boolean;
@@ -18,8 +20,8 @@ const HiroWalletContext = createContext<HiroWallet>({
   isWalletConnected: false,
   testnetAddress: null,
   mainnetAddress: null,
-  network: 'mainnet',
-  setNetwork: () => {},
+  network: null,
+  setNetwork: () => {}, // No-op for now
   authenticate: () => {},
   disconnect: () => {},
 });
@@ -34,11 +36,11 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
   const [userSession, setUserSession] = useState<any>(null);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
-  const [network, setNetwork] = useState<Network | null>(null);
+
+  const [network, setNetwork] = useState<Network>(() => 'testnet'); // Default to testnet
 
   const updateNetwork = useCallback((newNetwork: Network) => {
     setNetwork(newNetwork);
-    persistNetwork(newNetwork);
   }, []);
 
   useEffect(() => {
@@ -60,12 +62,6 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     loadStacksConnect();
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setNetwork(getPersistedNetwork());
-    }
-  }, []);
-
   const authenticate = useCallback(() => {
     if (!stacksConnect || !userSession) {
       return;
@@ -78,6 +74,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
         icon: `${window.location.origin}/logo512.png`,
       },
       redirectTo: '/',
+      network: 'testnet', // Explicitly set to testnet
       onFinish: async () => {
         setIsWalletOpen(false);
         setIsWalletConnected(userSession.isUserSignedIn());

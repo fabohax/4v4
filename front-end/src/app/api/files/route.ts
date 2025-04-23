@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const parseJSON = (value: string | null) => {
       try {
         return value ? JSON.parse(value) : {};
-      } catch (error) {
+      } catch {
         console.error('Invalid JSON:', value);
         throw new Error(`Invalid JSON format: ${value}`);
       }

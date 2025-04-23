@@ -2,13 +2,21 @@ import { PLATFORM_API_DOMAIN } from '@/constants/devnet';
 import { Network } from '@/lib/network';
 import { isDevnetEnvironment } from '@/lib/use-network';
 
-export const getExplorerLink = (txId: string, network: Network | null): string => {
-  const baseUrl = 'https://explorer.hiro.so/txid';
-  const cleanTxId = txId.replace('0x', '');
+export type CustomNetwork = 
+  | { type: 'mainnet'; explorerUrl: string }
+  | { type: 'testnet'; explorerUrl: string }
+  | { type: 'devnet'; explorerUrl: string };
 
-  if (isDevnetEnvironment()) {
-    return `${baseUrl}/${cleanTxId}?api=https://${PLATFORM_API_DOMAIN}/v1/ext/${process.env.NEXT_PUBLIC_PLATFORM_HIRO_API_KEY}/stacks-blockchain-api`;
+export const getExplorerLink = (txId: string, network?: CustomNetwork): string => {
+  const baseUrl = network?.explorerUrl || 'https://testnet-explorer.hiro.so';
+  const cleanTxId = txId.replace('0x', '');
+  return `${baseUrl}/txid/${cleanTxId}`;
+};
+
+export const getTokenExplorerLink = (tokenId: string, network: { explorerUrl: string }) => {
+  if (!network || !network.explorerUrl) {
+    throw new Error('Network or explorer URL is not defined.');
   }
 
-  return `${baseUrl}/${cleanTxId}?chain=${network}`;
+  return `${network.explorerUrl}/token/${tokenId}`;
 };

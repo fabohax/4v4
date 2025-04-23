@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, MutableRefObject } from 'react';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import { GridMaterial } from 'babylonjs-materials'; // Import GridMaterial directly - NEW IMPORT
@@ -18,8 +18,8 @@ export default function CenterPanel({
     modelUrl, lightIntensity 
 }: CenterPanelProps) {
     const mountRef = useRef<HTMLCanvasElement>(null);
-    const sceneRef = useRef<BABYLON.Scene>(null);
-    const modelRef = useRef<BABYLON.AbstractMesh>(null);
+    const sceneRef = useRef<BABYLON.Scene | null>(null) as MutableRefObject<BABYLON.Scene | null>;
+    const modelRef = useRef<BABYLON.AbstractMesh | null>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [previousMousePosition, setPreviousMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const [meshMaterial, setMeshMaterial] = useState<BABYLON.StandardMaterial | null>(null);

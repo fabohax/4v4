@@ -10,19 +10,14 @@ import {
   useToast,
   Link,
   Box,
-  Image,
 } from '@chakra-ui/react';
-import { NftCard } from '@/components/marketplace/NftCard';
 import { useNftHoldings, useGetTxId } from '@/hooks/useNftHoldings';
-import { formatValue } from '@/lib/clarity-utils';
 import { mintAvatar } from '@/lib/nft/operations';
-import { useNetwork } from '@/lib/use-network';
+import { useNetwork, NetworkDetails, Network } from '@/lib/use-network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { ExternalLinkIcon } from '@chakra-ui/icons';
 import { useState, useEffect } from 'react';
 import { shouldUseDirectCall, executeContractCall, openContractCall } from '@/lib/contract-utils';
-import { useDevnetWallet } from '@/lib/devnet-wallet-context';
-import { getExplorerLink } from '@/utils/explorer-links';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,13 +26,13 @@ import { useRouter } from 'next/navigation';
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 
-import { getModelFromDB } from '@/utils/IDB'; 
+//import { getModelFromDB } from '@/utils/IDB'; 
 
 export default function ProfilePage() {
   const [lastTxId, setLastTxId] = useState<string | null>(null);
   const currentAddress = useCurrentAddress();
-  const network = useNetwork();
-  const { currentWallet } = useDevnetWallet();
+  const network = useNetwork() as NetworkDetails;
+  const currentWallet = currentAddress;
   const { data: nftHoldings, isLoading: nftHoldingsLoading } = useNftHoldings(currentAddress || '');
   const { data: txData } = useGetTxId(lastTxId || '');
   const toast = useToast();
@@ -55,7 +50,7 @@ export default function ProfilePage() {
   const [royalties, setRoyalties] = useState<string>('10%');
   const [properties, setProperties] = useState<string>('{"polygonCount": 5000}');
   const [location, setLocation] = useState<string>('lat: -12.72596, lon: -77.89962');
-  const [tokenURI, setTokenURI] = useState<string>('');
+  const [tokenURI] = useState<string>('');
   const [soulbound, setSoulbound] = useState<boolean>(false);
   const [minting, setMinting] = useState<boolean>(false);
   const [transactionHash, setTransactionHash] = useState<string>('');
@@ -94,10 +89,11 @@ export default function ProfilePage() {
     }
   
     try {
-      const txOptions = mintAvatar(network, metadataCid); // Pass metadata CID
+      const txOptions = mintAvatar(network as unknown as Network, metadataCid); // Ensure network matches the expected type
   
       if (shouldUseDirectCall()) {
-        const { txid } = await executeContractCall(txOptions, currentWallet);
+        const wallet = currentWallet ? { mnemonic: currentWallet } : null;
+        const { txid } = await executeContractCall(txOptions, wallet);
         setLastTxId(txid);
         toast({
           title: 'Minting Submitted',
@@ -410,6 +406,54 @@ export default function ProfilePage() {
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           ...
         </SimpleGrid>
+      </VStack>
+      <VStack spacing={6} align="stretch" className="my-8">
+        <Text fontSize="2xl" fontWeight="bold">
+          Minted Avatars
+        </Text>
+        {nftHoldingsLoading ? (
+          <Center>
+            <Spinner />
+          </Center>
+        ) : nftHoldings && nftHoldings.results.length > 0 ? (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {nftHoldings.results.map((nft, index) => {
+              if (!('value' in nft) || typeof nft.value !== 'object' || nft.value === null || !('repr' in nft.value)) {
+                return null; // Skip invalid items
+              }
+            
+              const rawIpfsUrl = nft.value.repr;
+            
+              return (
+                <Box
+                  key={index}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  overflow="hidden"
+                  p={4}
+                  bg="white"
+                  shadow="md"
+                >
+                  <Text fontWeight="bold" fontSize="lg" mb={2}>
+                    Raw IPFS URL:
+                  </Text>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    {String(rawIpfsUrl)}
+                  </Text>
+                  <Link
+                    href={(rawIpfsUrl as string).replace(/^"|"$/g, '')} // Remove quotes if present
+                    isExternal
+                    color="blue.500"
+                  >
+                    Open IPFS URL <ExternalLinkIcon mx="2px" />
+                  </Link>
+                </Box>
+              );
+            })}
+          </SimpleGrid>
+        ) : (
+          <Text>No minted avatars found.</Text>
+        )}
       </VStack>
       </div>
     </Container>

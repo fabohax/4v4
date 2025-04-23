@@ -20,6 +20,7 @@
 (define-constant ERR_UNINTENDED_TAKER (err u2006))
 (define-constant ERR_ASSET_CONTRACT_NOT_WHITELISTED (err u2007))
 (define-constant ERR_PAYMENT_CONTRACT_NOT_WHITELISTED (err u2008))
+(define-constant ERR_BATCH_LISTING_FAILED (err u3000)) 
 
 ;; Data Vars
 (define-data-var listing-nonce uint u0)
@@ -61,6 +62,26 @@
       (map-get? listings (+ start i))
     )
     (range u0 PAGE_SIZE)
+  )
+)
+
+;; New Function: Retrieve all whitelisted contracts
+(define-read-only (get-whitelisted-contracts)
+  (map
+    (lambda (contract)
+      { contract: contract, whitelisted: (unwrap-panic (map-get? whitelisted-asset-contracts contract)) }
+    )
+    (keys whitelisted-asset-contracts)
+  )
+)
+
+;; New Function: Retrieve all listings
+(define-read-only (get-all-listings)
+  (map
+    (lambda (id)
+      (map-get? listings id)
+    )
+    (range u0 (var-get listing-nonce))
   )
 )
 
@@ -133,6 +154,7 @@
   )
 )
 
+;; Batch Listing with Error Handling
 (define-public (list-assets-batch (nft-asset-contract <nft-trait>) (assets (list 50 (tuple
   taker: (optional principal),
   token-id: uint,
@@ -140,11 +162,18 @@
   price: uint,
   payment-asset-contract: (optional principal)
 ))))
-  (map
-    (lambda (asset)
-      (list-asset nft-asset-contract asset)
+  (let ((results
+    (map
+      (lambda (asset)
+        (try! (list-asset nft-asset-contract asset))
+      )
+      assets
     )
-    assets
+  ))
+    (if (is-eq (len results) (len assets))
+      (ok results)
+      (err ERR_BATCH_LISTING_FAILED)
+    )
   )
 )
 

@@ -1,5 +1,5 @@
 import { networkFromName } from '@stacks/network';
-import { DEVNET_NETWORK } from '@/constants/devnet';
+import { STACKS_TESTNET } from '@stacks/network'; // Import STACKS_TESTNET for testnet configuration
 import { ContractCallRegularOptions as ContractCallRegularOptionsType } from '@stacks/connect';
 import {
   makeContractCall,
@@ -9,12 +9,15 @@ import {
   PostCondition,
   PostConditionMode,
   AnchorMode,
+  stringAsciiCV, // Import the correct ClarityValue constructor
 } from '@stacks/transactions';
 import { generateWallet } from '@stacks/wallet-sdk';
-import { DevnetWallet } from './devnet-wallet-context';
 import { isDevnetEnvironment } from './use-network';
 import { Network } from '@/lib/network';
 export type ContractCallRegularOptions = ContractCallRegularOptionsType;
+
+// Replace DEVNET_NETWORK with testnet configuration
+const TESTNET_NETWORK = STACKS_TESTNET;
 
 interface DirectCallResponse {
   txid: string;
@@ -24,10 +27,10 @@ export const shouldUseDirectCall = isDevnetEnvironment;
 
 export const executeContractCall = async (
   txOptions: ContractCallRegularOptions,
-  currentWallet: DevnetWallet | null
+  currentWallet: { mnemonic: string } | null
 ): Promise<DirectCallResponse> => {
   const mnemonic = currentWallet?.mnemonic;
-  if (!mnemonic) throw new Error('Devnet wallet not configured');
+  if (!mnemonic) throw new Error('Testnet wallet not configured');
 
   const wallet = await generateWallet({
     secretKey: mnemonic,
@@ -36,7 +39,7 @@ export const executeContractCall = async (
 
   const contractCallTxOptions: SignedContractCallOptions = {
     ...txOptions,
-    network: DEVNET_NETWORK,
+    network: TESTNET_NETWORK, // Use testnet network
     senderKey: wallet.accounts[0].stxPrivateKey,
     functionArgs: txOptions.functionArgs as ClarityValue[],
     postConditions: txOptions.postConditions as PostCondition[],
@@ -66,4 +69,19 @@ export const openContractCall = async (options: ContractCallRegularOptions) => {
     console.error('Failed to load @stacks/connect:', error);
     throw error;
   }
+};
+
+export const mintAvatar = (network: Network, metadataCid: string) => {
+  return {
+    contractAddress: 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS', // Replace with your testnet contract address
+    contractName: 'avatar-minter', // Replace with your testnet contract name
+    functionName: 'mint-public',
+    functionArgs: [
+      stringAsciiCV(metadataCid), // Use the correct ClarityValue constructor
+    ],
+    network,
+    anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
+    postConditions: [],
+  };
 };

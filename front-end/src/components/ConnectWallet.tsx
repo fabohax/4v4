@@ -15,7 +15,8 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
   const { authenticate, isWalletConnected, mainnetAddress, testnetAddress, network, disconnect } =
     useContext(HiroWalletContext);
 
-  const currentAddress = network === 'mainnet' ? mainnetAddress : testnetAddress;
+  const currentAddress =
+    network === 'testnet' ? testnetAddress : mainnetAddress;
 
   const copyAddress = () => {
     if (currentAddress) {
