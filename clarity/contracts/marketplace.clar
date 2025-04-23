@@ -38,11 +38,6 @@
 )
 (define-map whitelisted-asset-contracts principal bool)
 
-;; Events
-(define-event list-event (listing-id uint) (maker principal))
-(define-event sale-event (listing-id uint) (buyer principal))
-(define-event cancel-event (listing-id uint))
-
 ;; Read-only
 (define-read-only (is-whitelisted (asset-contract principal))
   (default-to true (map-get? whitelisted-asset-contracts asset-contract))
@@ -149,7 +144,8 @@
       nft-asset
     ))
     (var-set listing-nonce (+ listing-id u1))
-    (print (list-event listing-id tx-sender))
+    ;; Log listing creation
+    (print { action: "list-asset", listing-id: listing-id, maker: tx-sender })
     (ok listing-id)
   )
 )
@@ -184,7 +180,8 @@
     (asserts! (is-eq (get nft-asset-contract listing) nft-asset-contract) ERR_NFT_ASSET_MISMATCH)
     (map-delete listings listing-id)
     (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
-    (print (cancel-event listing-id))
+    ;; Log listing cancellation
+    (print { action: "cancel-listing", listing-id: listing-id, maker: tx-sender })
     (ok true)
   )
 )
@@ -221,7 +218,8 @@
     (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
     (try! (stx-transfer? (get price listing) tx-sender (get maker listing)))
     (map-delete listings listing-id)
-    (print (sale-event listing-id tx-sender))
+    ;; Log sale completion
+    (print { action: "fulfil-listing-stx", listing-id: listing-id, buyer: tx-sender })
     (ok listing-id)
   )
 )
@@ -233,7 +231,8 @@
     (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) tx-sender))
     (try! (safe-transfer-ft payment-asset-contract (get price listing) tx-sender (get maker listing)))
     (map-delete listings listing-id)
-    (print (sale-event listing-id tx-sender))
+    ;; Log sale completion
+    (print { action: "fulfil-listing-ft", listing-id: listing-id, buyer: tx-sender })
     (ok listing-id)
   )
 )
