@@ -1,4 +1,3 @@
-import { networkFromName } from '@stacks/network';
 import { STACKS_TESTNET } from '@stacks/network'; // Import STACKS_TESTNET for testnet configuration
 import { ContractCallRegularOptions as ContractCallRegularOptionsType } from '@stacks/connect';
 import {
