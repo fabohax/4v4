@@ -77,7 +77,7 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
       ) : (
         <Button
           onClick={authenticate}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
           {...buttonProps}
         >
           {children || 'Connect Wallet'}

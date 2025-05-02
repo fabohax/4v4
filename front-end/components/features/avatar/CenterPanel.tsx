@@ -275,7 +275,7 @@ export default function CenterPanel({
 
 
     return (
-        <main className="w-full h-full bg-white rounded-3xl">
+        <main className="w-full h-screen bg-white rounded-3xl">
             <canvas
                 ref={mountRef}
                 className="w-full h-full cursor-grab active:cursor-grabbing block rounded-3xl"

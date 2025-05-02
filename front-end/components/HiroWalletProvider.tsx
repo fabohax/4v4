@@ -2,7 +2,7 @@
 
 import { createContext, FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Network } from '@/lib/network';
-import { AppConfig, showConnect, UserSession } from '@stacks/connect';
+import { AppConfig, showConnect, UserSession, AuthOptions, StacksProvider } from '@stacks/connect';
 
 interface HiroWallet {
   isWalletOpen: boolean;
@@ -32,7 +32,7 @@ interface ProviderProps {
 
 export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
-  const [stacksConnect, setStacksConnect] = useState<typeof showConnect | null>(null);
+  const [stacksConnect, setStacksConnect] = useState<((authOptions: AuthOptions, provider?: StacksProvider) => Promise<void>) | null>(null);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
@@ -46,7 +46,14 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
         const appConfig = new AppConfig(['store_write', 'publish_data']);
         const session = new UserSession({ appConfig });
 
-        setStacksConnect(showConnect);
+        // Ensure showConnect is properly initialized
+        setStacksConnect(() => async (authOptions: AuthOptions) => {
+          if (!authOptions || typeof authOptions.onFinish !== 'function') {
+            throw new Error('Invalid options passed to showConnect');
+          }
+          await showConnect(authOptions);
+        });
+
         setUserSession(session);
         setMounted(true);
         setIsWalletConnected(session.isUserSignedIn());
@@ -89,15 +96,19 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     }
   }, [userSession]);
 
-  const testnetAddress = useMemo(
-    () => userSession?.loadUserData()?.profile?.stxAddress?.testnet || null,
-    [userSession]
-  );
+  const testnetAddress = useMemo(() => {
+    if (userSession?.isUserSignedIn()) {
+      return userSession.loadUserData()?.profile?.stxAddress?.testnet || null;
+    }
+    return null;
+  }, [userSession]);
 
-  const mainnetAddress = useMemo(
-    () => userSession?.loadUserData()?.profile?.stxAddress?.mainnet || null,
-    [userSession]
-  );
+  const mainnetAddress = useMemo(() => {
+    if (userSession?.isUserSignedIn()) {
+      return userSession.loadUserData()?.profile?.stxAddress?.mainnet || null;
+    }
+    return null;
+  }, [userSession]);
 
   const value = useMemo(
     () => ({

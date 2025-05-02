@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 export const Navbar = () => {
   return (
-    <nav className="bg-transparent">
+    <nav className="fixed top-0 left-0 right-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex justify-between h-16 items-center">
           {/* Logo Section */}
@@ -18,6 +18,7 @@ export const Navbar = () => {
                 4v4
               </Button>
             </Link>
+            <Link href="/mint" className='font-bold px-4 hover:underline'>Mint</Link>
           </div>
 
           {/* Right Section */}

@@ -170,7 +170,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto py-8">
-      <Card className='shadow-none mb-16'>
+      <Card className='shadow-none my-16'>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Mint your model</CardTitle>
         </CardHeader>
@@ -309,7 +309,7 @@ export default function ProfilePage() {
                 checked={soulbound}
                 onCheckedChange={(checked) => setSoulbound(checked as boolean)}
               />
-              <Label htmlFor="soulbound">Soulbound (Non-transferable)</Label>
+              <Label htmlFor="soulbound">Use as Avatar (Soulbound: Non-transferable)</Label>
             </div>
             <div className="flex justify-end space-x-4">
               <Button onClick={handleMint} disabled={minting} className='w-1/2 px-6 py-3 cursor-pointer'>
