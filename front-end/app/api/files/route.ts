@@ -109,8 +109,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ tokenURI }, { status: 200 });
   } catch (error) {
     console.error('Error in API route:', error);
+
+    // Improved error handling
+    let errorMessage = "Internal Server Error";
+    if (axios.isAxiosError(error)) {
+      errorMessage = error.response?.data?.error || error.response?.data || error.message;
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     return NextResponse.json(
-      { error: "Internal Server Error: " + (error instanceof Error ? error.message : "An unexpected error occurred") },
+      { error: `Internal Server Error: ${errorMessage}` },
       { status: 500 }
     );
   }
@@ -132,9 +141,10 @@ pinata.upload.public.file = async (file: File) => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error('Pinata File Upload Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.error || 'Failed to upload file to Pinata');
     } else {
       console.error('Pinata File Upload Error:', error);
+      throw new Error('Failed to upload file to Pinata');
     }
-    throw new Error('Failed to upload model file to Pinata');
   }
 };

@@ -5,7 +5,7 @@ import { useNetwork, NetworkDetails, Network } from '@/lib/use-network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { useState } from 'react';
 import { shouldUseDirectCall, executeContractCall, openContractCall } from '@/lib/contract-utils';
-import { useRouter } from 'next/navigation';
+//import { useRouter } from 'next/navigation';
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner"
+import { ChevronDown } from 'lucide-react';
 
 export default function ProfilePage() {
   const currentAddress = useCurrentAddress();
@@ -22,8 +23,8 @@ export default function ProfilePage() {
   const currentWallet = currentAddress;
 
   // Default placeholder values for testing
-  const [name, setName] = useState<string>('Test Avatar Name');
-  const [description, setDescription] = useState<string>('This is a test avatar description for minting.');
+  const [name, setName] = useState<string>('Test Model Name');
+  const [description, setDescription] = useState<string>('This is a test model description for minting.');
   const [modelFile, setModelFile] = useState<File | null>(null); // File upload will still be required
   const [imageFile, setImageFile] = useState<File | null>(null); // Optional file upload
   const [externalUrl, setExternalUrl] = useState<string>('https://example.com');
@@ -44,8 +45,9 @@ export default function ProfilePage() {
   const [modelUrl, setModelUrl] = useState<string | null>('');
   const [lightIntensity] = useState<number>(11);
   const [lastTxId, setLastTxId] = useState<string>('');
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
-  const router = useRouter();
+  //const router = useRouter();
 
   const handleMintNFT = async (metadataCid: string) => {
     if (!network || !currentAddress) {
@@ -132,10 +134,17 @@ export default function ProfilePage() {
       });
   
       if (!metadataResponse.ok) {
-        const errorData = await metadataResponse.json();
-        const errorMessage = errorData.error || 'Failed to upload metadata to IPFS';
-        setError(errorMessage);
-        throw new Error(errorMessage);
+        const contentType = metadataResponse.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await metadataResponse.json();
+          const errorMessage = errorData.error || 'Failed to upload metadata to IPFS';
+          setError(errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          const errorMessage = `Unexpected response from server: ${metadataResponse.statusText}`;
+          setError(errorMessage);
+          throw new Error(errorMessage);
+        }
       }
   
       const { tokenURI } = await metadataResponse.json();
@@ -146,7 +155,7 @@ export default function ProfilePage() {
       await handleMintNFT(tokenURI);
   
       alert('Avatar minted successfully!');
-      router.push('/profile');
+      //router.push('/profile');
     } catch (e: unknown) {
       if (e instanceof Error) {
         console.error('Error:', e.message);
@@ -160,6 +169,10 @@ export default function ProfilePage() {
     }
   };
 
+  const toggleAdvancedOptions = () => {
+    setShowAdvancedOptions((prev) => !prev);
+  };
+
   if (!currentAddress) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -170,7 +183,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex items-center justify-center h-screen">
-      <Card className='border-[#333] shadow-md text-white bg-[#111] w-4/5'>
+      <Card className='border-[#333] shadow-md text-white bg-[#111] w-4/5 py-16'>
         <CardContent className='grid grid-cols-2 space-x-8 w-auto'>
           <div>
             <div>
@@ -234,12 +247,12 @@ export default function ProfilePage() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Avatar Description"
-                className='border-[#333] p-6 text-lg'
+                placeholder="Model Description"
+                className='border-[#333] p-6 text-lg min-h-[210px]'
               />
             </div>
             <div className='grid grid-cols-2 gap-4'>
-              <div className='w-full justify-center flex text-center border-1 py-2 border-[#333] rounded-md'>
+              <div className='w-full justify-center flex text-center border-1 py-2 border-[#333] rounded-md select-none'>
                 <Checkbox
                   id="soulbound"
                   checked={soulbound}
@@ -248,99 +261,114 @@ export default function ProfilePage() {
                 />
                 <Label htmlFor="soulbound">Use as Avatar</Label>
               </div>
-              <Button className='border-1 border-[#333] cursor-pointer'>Advanced Options</Button>
+              <Button 
+                className='border-1 border-[#333] cursor-pointer'
+                onClick={toggleAdvancedOptions}
+              ><ChevronDown /> {showAdvancedOptions ? 'Hide Advanced Options' : 'Advanced Options'}
+              </Button>
             </div>
-            <div className='hidden'>
+            {showAdvancedOptions && (
               <div>
-                <Label htmlFor="imageFile">Upload Cover Image</Label>
-                <Input
-                  type="file"
-                  id="imageFile"
-                  accept="image/*"
-                  onChange={handleImageFileChange}
-                />
+                <div>
+                  <Label htmlFor="imageFile" className='mb-2'>Upload Cover Image</Label>
+                  <Input
+                    type="file"
+                    id="imageFile"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    className='border-[#333] cursor-pointer'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="externalUrl" className='my-2'>External URL</Label>
+                  <Input
+                    type="text"
+                    id="externalUrl"
+                    value={externalUrl}
+                    onChange={(e) => setExternalUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="attributes" className='my-2'>Attributes</Label>
+                  <Input
+                    type="text"
+                    id="attributes"
+                    value={attributes}
+                    onChange={(e) => setAttributes(e.target.value)}
+                    placeholder="e.g., style: futuristic, rarity: Rare"
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="interoperabilityFormats" className='my-2'>Interoperability Formats (comma-separated)</Label>
+                  <Input
+                    type="text"
+                    id="interoperabilityFormats"
+                    value={interoperabilityFormats}
+                    onChange={(e) => setInteroperabilityFormats(e.target.value)}
+                    placeholder="e.g., glb, fbx"
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customizationData" className='my-2'>Customization Data (JSON)</Label>
+                  <Input
+                    type="text"
+                    id="customizationData"
+                    value={customizationData}
+                    onChange={(e) => setCustomizationData(e.target.value)}
+                    placeholder='e.g., {"color": "blue", "accessory": "hat"}'
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edition" className='my-2'>Edition</Label>
+                  <Input
+                    type="text"
+                    id="edition"
+                    value={edition}
+                    onChange={(e) => setEdition(e.target.value)}
+                    placeholder="e.g., 100"
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="royalties" className='my-2'>Royalties</Label>
+                  <Input
+                    type="text"
+                    id="royalties"
+                    value={royalties}
+                    onChange={(e) => setRoyalties(e.target.value)}
+                    placeholder="e.g., 10%"
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="properties" className='my-2'>Properties</Label>
+                  <Input
+                    type="text"
+                    id="properties"
+                    value={properties}
+                    onChange={(e) => setProperties(e.target.value)}
+                    placeholder='e.g., {"polygonCount": 5000}'
+                    className='border-[#333] p-6'
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location" className='my-2'>Location</Label>
+                  <Input
+                    type="text"
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="e.g., lat: -12.72596, lon: -77.89962"
+                    className='border-[#333] p-6'
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="externalUrl">External URL</Label>
-                <Input
-                  type="text"
-                  id="externalUrl"
-                  value={externalUrl}
-                  onChange={(e) => setExternalUrl(e.target.value)}
-                  placeholder="https://example.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="attributes">Attributes (comma-separated)</Label>
-                <Input
-                  type="text"
-                  id="attributes"
-                  value={attributes}
-                  onChange={(e) => setAttributes(e.target.value)}
-                  placeholder="e.g., style: futuristic, rarity: Rare"
-                />
-              </div>
-              <div>
-                <Label htmlFor="interoperabilityFormats">Interoperability Formats (comma-separated)</Label>
-                <Input
-                  type="text"
-                  id="interoperabilityFormats"
-                  value={interoperabilityFormats}
-                  onChange={(e) => setInteroperabilityFormats(e.target.value)}
-                  placeholder="e.g., glb, fbx"
-                />
-              </div>
-              <div>
-                <Label htmlFor="customizationData">Customization Data (JSON)</Label>
-                <Input
-                  type="text"
-                  id="customizationData"
-                  value={customizationData}
-                  onChange={(e) => setCustomizationData(e.target.value)}
-                  placeholder='e.g., {"color": "blue", "accessory": "hat"}'
-                />
-              </div>
-              <div>
-                <Label htmlFor="edition">Edition</Label>
-                <Input
-                  type="text"
-                  id="edition"
-                  value={edition}
-                  onChange={(e) => setEdition(e.target.value)}
-                  placeholder="e.g., 100"
-                />
-              </div>
-              <div>
-                <Label htmlFor="royalties">Royalties</Label>
-                <Input
-                  type="text"
-                  id="royalties"
-                  value={royalties}
-                  onChange={(e) => setRoyalties(e.target.value)}
-                  placeholder="e.g., 10%"
-                />
-              </div>
-              <div>
-                <Label htmlFor="properties">Traits</Label>
-                <Input
-                  type="text"
-                  id="properties"
-                  value={properties}
-                  onChange={(e) => setProperties(e.target.value)}
-                  placeholder='e.g., {"polygonCount": 5000}'
-                />
-              </div>
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  type="text"
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., lat: -12.72596, lon: -77.89962"
-                />
-              </div>
-            </div>
+            )}
             <div className="justify-start">
               <Button onClick={handleMint} disabled={minting} className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer'>
                 {minting ? 'Minting...' : 'Mint'}
