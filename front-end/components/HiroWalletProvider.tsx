@@ -10,6 +10,7 @@ interface HiroWallet {
   testnetAddress: string | null;
   mainnetAddress: string | null;
   network: Network | null;
+  authenticatedUser: string | null; // Add authenticated user state
   setNetwork: (network: Network) => void;
   authenticate: () => void;
   disconnect: () => void;
@@ -21,6 +22,7 @@ const HiroWalletContext = createContext<HiroWallet>({
   testnetAddress: null,
   mainnetAddress: null,
   network: null,
+  authenticatedUser: null,
   setNetwork: () => {},
   authenticate: () => {},
   disconnect: () => {},
@@ -37,6 +39,9 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [network, setNetwork] = useState<Network>('testnet'); // Default to testnet
+  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null); // Add state for authenticated user
+  const [testnetAddress, setTestnetAddress] = useState<string | null>(null); // Add state for testnet address
+  const [mainnetAddress, setMainnetAddress] = useState<string | null>(null); // Add state for mainnet address
 
   const updateNetwork = useCallback((newNetwork: Network) => setNetwork(newNetwork), []);
 
@@ -65,6 +70,14 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     loadStacksConnect();
   }, []);
 
+  useEffect(() => {
+    if (userSession?.isUserSignedIn()) {
+      const userData = userSession.loadUserData();
+      setTestnetAddress(userData?.profile?.stxAddress?.testnet || null);
+      setMainnetAddress(userData?.profile?.stxAddress?.mainnet || null);
+    }
+  }, [userSession]);
+
   const authenticate = useCallback(() => {
     if (!stacksConnect || !userSession) return;
 
@@ -79,6 +92,12 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
         onFinish: () => {
           setIsWalletOpen(false);
           setIsWalletConnected(userSession.isUserSignedIn());
+          const userData = userSession.loadUserData();
+          setAuthenticatedUser(userData?.profile?.username || null); // Update authenticated user
+
+          // Update addresses immediately after authentication
+          setTestnetAddress(userData?.profile?.stxAddress?.testnet || null);
+          setMainnetAddress(userData?.profile?.stxAddress?.mainnet || null);
         },
         onCancel: () => setIsWalletOpen(false),
         userSession,
@@ -93,21 +112,10 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     if (userSession) {
       userSession.signUserOut(window.location.toString());
       setIsWalletConnected(false);
+      setAuthenticatedUser(null); // Clear authenticated user
+      setTestnetAddress(null); // Clear testnet address
+      setMainnetAddress(null); // Clear mainnet address
     }
-  }, [userSession]);
-
-  const testnetAddress = useMemo(() => {
-    if (userSession?.isUserSignedIn()) {
-      return userSession.loadUserData()?.profile?.stxAddress?.testnet || null;
-    }
-    return null;
-  }, [userSession]);
-
-  const mainnetAddress = useMemo(() => {
-    if (userSession?.isUserSignedIn()) {
-      return userSession.loadUserData()?.profile?.stxAddress?.mainnet || null;
-    }
-    return null;
   }, [userSession]);
 
   const value = useMemo(
@@ -117,11 +125,22 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       testnetAddress,
       mainnetAddress,
       network,
+      authenticatedUser, // Include authenticated user in context
       setNetwork: updateNetwork,
       authenticate,
       disconnect,
     }),
-    [isWalletOpen, isWalletConnected, testnetAddress, mainnetAddress, network, authenticate, disconnect, updateNetwork]
+    [
+      isWalletOpen,
+      isWalletConnected,
+      testnetAddress,
+      mainnetAddress,
+      network,
+      authenticatedUser,
+      authenticate,
+      disconnect,
+      updateNetwork,
+    ]
   );
 
   if (!mounted) return null;

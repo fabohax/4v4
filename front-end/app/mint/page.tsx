@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner"
 
 export default function ProfilePage() {
@@ -22,8 +22,8 @@ export default function ProfilePage() {
   const currentWallet = currentAddress;
 
   // Default placeholder values for testing
-  const [name, setName] = useState<string>('Test Avatar');
-  const [description, setDescription] = useState<string>('This is a test avatar for minting.');
+  const [name, setName] = useState<string>('Test Avatar Name');
+  const [description, setDescription] = useState<string>('This is a test avatar description for minting.');
   const [modelFile, setModelFile] = useState<File | null>(null); // File upload will still be required
   const [imageFile, setImageFile] = useState<File | null>(null); // Optional file upload
   const [externalUrl, setExternalUrl] = useState<string>('https://example.com');
@@ -40,8 +40,8 @@ export default function ProfilePage() {
   const [transactionHash, setTransactionHash] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [secondaryColor] = useState<string>('#ffffff');
-  const [background] = useState<string>('#f5f5f5');
-  const [modelUrl, setModelUrl] = useState<string | null>('/models/default.glb');
+  const [background] = useState<string>('#212121');
+  const [modelUrl, setModelUrl] = useState<string | null>('');
   const [lightIntensity] = useState<number>(11);
   const [lastTxId, setLastTxId] = useState<string>('');
 
@@ -169,156 +169,189 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className='shadow-none my-16'>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Mint your model</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <CenterPanel
-              background={background}
-              secondaryColor={secondaryColor}
-              modelUrl={modelUrl}
-              lightIntensity={lightIntensity}
-            />
-          </div>
-          <div className="space-y-4">
+    <div className="flex items-center justify-center h-screen">
+      <Card className='border-[#333] shadow-md text-white bg-[#111] w-4/5'>
+        <CardContent className='grid grid-cols-2 space-x-8 w-auto'>
+          <div>
             <div>
-              <Label htmlFor="modelFile">Upload 3D Model (.glb)</Label>
-              <Input
-                type="file"
-                id="modelFile"
-                accept=".glb,.gltf"
-                onChange={handleModelFileChange}
-              />
+              {!modelFile ? (
+                <div className="flex flex-col h-[50vh] items-center justify-center border-1 border-dashed border-[#333] rounded-lg p-6">
+                  <Label htmlFor="modelFile" className="text-[#777] mb-2">
+                    Drag and drop model files here or click to upload
+                  </Label>
+                  <Input
+                    type="file"
+                    id="modelFile"
+                    accept=".glb,.gltf"
+                    onChange={handleModelFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="modelFile"
+                    className="bg-[#fff] text-black px-4 py-2 rounded-md cursor-pointer hover:bg-[#333] hover:text-white hover:border-[#fff] select-none"
+                  >
+                    Browse files
+                  </label>
+                  <div className='text-center text-sm'>
+                    <p className="text-[#777] mt-2">
+                      Max Size: 300MB
+                      <br/>
+                      .glb, .gltf, .fbx
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full">
+                  <CenterPanel
+                    background={background}
+                    secondaryColor={secondaryColor}
+                    modelUrl={modelUrl}
+                    lightIntensity={lightIntensity}
+                  />
+                </div>
+              )}
             </div>
+          </div>
+          <div className="space-y-4 overflow-y-auto max-h-auto">
+              <CardTitle className="hidden text-2xl font-bold">Mint</CardTitle>
+
             {error && <p className="text-red-500">{error}</p>}
             {transactionHash && <p className="text-green-500">Transaction Hash: {transactionHash}</p>}
             <div>
-              <Label htmlFor="name">Avatar Name</Label>
+              <Label htmlFor="name" className='hidden mb-4'>Name</Label>
               <Input
                 type="text"
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Avatar Name"
+                placeholder="Name"
+                className='border-[#333] p-6 text-lg'
               />
             </div>
             <div>
-              <Label htmlFor="description">Avatar Description</Label>
+              <Label htmlFor="description" className='hidden mb-4'>Description</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Avatar Description"
+                className='border-[#333] p-6 text-lg'
               />
             </div>
-            <div>
-              <Label htmlFor="imageFile">Upload Cover Image</Label>
-              <Input
-                type="file"
-                id="imageFile"
-                accept="image/*"
-                onChange={handleImageFileChange}
-              />
+            <div className='grid grid-cols-2 gap-4'>
+              <div className='w-full justify-center flex text-center border-1 py-2 border-[#333] rounded-md'>
+                <Checkbox
+                  id="soulbound"
+                  checked={soulbound}
+                  onCheckedChange={(checked) => setSoulbound(checked as boolean)}
+                  className='mr-2'
+                />
+                <Label htmlFor="soulbound">Use as Avatar</Label>
+              </div>
+              <Button className='border-1 border-[#333] cursor-pointer'>Advanced Options</Button>
             </div>
-            <div>
-              <Label htmlFor="externalUrl">External URL</Label>
-              <Input
-                type="text"
-                id="externalUrl"
-                value={externalUrl}
-                onChange={(e) => setExternalUrl(e.target.value)}
-                placeholder="https://example.com"
-              />
+            <div className='hidden'>
+              <div>
+                <Label htmlFor="imageFile">Upload Cover Image</Label>
+                <Input
+                  type="file"
+                  id="imageFile"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="externalUrl">External URL</Label>
+                <Input
+                  type="text"
+                  id="externalUrl"
+                  value={externalUrl}
+                  onChange={(e) => setExternalUrl(e.target.value)}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="attributes">Attributes (comma-separated)</Label>
+                <Input
+                  type="text"
+                  id="attributes"
+                  value={attributes}
+                  onChange={(e) => setAttributes(e.target.value)}
+                  placeholder="e.g., style: futuristic, rarity: Rare"
+                />
+              </div>
+              <div>
+                <Label htmlFor="interoperabilityFormats">Interoperability Formats (comma-separated)</Label>
+                <Input
+                  type="text"
+                  id="interoperabilityFormats"
+                  value={interoperabilityFormats}
+                  onChange={(e) => setInteroperabilityFormats(e.target.value)}
+                  placeholder="e.g., glb, fbx"
+                />
+              </div>
+              <div>
+                <Label htmlFor="customizationData">Customization Data (JSON)</Label>
+                <Input
+                  type="text"
+                  id="customizationData"
+                  value={customizationData}
+                  onChange={(e) => setCustomizationData(e.target.value)}
+                  placeholder='e.g., {"color": "blue", "accessory": "hat"}'
+                />
+              </div>
+              <div>
+                <Label htmlFor="edition">Edition</Label>
+                <Input
+                  type="text"
+                  id="edition"
+                  value={edition}
+                  onChange={(e) => setEdition(e.target.value)}
+                  placeholder="e.g., 100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="royalties">Royalties</Label>
+                <Input
+                  type="text"
+                  id="royalties"
+                  value={royalties}
+                  onChange={(e) => setRoyalties(e.target.value)}
+                  placeholder="e.g., 10%"
+                />
+              </div>
+              <div>
+                <Label htmlFor="properties">Traits</Label>
+                <Input
+                  type="text"
+                  id="properties"
+                  value={properties}
+                  onChange={(e) => setProperties(e.target.value)}
+                  placeholder='e.g., {"polygonCount": 5000}'
+                />
+              </div>
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  type="text"
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g., lat: -12.72596, lon: -77.89962"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="attributes">Attributes (comma-separated)</Label>
-              <Input
-                type="text"
-                id="attributes"
-                value={attributes}
-                onChange={(e) => setAttributes(e.target.value)}
-                placeholder="e.g., style: futuristic, rarity: Rare"
-              />
-            </div>
-            <div>
-              <Label htmlFor="interoperabilityFormats">Interoperability Formats (comma-separated)</Label>
-              <Input
-                type="text"
-                id="interoperabilityFormats"
-                value={interoperabilityFormats}
-                onChange={(e) => setInteroperabilityFormats(e.target.value)}
-                placeholder="e.g., glb, fbx"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customizationData">Customization Data (JSON)</Label>
-              <Input
-                type="text"
-                id="customizationData"
-                value={customizationData}
-                onChange={(e) => setCustomizationData(e.target.value)}
-                placeholder='e.g., {"color": "blue", "accessory": "hat"}'
-              />
-            </div>
-            <div>
-              <Label htmlFor="edition">Edition</Label>
-              <Input
-                type="text"
-                id="edition"
-                value={edition}
-                onChange={(e) => setEdition(e.target.value)}
-                placeholder="e.g., 100"
-              />
-            </div>
-            <div>
-              <Label htmlFor="royalties">Royalties</Label>
-              <Input
-                type="text"
-                id="royalties"
-                value={royalties}
-                onChange={(e) => setRoyalties(e.target.value)}
-                placeholder="e.g., 10%"
-              />
-            </div>
-            <div>
-              <Label htmlFor="properties">Properties (JSON)</Label>
-              <Input
-                type="text"
-                id="properties"
-                value={properties}
-                onChange={(e) => setProperties(e.target.value)}
-                placeholder='e.g., {"polygonCount": 5000}'
-              />
-            </div>
-            <div>
-              <Label htmlFor="location">Location (comma-separated)</Label>
-              <Input
-                type="text"
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g., lat: -12.72596, lon: -77.89962"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="soulbound"
-                checked={soulbound}
-                onCheckedChange={(checked) => setSoulbound(checked as boolean)}
-              />
-              <Label htmlFor="soulbound">Use as Avatar (Soulbound: Non-transferable)</Label>
-            </div>
-            <div className="flex justify-end space-x-4">
-              <Button onClick={handleMint} disabled={minting} className='w-1/2 px-6 py-3 cursor-pointer'>
+            <div className="justify-start">
+              <Button onClick={handleMint} disabled={minting} className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer'>
                 {minting ? 'Minting...' : 'Mint'}
               </Button>
             </div>
+            <div>
+              {tokenURI} <br/> {lastTxId}
+              </div>
           </div>
         </CardContent>
-        {tokenURI} <br/> {lastTxId}
+        
       </Card>
     </div>
   );

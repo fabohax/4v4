@@ -107,6 +107,54 @@ export default function CenterPanel({
                 setCurrentLightIntensity(directionalLight.intensity); 
             }
         };
+
+        const loadModel = (modelPath: string) => {
+            console.log('Loading model from:', modelPath);
+            if (!sceneRef.current || !modelPath) return; 
+
+            BABYLON.SceneLoader.ImportMesh('', modelPath, '', sceneRef.current, (meshes) => {
+                if (meshes && meshes.length > 0) {
+                    // Dispose of the old model if it exists
+                    if (modelRef.current) {
+                        modelRef.current.dispose();
+                    }
+                    modelRef.current = meshes[0];
+                    modelRef.current.receiveShadows = true; // Model receives shadows
+
+                    // --- Hardcoded Camera Positioning - FIXED ZOOM
+                    const modelHeight = 1.8;
+                    const cameraZ = 0.9;
+                    const cameraY = modelHeight / 2;
+                    const cameraX = 0;
+                    const initialPosition = new BABYLON.Vector3(cameraX, cameraY, cameraRadius + cameraZ);
+                    camera.setPosition(initialPosition);
+                    camera.target = new BABYLON.Vector3(0, 0.9, 0);
+                    camera.radius = cameraRadius; // HARDCODE RADIUS HERE, OVERRIDE ANY DYNAMIC CALCULATION
+                    cameraRef.current = camera;
+
+                    updateCameraInfo();
+
+                    // Material application
+                    if (!sceneRef.current) {
+                        console.error("Scene not initialized, cannot create material.");
+                        return;
+                    }
+                    const material = new BABYLON.StandardMaterial('meshMaterial', sceneRef.current);
+                    material.diffuseColor = BABYLON.Color3.FromHexString("#f5f5f5");
+                    material.specularColor = BABYLON.Color3.Black();
+                    setMeshMaterial(material);
+
+                    if (modelRef.current instanceof BABYLON.Mesh) {
+                        modelRef.current.material = material;
+                        shadowGeneratorRef.current?.addShadowCaster(modelRef.current, true); // Model casts shadows
+                    }
+                }
+            }, undefined, undefined, ".glb");
+        };
+
+        // Load initial model
+        loadModel(modelUrl || 'default.glb');
+
         // Animation loop
         const rotationSpeed = 0.005; // Adjust this value to change rotation speed
         engine.runRenderLoop(() => {
@@ -225,53 +273,6 @@ export default function CenterPanel({
         }
     }, [lightIntensity]); // useEffect to respond to lightIntensity prop changes
 
-    useEffect(() => {
-        if (meshMaterial) {
-            console.log('Mesh Material:', meshMaterial);
-        }
-    }, [meshMaterial]);
-
-    useEffect(() => {
-        if (!sceneRef.current || !modelUrl) return;
-
-        // Load the model when modelUrl changes
-        const loadModel = (modelPath: string) => {
-            BABYLON.SceneLoader.ImportMesh('', modelPath, '', sceneRef.current, (meshes) => {
-                if (meshes && meshes.length > 0) {
-                    // Dispose of the old model if it exists
-                    if (modelRef.current) {
-                        modelRef.current.dispose();
-                    }
-
-                    // Set the new model
-                    modelRef.current = meshes[0];
-                    modelRef.current.receiveShadows = true;
-
-                    // Create and apply a new material
-                    const material = new BABYLON.StandardMaterial('meshMaterial', sceneRef.current!);
-                    material.diffuseColor = BABYLON.Color3.FromHexString("#f5f5f5");
-                    material.specularColor = BABYLON.Color3.Black();
-                    modelRef.current.material = material;
-
-                    // Update the meshMaterial state
-                    setMeshMaterial(material);
-
-                    // Add the model to the shadow generator
-                    shadowGeneratorRef.current?.addShadowCaster(modelRef.current, true);
-                }
-            }, undefined, undefined, ".glb");
-        };
-
-        loadModel(modelUrl);
-
-        return () => {
-            // Cleanup the model when the component unmounts or modelUrl changes
-            if (modelRef.current) {
-                modelRef.current.dispose();
-                modelRef.current = null;
-            }
-        };
-    }, [modelUrl]);
 
     return (
         <main className="w-auto h-[50vh] rounded-3xl">
@@ -296,7 +297,8 @@ export default function CenterPanel({
             >
                 <div>{cameraPositionState}</div>
                 <div>{cameraZoomState.toFixed(2)}</div>
-                <div>{currentLightIntensity.toFixed(2)}</div>
+                <div>{currentLightIntensity.toFixed(2)}</div> 
+                {meshMaterial && <div>{meshMaterial.diffuseColor.toHexString()}</div>}
             </div>
         </main>
     );

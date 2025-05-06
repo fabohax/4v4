@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { HiroWalletContext } from './HiroWalletProvider';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +19,19 @@ interface ConnectWalletButtonProps {
 export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
   const { children } = buttonProps;
   const [didCopyAddress, setDidCopyAddress] = useState(false);
+  const [buttonLabel, setButtonLabel] = useState(children || 'Connect Wallet');
   const { authenticate, isWalletConnected, mainnetAddress, testnetAddress, network, disconnect } =
     useContext(HiroWalletContext);
 
   const currentAddress = network === 'testnet' ? testnetAddress : mainnetAddress;
+
+  useEffect(() => {
+    if (isWalletConnected && currentAddress) {
+      setButtonLabel(truncateMiddle(currentAddress));
+    } else {
+      setButtonLabel(children || 'Connect Wallet');
+    }
+  }, [isWalletConnected, currentAddress, children]);
 
   const copyAddress = () => {
     if (currentAddress) {
@@ -49,7 +58,7 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
             <TooltipTrigger asChild>
               <button
                 aria-label="Copy address"
-                className="p-1 text-gray-600 hover:text-gray-800"
+                className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer"
                 onClick={copyAddress}
               >
                 <RiFileCopyLine size={16} />
@@ -80,7 +89,7 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
           className="bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
           {...buttonProps}
         >
-          {children || 'Connect Wallet'}
+          {buttonLabel}
         </Button>
       )}
     </TooltipProvider>
