@@ -1,48 +1,26 @@
-import { isDevnetEnvironment, isTestnetEnvironment } from '@/lib/use-network';
-import { Network } from '@/lib/network';
-export const getNftContractAddress = (network: Network) => {
-  if (isDevnetEnvironment()) {
-    return (
-      process.env.NEXT_PUBLIC_DEPLOYER_ACCOUNT_ADDRESS ||
-      'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'
-    );
-  }
-  if (isTestnetEnvironment(network)) {
-    // return 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
-    return 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS';
-  }
-  // Mainnet address
-  return 'SP3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS';
+
+export const getNftContractAddress = () => {
+  return 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'; // Hardcoded testnet address
 };
 
-export const getNftContract = (network: Network) => {
-  return {
-    contractAddress: getNftContractAddress(network),
+export const getNftContract = () => {
+  const contract = {
+    contractAddress: getNftContractAddress(),
     contractName: 'avatar-minter',
-  } as const;
+  };
+
+  console.log('NFT Contract Details:', contract);
+
+  return contract;
 };
 
-export const getMarketplaceContractAddress = (network: Network) => {
-  if (isDevnetEnvironment()) {
-    return (
-      process.env.NEXT_PUBLIC_DEPLOYER_ACCOUNT_ADDRESS ||
-      'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'
-    );
-  }
-  if (isTestnetEnvironment(network)) {
-    return 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS';
-  }
-  // Mainnet address
-  return 'SP30VANCWST2Y0RY3EYGJ4ZK6D22GJQRR7H5YD8J8';
+export const getMarketplaceContractAddress = () => {
+  return 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'; // Hardcoded testnet address
 };
 
-export const getMarketplaceContract = (network: Network) => {
-  const contractName = isDevnetEnvironment()
-    ? 'market'
-    : 'market';
-
+export const getMarketplaceContract = () => {
   return {
-    contractAddress: getMarketplaceContractAddress(network),
-    contractName,
+    contractAddress: getMarketplaceContractAddress(),
+    contractName: 'market',
   } as const;
 };

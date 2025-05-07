@@ -102,11 +102,8 @@ export async function POST(request: NextRequest) {
       throw new Error("Failed to upload metadata to Pinata");
     }
     const metadataCid = metadataResult.IpfsHash;
-    const tokenURI = `${process.env.PINATA_GATEWAY_URL}/ipfs/${metadataCid}`;
-    console.log('Metadata CID:', metadataCid);
 
-    // Return the metadata CID
-    return NextResponse.json({ tokenURI }, { status: 200 });
+    return NextResponse.json({ metadataCid }, { status: 200 });
   } catch (error) {
     console.error('Error in API route:', error);
 
@@ -141,10 +138,22 @@ pinata.upload.public.file = async (file: File) => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error('Pinata File Upload Error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.error || 'Failed to upload file to Pinata');
+      return new Response(
+        JSON.stringify({
+          error: error.response?.data?.error || 'Failed to upload file to Pinata',
+          details: error.response?.data || null,
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     } else {
       console.error('Pinata File Upload Error:', error);
-      throw new Error('Failed to upload file to Pinata');
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to upload file to Pinata',
+          details: error instanceof Error ? error.message : null,
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 };

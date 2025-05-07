@@ -70,7 +70,7 @@ export const openContractCall = async (options: ContractCallRegularOptions) => {
   }
 };
 
-export const mintAvatar = (network: Network, metadataCid: string) => {
+export const mintModel = (network: Network, metadataCid: string) => {
   return {
     contractAddress: 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS', // Replace with your testnet contract address
     contractName: 'avatar-minter', // Replace with your testnet contract name

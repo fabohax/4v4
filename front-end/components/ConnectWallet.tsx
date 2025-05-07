@@ -19,18 +19,30 @@ interface ConnectWalletButtonProps {
 export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
   const { children } = buttonProps;
   const [didCopyAddress, setDidCopyAddress] = useState(false);
-  const [buttonLabel, setButtonLabel] = useState(children || 'Connect Wallet');
+  const [buttonLabel, setButtonLabel] = useState(children || 'Connect');
   const { authenticate, isWalletConnected, mainnetAddress, testnetAddress, network, disconnect } =
     useContext(HiroWalletContext);
 
   const currentAddress = network === 'testnet' ? testnetAddress : mainnetAddress;
 
   useEffect(() => {
-    if (isWalletConnected && currentAddress) {
-      setButtonLabel(truncateMiddle(currentAddress));
-    } else {
-      setButtonLabel(children || 'Connect Wallet');
-    }
+    const checkWalletConnection = () => {
+      if (isWalletConnected && currentAddress) {
+        setButtonLabel(truncateMiddle(currentAddress));
+      } else {
+        setButtonLabel(children || 'Connect');
+      }
+    };
+
+    // Initial check
+    checkWalletConnection();
+
+    // Add a listener or polling mechanism
+    const interval = setInterval(() => {
+      checkWalletConnection();
+    }, 1000); // Poll every second
+
+    return () => clearInterval(interval); // Cleanup on unmount
   }, [isWalletConnected, currentAddress, children]);
 
   const copyAddress = () => {
@@ -71,7 +83,7 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                aria-label="Disconnect wallet"
+                aria-label="Disconnect"
                 className="p-1 text-gray-600 hover:text-gray-800"
                 onClick={disconnect}
               >

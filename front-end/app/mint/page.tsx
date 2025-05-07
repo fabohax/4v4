@@ -1,10 +1,10 @@
 'use client';
 
-import { mintAvatar } from '@/lib/nft/operations';
-import { useNetwork, NetworkDetails, Network } from '@/lib/use-network';
+import { useNetwork, NetworkDetails } from '@/lib/use-network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { useState } from 'react';
-import { shouldUseDirectCall, executeContractCall, openContractCall } from '@/lib/contract-utils';
+import { request } from '@stacks/connect';
+import { stringAsciiCV } from '@stacks/transactions';
 //import { useRouter } from 'next/navigation';
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
@@ -16,11 +16,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner"
 import { ChevronDown } from 'lucide-react';
+import { getNftContract } from '@/constants/contracts';
 
 export default function ProfilePage() {
   const currentAddress = useCurrentAddress();
   const network = useNetwork() as NetworkDetails;
-  const currentWallet = currentAddress;
 
   // Default placeholder values for testing
   const [name, setName] = useState<string>('Test Model Name');
@@ -50,29 +50,31 @@ export default function ProfilePage() {
   //const router = useRouter();
 
   const handleMintNFT = async (metadataCid: string) => {
+
     if (!network || !currentAddress) {
       setError("Network or wallet not connected.");
+      console.error("Network or wallet not connected.");
       return;
     }
   
     try {
-      const txOptions = mintAvatar(network as unknown as Network, metadataCid); // Ensure network matches the expected type
+      const contract = getNftContract();
+
+      console.log('Raw Metadata CID:', metadataCid);
+
+      const cl_metadataCid = stringAsciiCV(metadataCid.trim()); // Use stringAsciiCV for ASCII strings
+      console.log('Clarity Metadata CID:', cl_metadataCid);
   
-      if (shouldUseDirectCall()) {
-        const wallet = currentWallet ? { mnemonic: currentWallet } : null;
-        const { txid } = await executeContractCall(txOptions, wallet);
-        setLastTxId(txid);
-        toast("Minting Submitted");
-        return;
-      }
-  
-      await openContractCall({
-        ...txOptions,
-        onFinish: (data) => {
-          setLastTxId(data.txId);
-          toast('Minting submitted!');
-        }
+      const response = await request('stx_callContract', {
+        contract: `${contract.contractAddress}.${contract.contractName}` as `${string}.${string}`,
+        functionName: 'mint-public',
+        functionArgs: [cl_metadataCid], // Pass the Clarity value as an argument
+        network: 'testnet',
       });
+
+      console.log('Transaction Response:', response);
+
+      setLastTxId(response.txid || '');
     } catch (error) {
       console.error('Error minting NFT:', error);
       setError('Failed to mint NFT. Please try again.');
@@ -137,7 +139,8 @@ export default function ProfilePage() {
         const contentType = metadataResponse.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const errorData = await metadataResponse.json();
-          const errorMessage = errorData.error || 'Failed to upload metadata to IPFS';
+          console.error('Server Error Response:', errorData);
+          const errorMessage = errorData?.error || 'Failed to upload metadata to IPFS';
           setError(errorMessage);
           throw new Error(errorMessage);
         } else {
@@ -147,12 +150,40 @@ export default function ProfilePage() {
         }
       }
   
-      const { tokenURI } = await metadataResponse.json();
+      const contentType = metadataResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorMessage = 'Invalid response format from server. Expected JSON.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
   
-      console.log('Token URI:', tokenURI);
+      let responseData;
+      try {
+        responseData = await metadataResponse.json();
+        console.log('Server Response Data:', responseData); // Log server response data
+      } catch {
+        const errorMessage = 'Failed to parse server response as JSON.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
   
-      // Call handleMintNFT with the token URI
-      await handleMintNFT(tokenURI);
+      if (!responseData || typeof responseData !== 'object' || !responseData.metadataCid) {
+        console.error('Invalid Server Response:', responseData); // Log invalid server response
+        const errorMessage = 'Invalid or missing metadata CID in server response.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+  
+      const sanitizedCid = responseData.metadataCid.trim(); // Use metadataCid and sanitize it
+      console.log('Sanitized Metadata CID:', sanitizedCid);
+  
+      if (!sanitizedCid || typeof sanitizedCid !== 'string' || !sanitizedCid.trim()) {
+        const errorMessage = 'Invalid metadata CID retrieved from server.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+  
+      await handleMintNFT(sanitizedCid);
   
       alert('Avatar minted successfully!');
       //router.push('/profile');
@@ -160,6 +191,9 @@ export default function ProfilePage() {
       if (e instanceof Error) {
         console.error('Error:', e.message);
         setError(e.message);
+      } else if (typeof e === 'object') {
+        console.error('Unknown error:', JSON.stringify(e));
+        setError('An unexpected error occurred.');
       } else {
         console.error('Unknown error:', e);
         setError('An unexpected error occurred.');

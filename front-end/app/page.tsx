@@ -19,7 +19,7 @@ export default function Home() {
             className="border border-[#333] p-4 rounded-md shadow hover:shadow-lg transition"
           >
             <div className="bg-[#333] h-32 mb-4 flex items-center justify-center rounded-lg">
-              <span className="text-gray-500">/////</span>
+              <span className="text-gray-500">----</span>
             </div>
             <h2 className="text-lg font-bold">{item.title}</h2>
             <p className="text-sm text-gray-600">{item.author}</p>
