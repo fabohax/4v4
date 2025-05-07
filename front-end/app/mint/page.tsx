@@ -1,6 +1,5 @@
 'use client';
 
-import { useNetwork, NetworkDetails } from '@/lib/use-network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { useState } from 'react';
 import { request } from '@stacks/connect';
@@ -20,7 +19,6 @@ import { getNftContract } from '@/constants/contracts';
 
 export default function ProfilePage() {
   const currentAddress = useCurrentAddress();
-  const network = useNetwork() as NetworkDetails;
 
   // Default placeholder values for testing
   const [name, setName] = useState<string>('Test Model Name');
@@ -51,9 +49,9 @@ export default function ProfilePage() {
 
   const handleMintNFT = async (metadataCid: string) => {
 
-    if (!network || !currentAddress) {
-      setError("Network or wallet not connected.");
-      console.error("Network or wallet not connected.");
+    if (!currentAddress) {
+      setError("Wallet not connected.");
+      console.error("Wallet not connected.");
       return;
     }
   

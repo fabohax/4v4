@@ -1,15 +1,11 @@
 export interface NetworkDetails {
-  explorerUrl: string;
-  chain: Network;
-  coreApiUrl: string;
-}
-
-export type Network = 'testnet';
-
-export function getPersistedNetwork(): Network {
-  return 'testnet'; // Hardcoded to testnet
-}
-
-export function persistNetwork(newNetwork: Network): void {
-  console.warn('Network persistence is disabled. Hardcoded to testnet.');
-}
+    explorerUrl: string;
+    chain: Network;
+    coreApiUrl: string;
+  }
+  
+  export type Network = 'testnet';
+  
+  export function getPersistedNetwork(): Network {
+    return 'testnet'; // Hardcoded to testnet
+  }
