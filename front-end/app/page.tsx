@@ -21,11 +21,11 @@ export default function Home() {
   const featuredModels = [
     {
       id: 1,
-      title: "Cyber Head",
+      title: "CyberHead",
       author: "CryptoArtist",
       price: "SAT 1200",
       image: "/01.png?height=400&width=400",
-      category: "Avatar",
+      category: "Collectible",
       likes: 243,
       views: 1.2,
     },
@@ -35,17 +35,17 @@ export default function Home() {
       author: "NFT_Creator",
       price: "SAT 850",
       image: "/02.png?height=400&width=400",
-      category: "Character",
+      category: "Avatar",
       likes: 187,
       views: 0.9,
     },
     {
       id: 3,
-      title: "Digital Landscape",
+      title: "Minecraft Boy",
       author: "3D_Master",
       price: "SAT 2000",
       image: "/03.png?height=400&width=400",
-      category: "Environment",
+      category: "Avatar",
       likes: 312,
       views: 1.5,
     },
@@ -119,11 +119,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white">
+    <div className="h-auto bg-gradient-to-b from-black to-gray-900 text-white">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden py-16">
         {/* Background gradient animation */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-teal-900/20 animate-gradient-x"></div>
+        <div className="inset-0 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-teal-900/20 animate-gradient-x"></div>
 
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -134,7 +134,7 @@ export default function Home() {
               variants={fadeIn}
             >
               <motion.h1
-                className="text-5xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-400 to-purple-500"
+                className="title text-5xl md:text-6xl font-extralight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-400 to-purple-500"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
@@ -142,12 +142,12 @@ export default function Home() {
                 Discover & Collect 3D NFTs
               </motion.h1>
               <motion.p
-                className="text-xl text-gray-300 mb-8"
+                className="text-xl text-gray-300 mb-8 font-light"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                Explore, buy, and showcase high-quality 3D models from talented creators on the Stacks blockchain.
+                Explore, buy, and showcase high-quality 3D models from talented creators on the Stacks Network.
               </motion.p>
 
               <div className="flex flex-wrap gap-4">
@@ -158,9 +158,9 @@ export default function Home() {
                 >
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 rounded-xl"
+                    className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 rounded-xl cursor-pointer"
                   >
-                    Explore Models
+                    Explore
                   </Button>
                 </motion.div>
 
@@ -172,7 +172,7 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-2 border-white/20 hover:bg-white/10 text-white px-8 py-6 rounded-xl"
+                    className="border-2 border-white/20 hover:bg-white/10 text-white hover:text-white px-8 py-6 rounded-xl cursor-pointer"
                   >
                     <Link href="/mint">Create & Mint</Link>
                   </Button>
@@ -181,7 +181,7 @@ export default function Home() {
             </motion.div>
 
             <motion.div
-              className="md:w-2/3 h-[500px] relative"
+              className="md:w-auto mx-auto h-auto relative"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
@@ -198,7 +198,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
         >
-          <div className="bg-gray-800/60 backdrop-blur-lg p-4 rounded-2xl border border-gray-700/50 shadow-xl">
+          <div className="bg-transparent backdrop-blur-lg p-4 rounded-2xl border border-gray-700/50 shadow-xl">
             <div className="relative">
               <Search className="absolute left-4 top-3.5 text-gray-400" />
               <Input
@@ -219,7 +219,7 @@ export default function Home() {
         variants={fadeIn}
       >
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Browse Categories</h2>
+          <h2 className="title text-3xl font-bold">Browse Categories</h2>
           <Button variant="ghost" className="text-blue-400 hover:text-blue-300">
             View All <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
@@ -242,7 +242,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center">
             <Sparkles className="mr-2 text-yellow-400" />
-            <h2 className="text-3xl font-bold">Featured Models</h2>
+            <h2 className="title text-3xl font-bold">Featured Models</h2>
           </div>
           <Button variant="ghost" className="text-blue-400 hover:text-blue-300">
             View All <ChevronRight className="ml-1 h-4 w-4" />
@@ -271,7 +271,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center">
             <TrendingUp className="mr-2 text-red-400" />
-            <h2 className="text-3xl font-bold">Trending Now</h2>
+            <h2 className="title text-3xl font-bold">Trending Now</h2>
           </div>
           <Button variant="ghost" className="text-blue-400 hover:text-blue-300">
             View All <ChevronRight className="ml-1 h-4 w-4" />
@@ -300,7 +300,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center">
             <Award className="mr-2 text-green-400" />
-            <h2 className="text-3xl font-bold">Top Creators</h2>
+            <h2 className="title text-3xl font-bold">Top Creators</h2>
           </div>
           <Button variant="ghost" className="text-blue-400 hover:text-blue-300">
             View All <ChevronRight className="ml-1 h-4 w-4" />
@@ -342,15 +342,15 @@ export default function Home() {
 
           <div className="relative z-10 text-center max-w-3xl mx-auto">
             <Zap className="w-12 h-12 mx-auto mb-6 text-yellow-400" />
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Create Your Own 3D NFT?</h2>
+            <h2 className="title text-4xl md:text-5xl font-bold mb-6">Ready to Create Your Own 3D NFT?</h2>
             <p className="text-xl text-gray-300 mb-8">
               Join our community of creators and collectors. Mint your 3D models and earn SATs on the Stacks blockchain.
             </p>
             <Button
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-6 rounded-xl text-lg"
+              className="title select-none bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-6 rounded-xl text-lg"
             >
-              <Link href="/mint">Start Creating</Link>
+              <Link href="/mint">START CREATING</Link>
             </Button>
           </div>
         </div>

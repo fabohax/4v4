@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { Eye, Heart, ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,14 +39,14 @@ export default function FeaturedCard({ model }: FeaturedCardProps) {
       >
         {/* Featured image with animation */}
         <motion.div
-          className="relative w-[280px] h-[280px] mb-6 animate-float"
+          className="relative w-full h-full animate-float"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse-glow"></div>
           <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
-            <img src={model.image || "/placeholder.svg"} alt={model.title} className="w-full h-full object-cover" />
+            <Image src="/01.png" alt={model.title} height={300} width={300} className="w-full h-full object-cover" />
 
             {/* Overlay on hover */}
             <motion.div
@@ -66,7 +67,7 @@ export default function FeaturedCard({ model }: FeaturedCardProps) {
               </div>
 
               <Button
-                className="w-full bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white"
+                className="w-full bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white cursor-pointer"
                 size="sm"
               >
                 View Details <ArrowUpRight className="ml-1 w-4 h-4" />
@@ -75,20 +76,6 @@ export default function FeaturedCard({ model }: FeaturedCardProps) {
           </div>
         </motion.div>
 
-        {/* Featured model info */}
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.8 }}
-        >
-          <div className="inline-block px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-blue-300 text-xs mb-2">
-            Featured Model
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-1">{model.title}</h2>
-          <p className="text-gray-400">by {model.author}</p>
-          <p className="text-xl font-semibold text-blue-400 mt-2">{model.price}</p>
-        </motion.div>
       </div>
     </div>
   )

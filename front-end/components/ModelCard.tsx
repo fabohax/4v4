@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Heart, Eye } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -46,14 +47,16 @@ export default function ModelCard({ model, featured = false }: ModelCardProps) {
             <div
               className={cn(
                 "relative overflow-hidden bg-gray-800 flex items-center justify-center",
-                featured ? "h-[280px]" : "h-[200px]",
+                featured ? "h-auto" : "h-auto",
               )}
             >
-              <img
+              <Image
                 src={model.image || "/placeholder.svg"}
                 alt={model.title}
+                height={400}
+                width={400}
                 className={cn(
-                  "w-full h-full object-cover transition-transform duration-700",
+                  "w-full h-full object-cover transition-transform duration-700 rounded-lg",
                   isHovered ? "scale-110" : "scale-100",
                 )}
               />
