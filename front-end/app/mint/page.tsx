@@ -60,13 +60,12 @@ export default function ProfilePage() {
 
       console.log('Raw Metadata CID:', metadataCid);
 
-      const cl_metadataCid = stringAsciiCV(metadataCid.trim()); // Use stringAsciiCV for ASCII strings
-      console.log('Clarity Metadata CID:', cl_metadataCid);
+      const cl_metadataCid = stringAsciiCV(metadataCid.trim()); 
   
       const response = await request('stx_callContract', {
         contract: `${contract.contractAddress}.${contract.contractName}` as `${string}.${string}`,
         functionName: 'mint-public',
-        functionArgs: [cl_metadataCid], // Pass the Clarity value as an argument
+        functionArgs: [cl_metadataCid], 
         network: 'testnet',
       });
 
