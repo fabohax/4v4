@@ -40,7 +40,7 @@ export default function Footer() {
             <h3 className="title text-lg font-bold mb-4">Support</h3>
             <ul className="space-y-2 text-gray-400">
               <li><a href="#" className="hover:text-white">Help Center</a></li>
-              <li><a href="mailto:support@4v4.io" className="hover:text-white">support@4v4.io</a></li>
+              <li><a href="mailto:support@4v4.io" className="hover:text-white">support@4V4.inc</a></li>
             </ul>
           </div>
         </div>

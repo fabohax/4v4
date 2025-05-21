@@ -119,7 +119,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-auto bg-gradient-to-b from-black to-gray-900 text-white">
+    <div className="h-auto bg-gradient-to-b from-black to-gray-900 text-white dotted-grid-background">
       {/* Hero Section */}
       <section className="relative overflow-hidden py-16">
         {/* Background gradient animation */}
@@ -147,7 +147,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                Explore, buy, and showcase high-quality 3D models from talented creators on the Stacks Network.
+                Explore, buy, and showcase high-quality 3D models from talented creators worldwide.
               </motion.p>
 
               <div className="flex flex-wrap gap-4">
@@ -181,7 +181,7 @@ export default function Home() {
             </motion.div>
 
             <motion.div
-              className="md:w-auto mx-auto h-auto relative"
+              className="mx-auto h-auto relative"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
@@ -344,7 +344,7 @@ export default function Home() {
             <Zap className="w-12 h-12 mx-auto mb-6 text-yellow-400" />
             <h2 className="title text-4xl md:text-5xl font-bold mb-6">Ready to Create Your Own 3D NFT?</h2>
             <p className="text-xl text-gray-300 mb-8">
-              Join our community of creators and collectors. Mint your 3D models and earn SATs on the Stacks blockchain.
+              Join our community of creators and collectors. Mint your 3D models and earn.
             </p>
             <Button
               size="lg"
@@ -355,7 +355,7 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
-      <Footer /> {/* Add Footer component */}
+      <Footer /> 
     </div>
   )
 }

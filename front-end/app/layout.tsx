@@ -16,7 +16,7 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const metadata: Metadata = {
-  title: "4v4",
+  title: "4V4",
   description: "--",
 };
 

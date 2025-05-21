@@ -136,3 +136,9 @@ html, body {
   font-weight: 700;
   letter-spacing: 0.05em;
 }
+
+.dotted-grid-background {
+  background-color: transparent; /* Base background color */
+  background-image: radial-gradient(rgb(63, 63, 63) 1px, transparent 1px);
+  background-size: 120px 120px; /* Adjust the size of the grid */
+}

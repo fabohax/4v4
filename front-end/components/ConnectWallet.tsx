@@ -58,25 +58,32 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
   const truncateMiddle = (str: string | null) => {
     if (!str) return '';
     if (str.length <= 12) return str;
-    return `${str.slice(0, 6)}...${str.slice(-4)}`;
+    return `${str.slice(0, 3)}~${str.slice(-3)}`;
   };
 
   return (
     <TooltipProvider>
       {isWalletConnected ? (
-        <div className="flex items-center gap-2 px-2 rounded-md bg-gray-200">
-          <span className="text-sm text-gray-800">{truncateMiddle(currentAddress)}</span>
+        <div className="flex items-center gap-2 px-2 rounded-md bg-gray-200 z-100 relative">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm text-gray-800 cursor-pointer">{truncateMiddle(currentAddress)}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="center" className="!mt-0 z-[9999]">
+              <p>{didCopyAddress ? 'Copied!' : 'Copy address'}</p>
+            </TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 aria-label="Copy address"
-                className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer"
+                className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer z-200"
                 onClick={copyAddress}
               >
                 <RiFileCopyLine size={16} />
               </button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="z-[9999]">
               <p>{didCopyAddress ? 'Copied!' : 'Copy address'}</p>
             </TooltipContent>
           </Tooltip>
@@ -84,13 +91,13 @@ export const ConnectWalletButton = (buttonProps: ConnectWalletButtonProps) => {
             <TooltipTrigger asChild>
               <button
                 aria-label="Disconnect"
-                className="p-1 text-gray-600 hover:text-gray-800"
+                className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer"
                 onClick={disconnect}
               >
                 <RiCloseLine size={16} />
               </button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="z-[9999]">
               <p>Disconnect</p>
             </TooltipContent>
           </Tooltip>

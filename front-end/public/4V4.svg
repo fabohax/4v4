@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="210mm"
+   viewBox="0 0 210 210"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.1 (1:1.4.1+202503302257+93de688d07)"
+   sodipodi:docname="4V4.svg"
+   inkscape:export-filename="4V4.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.46399368"
+     inkscape:cx="510.78282"
+     inkscape:cy="529.10203"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g1"
+       transform="matrix(1.9798714,0,0,1.9798714,-102.88652,-154.85447)">
+      <rect
+         style="fill:#ffffff;fill-opacity:0.99;stroke:#000000;stroke-width:0.0682089;stroke-linecap:square;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect1"
+         width="42.42672"
+         height="61.210613"
+         x="-533.46503"
+         y="402.87613"
+         transform="matrix(-1,0,-0.9394904,0.34257523,0,0)" />
+      <rect
+         style="fill:#ffffff;fill-opacity:0.99;stroke:#000000;stroke-width:0.0682089;stroke-linecap:square;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect1-3"
+         width="42.42672"
+         height="61.210613"
+         x="-438.84085"
+         y="302.15753"
+         transform="matrix(-1,0,-0.9394904,0.34257523,0,0)" />
+    </g>
+  </g>
+</svg>

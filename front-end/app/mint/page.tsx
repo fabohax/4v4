@@ -207,14 +207,14 @@ export default function ProfilePage() {
   if (!currentAddress) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p>Please connect your wallet to view your NFTs</p>
+        <p>Please connect your wallet to mint your models</p>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <Card className='border-[#333] shadow-md text-white bg-[#111] w-4/5 py-16'>
+    <div className="flex items-center justify-center h-screen dotted-grid-background">
+      <Card className='border-[#333] shadow-md text-white bg-[#000] w-4/5 py-8'>
         <CardContent className='grid grid-cols-2 space-x-8 w-auto'>
           <div>
             <div>
