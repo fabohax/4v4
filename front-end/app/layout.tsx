@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Chakra_Petch } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import { GetInButton } from "@/components/GetIn";
 import { Providers } from '@/components/ui/provider';
 import "./globals.css";
 
@@ -17,7 +18,7 @@ const chakraPetch = Chakra_Petch({
 
 export const metadata: Metadata = {
   title: "4V4",
-  description: "--",
+  description: "Find & Buy 3D NFTs on Bitcoin",
 };
 
 export default function RootLayout({
@@ -31,6 +32,7 @@ export default function RootLayout({
         <Providers>
           <>
             <Navbar />
+            <GetInButton />
             {children}
           </>
         </Providers>

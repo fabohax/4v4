@@ -134,12 +134,12 @@ export default function Home() {
               variants={fadeIn}
             >
               <motion.h1
-                className="title text-5xl md:text-6xl font-extralight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-400 to-purple-500"
+                className="title text-5xl md:text-6xl font-extralight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-300 via-white to-gray-100"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                Discover & Collect 3D NFTs
+                Mint & Collect 3D NFTs
               </motion.h1>
               <motion.p
                 className="text-xl text-gray-300 mb-8 font-light"

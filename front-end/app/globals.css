@@ -142,3 +142,7 @@ html, body {
   background-image: radial-gradient(rgb(63, 63, 63) 1px, transparent 1px);
   background-size: 120px 120px; /* Adjust the size of the grid */
 }
+
+.font-work-sans {
+  font-family: var(--font-work-sans), sans-serif;
+}
