@@ -8,6 +8,7 @@ interface HiroWallet {
   isWalletConnected: boolean;
   testnetAddress: string | null;
   mainnetAddress: string | null;
+  currentAddress: string | null; // <-- add this
   network: Network | null;
   setNetwork: (network: Network) => void;
   authenticate: () => void;
@@ -19,6 +20,7 @@ const HiroWalletContext = createContext<HiroWallet>({
   isWalletConnected: false,
   testnetAddress: null,
   mainnetAddress: null,
+  currentAddress: null, // <-- add this
   network: 'mainnet',
   setNetwork: () => {},
   authenticate: () => {},
@@ -34,6 +36,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [network, setNetwork] = useState<Network | null>(null);
+  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
 
   const updateNetwork = useCallback((newNetwork: Network) => {
     setNetwork(newNetwork);
@@ -76,6 +79,17 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     setIsWalletConnected(false);
   }, []);
 
+  useEffect(() => {
+    if (isWalletConnected) {
+      const data = getLocalStorage();
+      const stxAddresses = data?.addresses?.stx || [];
+      const address = stxAddresses.length > 0 ? stxAddresses[0].address : null;
+      setCurrentAddress(address || null);
+    } else {
+      setCurrentAddress(null);
+    }
+  }, [isWalletConnected]);
+
   const { testnetAddress, mainnetAddress } = useMemo(() => {
     if (!isWalletConnected) return { testnetAddress: null, mainnetAddress: null };
 
@@ -100,6 +114,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       isWalletConnected,
       testnetAddress,
       mainnetAddress,
+      currentAddress, // <-- add this
       network,
       setNetwork: updateNetwork,
       authenticate,
@@ -110,6 +125,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       isWalletConnected,
       testnetAddress,
       mainnetAddress,
+      currentAddress, // <-- add this
       network,
       authenticate,
       handleDisconnect,

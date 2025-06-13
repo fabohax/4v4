@@ -202,33 +202,26 @@ export default function CenterPanel({
             setIsDragging(false);
         };
 
-        // Handle mouse wheel zooming - STILL ALLOW ZOOMING
-        const handleMouseWheel = (event: WheelEvent) => {
-            event.preventDefault();
-            const zoomSpeed = 0.002;  // Reduced zoom speed
-            const delta = event.deltaY * zoomSpeed;
+        // Remove mouse wheel zooming by not adding the wheel event listener
+        // (Do not add: canvas.addEventListener('wheel', handleMouseWheel);)
 
-            const minZoom = 1;
-            const maxZoom = 20;
-
-            if (cameraRef.current) {
-                let newRadius = cameraRef.current.radius - delta;
-                newRadius = Math.max(minZoom, Math.min(maxZoom, newRadius));
-                cameraRef.current.radius = newRadius;
-                setCameraZoomState(cameraRef.current.radius);
-                updateCameraInfo();
-            }
-        };
-
-        // Add event listeners
+        // Add event listeners (without wheel)
         const canvas = mountRef.current;
         if (canvas) {
             canvas.addEventListener('mousedown', handleMouseDown);
             canvas.addEventListener('mousemove', handleMouseMove);
             canvas.addEventListener('mouseup', handleMouseUp);
             canvas.addEventListener('mouseleave', handleMouseLeave);
-            canvas.addEventListener('wheel', handleMouseWheel);
+            // Do NOT add wheel event
             canvas.style.touchAction = 'none';
+        }
+
+        // Disable zooming on the ArcRotateCamera
+        if (cameraRef.current) {
+            cameraRef.current.lowerRadiusLimit = cameraRef.current.radius;
+            cameraRef.current.upperRadiusLimit = cameraRef.current.radius;
+            cameraRef.current.pinchPrecision = 0; // disables pinch zoom on touch devices
+            cameraRef.current.wheelPrecision = 0; // disables wheel zoom
         }
 
         // Animation loop
@@ -250,7 +243,7 @@ export default function CenterPanel({
                 canvas.removeEventListener('mousemove', handleMouseMove);
                 canvas.removeEventListener('mouseup', handleMouseUp);
                 canvas.removeEventListener('mouseleave', handleMouseLeave);
-                canvas.removeEventListener('wheel', handleMouseWheel);
+                // No wheel event to remove
             }
             engine.dispose();
         };
@@ -275,10 +268,10 @@ export default function CenterPanel({
 
 
     return (
-        <main className="w-auto h-[50vh] rounded-3xl">
+        <main className="w-auto h-[100vh] rounded-3xl">
             <canvas
                 ref={mountRef}
-                className="w-full h-full cursor-grab active:cursor-grabbing block rounded-2xl"
+                className="w-full h-full cursor-grab active:cursor-grabbing block rounded-2xl outline-none"
                 onMouseDown={(e) => e.preventDefault()}
             />
             <div

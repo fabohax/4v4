@@ -1,7 +1,7 @@
 'use client';
 
-import { useCurrentAddress } from '@/hooks/useCurrentAddress';
-import { useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
+import { HiroWalletContext } from '@/components/HiroWalletProvider';
 import { request } from '@stacks/connect';
 import { stringAsciiCV } from '@stacks/transactions';
 //import { useRouter } from 'next/navigation';
@@ -18,7 +18,13 @@ import { ChevronDown } from 'lucide-react';
 import { getNftContract } from '@/constants/contracts';
 
 export default function ProfilePage() {
-  const currentAddress = useCurrentAddress();
+  // Use HiroWalletContext directly to get currentAddress
+  const { currentAddress, isWalletConnected } = useContext(HiroWalletContext);
+
+  // Debug: log currentAddress and isWalletConnected
+  useEffect(() => {
+    console.log('currentAddress:', currentAddress, 'isWalletConnected:', isWalletConnected);
+  }, [currentAddress, isWalletConnected]);
 
   // Default placeholder values for testing
   const [name, setName] = useState<string>('Test Model Name');
@@ -48,18 +54,15 @@ export default function ProfilePage() {
   //const router = useRouter();
 
   const handleMintNFT = async (metadataCid: string) => {
-
     if (!currentAddress) {
       setError("Wallet not connected.");
       console.error("Wallet not connected.");
-      return;
+      return false;
     }
   
     try {
       const contract = getNftContract();
-
       console.log('Raw Metadata CID:', metadataCid);
-
       const cl_metadataCid = stringAsciiCV(metadataCid.trim()); 
   
       const response = await request('stx_callContract', {
@@ -71,11 +74,30 @@ export default function ProfilePage() {
 
       console.log('Transaction Response:', response);
 
-      setLastTxId(response.txid || '');
-    } catch (error) {
-      console.error('Error minting NFT:', error);
-      setError('Failed to mint NFT. Please try again.');
-      toast('Failed to mint NFT');
+      if (response && response.txid) {
+        setLastTxId(response.txid);
+        return response.txid;
+      } else {
+        setLastTxId('');
+        return false; // No txid, treat as cancelled
+      }
+    } catch (error: unknown) {
+      setLastTxId('');
+      // Only show error if not user cancellation
+      if (
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof (error as { message?: string }).message === 'string' &&
+        (error as { message: string }).message.includes('User rejected the request')
+      ) {
+        toast('Minting was cancelled.');
+      } else {
+        console.error('Error minting NFT:', error);
+        setError('Failed to mint NFT. Please try again.');
+        toast('Failed to mint NFT');
+      }
+      return false;
     }
   };
 
@@ -180,10 +202,13 @@ export default function ProfilePage() {
         throw new Error(errorMessage);
       }
   
-      await handleMintNFT(sanitizedCid);
-  
-      alert('Avatar minted successfully!');
-      //router.push('/profile');
+      const txid = await handleMintNFT(sanitizedCid);
+
+      if (txid) {
+        alert('Avatar minted successfully!');
+        //router.push('/profile');
+      }
+      // No need to show toast here, handled in handleMintNFT
     } catch (e: unknown) {
       if (e instanceof Error) {
         console.error('Error:', e.message);
@@ -204,6 +229,17 @@ export default function ProfilePage() {
     setShowAdvancedOptions((prev) => !prev);
   };
 
+  // Ensure wallet connection is checked after hydration
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated) {
+    // Prevent SSR mismatch and "connect wallet" flicker
+    return null;
+  }
+
   if (!currentAddress) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -214,13 +250,13 @@ export default function ProfilePage() {
 
   return (
     <div className="flex items-center justify-center h-screen dotted-grid-background">
-      <Card className='border-[#333] shadow-md text-white bg-[#000] w-4/5 py-8'>
+      <Card className='border-[#333] shadow-md text-white bg-[#000] w-4/5 py-8 mt-16'>
         <CardContent className='grid grid-cols-2 space-x-8 w-auto'>
           <div>
             <div>
               {!modelFile ? (
-                <div className="flex flex-col h-[50vh] items-center justify-center border-1 border-dashed border-[#333] rounded-lg p-6">
-                  <Label htmlFor="modelFile" className="text-[#777] mb-2">
+                <div className="flex flex-col h-[72vh] items-center justify-center border-1 border-dashed border-[#333] rounded-lg p-0">
+                 <Label htmlFor="modelFile" className="text-[#777] mb-2">
                     Drag and drop model files here or click to upload
                   </Label>
                   <Input
@@ -257,7 +293,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="space-y-4 overflow-y-auto max-h-auto">
-              <CardTitle className="hidden text-2xl font-bold">Mint</CardTitle>
+              <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>Mint</CardTitle>
 
             {error && <p className="text-red-500">{error}</p>}
             {transactionHash && <p className="text-green-500">Transaction Hash: {transactionHash}</p>}
