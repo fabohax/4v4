@@ -2,20 +2,28 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function AccountCreatedPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<{ mnemonic: string; stxPrivateKey: string; address: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const data = sessionStorage.getItem("ezstx_new_wallet");
-      if (data) setWallet(JSON.parse(data));
+      setInitialLoading(true);
+      setTimeout(() => {
+        const data = sessionStorage.getItem("ezstx_new_wallet");
+        if (data) setWallet(JSON.parse(data));
+        setInitialLoading(false);
+      }, 600); 
     }
   }, []);
 
   const handleConfirm = () => {
     if (wallet && typeof window !== "undefined") {
+      setLoading(true);
       localStorage.setItem(
         "ezstx_session",
         JSON.stringify({
@@ -28,6 +36,22 @@ export default function AccountCreatedPage() {
       router.push(`/${wallet.address}`);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh]">
+        <div className="flex items-center justify-center w-full mb-4">
+          <Image
+            src="/loader.gif"
+            alt="Loading..."
+            width={75}
+            height={37.7}
+            style={{ minWidth: 75, minHeight: 37.5, width: 75, height: 37.5 }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!wallet) {
     return (
@@ -50,9 +74,22 @@ export default function AccountCreatedPage() {
         </div>
         <Button
           onClick={handleConfirm}
-          className="w-full mt-4 bg-[#2563eb] text-white font-semibold rounded-xl py-6 hover:bg-[#1d4ed8] cursor-pointer select-none"
+          className="w-full mt-4 bg-[#2563eb] text-white font-semibold rounded-xl py-6 hover:bg-[#1d4ed8] cursor-pointer select-none flex items-center justify-center"
+          disabled={loading}
         >
-          I&apos;ve saved my credentials, continue
+          {loading ? (
+            <span className="flex items-center justify-center w-full">
+              <Image
+                src="/loader.gif"
+                alt="Loading..."
+                width={75}
+                height={38}
+                style={{ minWidth: 75, minHeight: 38, width: 75, height: 38 }}
+              />
+            </span>
+          ) : (
+            <>I&apos;ve saved my credentials, continue</>
+          )}
         </Button>
       </div>
     </div>

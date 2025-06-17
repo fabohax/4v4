@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Bell, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { HiroWalletContext } from './HiroWalletProvider';
 import { useRouter } from 'next/navigation';
+import Image from "next/image";
 
 interface UserModalProps {
   onClose: () => void;
@@ -76,8 +77,8 @@ export default function UserModal({ onClose }: UserModalProps) {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-[200] bg-black/40">
-      <div className="relative bg-[#f5f5f5] text-[#000] rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201]">
+    <div className="fixed top-10 right-4 z-[200] bg-black/40">
+      <div className="relative bg-[#f5f5f5] text-[#000] rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201] opacity-0 translate-y-[-24px] animate-getinmodal">
         <div className="flex items-center w-full mb-6">
           <Link
             href={`/${currentAddress}`}
@@ -89,7 +90,7 @@ export default function UserModal({ onClose }: UserModalProps) {
           <div className='flex'>
             <button
               type="button"
-              className="w-12 h-12 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
+              className="w-9 h-9 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
               onClick={onClose}
               aria-label="Profile"
             >
@@ -99,21 +100,43 @@ export default function UserModal({ onClose }: UserModalProps) {
         <div className="w-full mb-4">
           <div className="flex items-center justify-between bg-white rounded-xl px-6 py-4 mb-2">
             <span className="title text-2xl font-bold">
-              {balance ?? '--'} <span className="text-lg">STX</span>
+              {balance === null ? (
+                <Image
+                  src="/loaderb.gif"
+                  alt="Loading..."
+                  width={48}
+                  height={24}
+                  style={{ minWidth: 48, minHeight: 24, width: 48, height: 24 }}
+                  className="inline-block align-middle"
+                />
+              ) : (
+                <>
+                  {balance} <span className="text-lg">STX</span>
+                </>
+              )}
             </span>
             <span className="text-base text-gray-500 select-none">Balance</span>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 w-full mb-2 font-sans text-base">
-          <button onClick={onClose} className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none">
+          <button
+            onClick={() => { onClose(); router.push('/notifications'); }}
+            className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none"
+          >
             <Bell className="mb-2" size={20} />
             Notifications
           </button>
-          <button onClick={onClose} className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none">
+          <button
+            onClick={() => { onClose(); router.push('/settings'); }}
+            className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none"
+          >
             <Settings className="mb-2" size={20} />
             Settings
           </button>
-          <button onClick={onClose} className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none">
+          <button
+            onClick={() => { onClose(); router.push('/help'); }}
+            className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none"
+          >
             <HelpCircle className="mb-2" size={20} />
             Help
           </button>

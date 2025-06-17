@@ -10,6 +10,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import { User, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const contract = getNftContract();
 const CONTRACT_ADDRESS = contract.contractAddress;
@@ -22,7 +23,7 @@ type TokenMetadata = {
   [key: string]: unknown;
 };
 
-// ProfilePage: shows connected wallet's profile and NFTs
+// ProfilePage: shows connected wallet's profile and NFTs in a grid
 function ProfilePage() {
   const address = useCurrentAddress();
   const [mintedTokens, setMintedTokens] = useState<{ tokenId: number, tokenUri: string }[]>([]);
@@ -35,7 +36,6 @@ function ProfilePage() {
       setLoading(true);
       try {
         const network = "testnet";
-
         const lastTokenIdCV = await fetchCallReadOnlyFunction({
           contractAddress: CONTRACT_ADDRESS,
           contractName: CONTRACT_NAME,
@@ -45,15 +45,16 @@ function ProfilePage() {
           senderAddress: address,
         });
         const lastTokenId = Number(cvToValue(lastTokenIdCV));
+        console.log('lastTokenId:', lastTokenId); // <-- Add this line for debugging
 
         if (!lastTokenId || isNaN(lastTokenId)) {
           setMintedTokens([]);
           setLoading(false);
           return;
         }
-
         const tokens: { tokenId: number, tokenUri: string }[] = [];
         for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
+          console.log(`Checking tokenId: ${tokenId}`); // Debug
           const ownerCV = await fetchCallReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
@@ -62,13 +63,38 @@ function ProfilePage() {
             network,
             senderAddress: address,
           });
+          console.log(`Token ${tokenId} ownerCV:`, ownerCV); // Debug
           const ownerJson = cvToJSON(ownerCV);
-          const owner = ownerJson.value.value.value;
-          let isOwned = false;
-          if (owner === address) {
-            isOwned = true;
+          console.log(`Token ${tokenId} ownerJson:`, ownerJson); // Debug
+
+          // Print the full structure for debugging
+          try {
+            console.log(`Token ${tokenId} ownerJson.value:`, JSON.stringify(ownerJson.value, null, 2));
+          } catch {
+            console.log(`Token ${tokenId} ownerJson.value:`, ownerJson.value);
           }
 
+          // Defensive: handle possible structure differences
+          let owner: string | undefined;
+          if (
+            ownerJson.value &&
+            ownerJson.value.value &&
+            typeof ownerJson.value.value.value === 'string'
+          ) {
+            owner = ownerJson.value.value.value;
+          } else if (typeof ownerJson.value === 'string') {
+            owner = ownerJson.value;
+          } else if (typeof ownerJson.value?.value === 'string') {
+            owner = ownerJson.value.value;
+          } else {
+            owner = undefined;
+          }
+          console.log(`Token ${tokenId} owner extracted:`, owner, '| expected address:', address);
+
+          let isOwned = false;
+          if (owner && owner === address) {
+            isOwned = true;
+          }
           if (isOwned) {
             const uriCV = await fetchCallReadOnlyFunction({
               contractAddress: CONTRACT_ADDRESS,
@@ -80,11 +106,32 @@ function ProfilePage() {
             });
             let tokenUri = '';
             const uriJson = cvToJSON(uriCV);
-            tokenUri = uriJson.value.value.value;
+            // Print the full structure for debugging
+            try {
+              console.log(`Token ${tokenId} uriJson.value:`, JSON.stringify(uriJson.value, null, 2));
+            } catch {
+              console.log(`Token ${tokenId} uriJson.value:`, uriJson.value);
+            }
+            // Defensive: handle possible structure differences
+            if (uriJson.value && uriJson.value.value && typeof uriJson.value.value.value === 'string') {
+              tokenUri = uriJson.value.value.value;
+            } else if (typeof uriJson.value === 'string') {
+              tokenUri = uriJson.value;
+            } else if (typeof uriJson.value?.value === 'string') {
+              tokenUri = uriJson.value.value;
+            }
+            console.log(`Token ${tokenId} tokenUri extracted:`, tokenUri);
             tokens.push({ tokenId, tokenUri });
           }
         }
         setMintedTokens(tokens);
+
+        // Log if the current address already had models or not
+        if (tokens.length > 0) {
+          console.log(`Address ${address} has ${tokens.length} minted models.`);
+        } else {
+          console.log(`Address ${address} has no minted models.`);
+        }
 
         // Fetch metadata for IPFS CIDs (not https links)
         const metadataPromises = tokens.map(async (token) => {
@@ -111,7 +158,8 @@ function ProfilePage() {
         });
         setTokenMetadata(metaMap);
 
-      } catch {
+      } catch (err) {
+        console.error('Error fetching mints:', err);
         setMintedTokens([]);
       }
       setLoading(false);
@@ -124,58 +172,68 @@ function ProfilePage() {
       <div className='text-center items-center justify-center'>
         <div className='mt-36 mx-auto'>
           <div className='mx-auto my-8 bg-[#333] rounded-full h-24 w-24'>
-            <User className='mx-auto h-24 text-[#777]'/></div>
+            <User className='mx-auto h-24 text-[#777]'/>
+          </div>
         </div>
-        <h2 className='text-4xl mt-8'>40230</h2>
+        <h2 className='text-4xl mt-8'>_</h2>
         <p className='mt-4 mb-8 text-sm text-[#777]'>{address}</p>
         <Button className="p-2 mb-8 cursor-pointer"><Pen/></Button>
       </div>
       {!address && <p>Please connect your wallet.</p>}
       {loading && <p>Loading...</p>}
-      {!loading && mintedTokens.length === 0 && address && <p className='text-center'>No mints found.</p>}
-      <ul>
+      {!loading && mintedTokens.length === 0 && address && (
+        <p className='text-center'>
+          No Minted Models yet. <Link href="/mint" className="text-blue-400 underline">Mint here</Link>
+        </p>
+      )}
+      {/* Grid of minted models */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-12">
         {mintedTokens.map((mint) => (
-          <li key={mint.tokenId} className="mb-8">
-            Token ID: {mint.tokenId}
-            <br />
-            {mint.tokenUri.startsWith('https') ? (
-              <>
-                Token URI: <a href={mint.tokenUri} target="_blank" rel="noopener noreferrer">{mint.tokenUri}</a>
-              </>
+          <div key={mint.tokenId} className="bg-gray-900 rounded-xl p-4 border border-gray-800 shadow">
+            <div className="font-bold text-lg mb-2">Token #{mint.tokenId}</div>
+            {/* Debug: Show raw tokenUri (CID/hash) */}
+            <div className="text-xs text-gray-400 break-all mb-2">
+              <b>Raw tokenUri:</b> {mint.tokenUri}
+            </div>
+            {/* Debug: Show resolved IPFS URL */}
+            <div className="text-xs text-gray-400 break-all mb-2">
+              <b>IPFS URL:</b>{" "}
+              {mint.tokenUri.startsWith('https')
+                ? mint.tokenUri
+                : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`}
+            </div>
+            {tokenMetadata[mint.tokenId]?.image ? (
+              <Image
+                src="default.png"
+                alt={tokenMetadata[mint.tokenId]?.name || 'NFT Image'}
+                width={220}
+                height={220}
+                className="w-full h-[220px] object-cover rounded-lg"
+              />
             ) : (
-              <>
-                Token URI: <a href={`https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`} target="_blank" rel="noopener noreferrer">{mint.tokenUri}</a>
-                {tokenMetadata[mint.tokenId] && (
-                  <div className="mt-2 p-2 border rounded bg-gray-900">
-                    <div><b>Name:</b> {tokenMetadata[mint.tokenId].name}</div>
-                    <div><b>Description:</b> {tokenMetadata[mint.tokenId].description}</div>
-                    {tokenMetadata[mint.tokenId].image && (
-                      <div>
-                        <b>Image:</b><br />
-                        <Image
-                          src={
-                            tokenMetadata[mint.tokenId].image
-                              ? (
-                                  tokenMetadata[mint.tokenId].image?.startsWith('ipfs://')
-                                    ? `https://ipfs.io/ipfs/${tokenMetadata[mint.tokenId].image?.replace('ipfs://', '')}`
-                                    : tokenMetadata[mint.tokenId].image as string
-                                )
-                              : '/placeholder.png'
-                          }
-                          alt={tokenMetadata[mint.tokenId].name || 'NFT image'}
-                          width={200}
-                          height={200}
-                          style={{ maxWidth: 200, marginTop: 8, height: 'auto' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
+              <div className="w-full h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
+                No image
+              </div>
             )}
-          </li>
+            <div className="mt-4">
+              <div className="font-semibold">{tokenMetadata[mint.tokenId]?.name || 'Unnamed NFT'}</div>
+              <div className="text-xs text-gray-400 mb-2">{tokenMetadata[mint.tokenId]?.description}</div>
+              <a
+                href={
+                  mint.tokenUri.startsWith('https')
+                    ? mint.tokenUri
+                    : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline text-xs"
+              >
+                View Metadata
+              </a>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -205,7 +263,7 @@ function AddressPage({ address }: { address: string }) {
         <h2 className='text-4xl mt-8 text-gray-700'></h2>
         <p className='mt-4 mb-8 text-sm text-[#777]'>
           {address}
-          {isLoggedIn && <span className="ml-2 text-green-500 font-semibold select-none">•</span>}
+          {isLoggedIn && <span clasdelta-logosName="ml-2 text-green-500 font-semibold select-none">•</span>}
         </p>
       </div>
     </div>
@@ -215,6 +273,7 @@ function AddressPage({ address }: { address: string }) {
 // Main export: decide which page to show based on params
 export default function Page() {
   const params = useParams();
+  const currentAddress = useCurrentAddress();
   const address =
     params && typeof params.address === 'string'
       ? params.address
@@ -222,9 +281,16 @@ export default function Page() {
       ? params.address[0]
       : null;
 
+  // If no address param, show ProfilePage (current user)
   if (!address) {
     return <ProfilePage />;
   }
 
+  // If address param matches current user, show ProfilePage (with grid)
+  if (currentAddress && address && currentAddress.toLowerCase() === address.toLowerCase()) {
+    return <ProfilePage />;
+  }
+
+  // Otherwise, show AddressPage (public profile)
   return <AddressPage address={address} />;
 }

@@ -19,7 +19,7 @@ export const Navbar = () => {
             <div className="flex items-center">
               <Link href="/" className="no-underline">
                 <Button className="text-white bg-transparent py-3 mr-2 cursor-pointer text-2xl">
-                  <Image src="/delta-logo.svg" height={27} width={27} alt="delta-logo"></Image>
+                  <Image src="/home.svg" height={27} width={27} alt="delta-logo"></Image>
                 </Button>
               </Link>
               <div className='md:flex hidden'>

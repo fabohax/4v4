@@ -17,7 +17,7 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const metadata: Metadata = {
-  title: "4V4",
+  title: "4V4 - DO UR METAVERSE",
   description: "Find & Buy 3D NFTs on Bitcoin",
 };
 

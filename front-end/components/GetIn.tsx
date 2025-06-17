@@ -70,7 +70,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
       <div className='fixed top-8 right-8 z-100'>
         <button
           type="button"
-          className="w-12 h-12 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
+          className="w-9 h-9 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
           onClick={() => setShowUserModal(true)}
           aria-label="Profile"
         >
@@ -86,7 +86,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
         <div className='fixed top-8 right-8 z-100'>
           <button
             type="button"
-            className="w-12 h-12 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
+            className="w-9 h-9 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
             onClick={() => setShowUserModal(true)}
             aria-label="Profile"
           >
@@ -97,7 +97,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
         <div className='fixed top-6 right-6 z-100'>
           <Button
             onClick={() => setShowGetInModal(true)}
-            className="title rounded-full px-9 py-6 bg-[#E9E9E9] hover:bg-[#000] text-black hover:text-white border-2 border-black hover:border-2 hover:border-white cursor-pointer select-none"
+            className="title rounded-full px-6 py-5 text-sm bg-[#E9E9E9] hover:bg-transparent text-black hover:text-white border-2 border-black hover:border-2 hover:border-white cursor-pointer select-none"
             {...buttonProps}
           >
             {children || 'GET IN'}
