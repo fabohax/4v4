@@ -10,6 +10,7 @@ import ModelViewer from "@/components/features/avatar/ModelViewer"
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [showDetails, setShowDetails] = useState(false);
 
   const [secondaryColor] = useState<string>('#ffffff');
   const [background] = useState<string>('#212121');
@@ -65,13 +66,68 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
 
-        <div>
+        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-8 mx-8 md:mx-36 my-12 md:my-36">
           <ModelViewer
-          background={background}
-          secondaryColor={secondaryColor}
-          modelUrl={modelUrl}
-          lightIntensity={lightIntensity}
-        />
+            background={background}
+            secondaryColor={secondaryColor}
+            modelUrl={modelUrl}
+            lightIntensity={lightIntensity}
+          />
+          <div className="py-36">
+            <span className="relative w-auto text-[8px] my-4 bg-[#111] rounded-full px-4 py-2">AVATAR</span>
+            <h1 className="text-4xl md:text-5xl font-bold my-4" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>AMZ Shooter</h1>
+            <p style={{ fontFamily: 'Chakra Petch, sans-serif' }}>by CYMODS</p>
+            <p className="my-2 pr-20 text-xl">
+              A heavy-duty combat mech avatar built for open metaverse warfare. Equipped with missile arrays and reinforced armor.
+            </p>
+            
+            <Button className="text-lg bg-black border-1 border-white text-white px-12 py-6 rounded-md mt-6 hover:bg-white hover:text-black cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+              Mint Now
+            </Button>
+            <Button
+              className="ml-3 text-sm bg-transparent border-1 border-transparent text-white px-12 py-6 rounded-md mt-2 mb-4 cursor-pointer select-none"
+              style={{ fontFamily: 'Chakra Petch, sans-serif' }}
+              onClick={() => setShowDetails((v) => !v)}
+            >
+              {showDetails ? "Less" : "Details"}
+            </Button>
+
+            {showDetails && (
+              <div className="grid grid-cols-2 gap-4 my-2">
+                <div>
+                  <b>Attributes:</b>
+                  <ul className="list-disc ml-6 text-sm">
+                    <li>style: futuristic</li>
+                    <li>rarity: Rare</li>
+                    <li>class: heavy assault</li>
+                    <li>mobility: bipedal</li>
+                    <li>armament: missile pods</li>
+                  </ul>
+                </div>
+                <div>
+                  <b>Interoperability Formats:</b>
+                  <ul className="list-disc ml-6 text-sm">
+                    <li>glb</li>
+                    <li>fbx</li>
+                  </ul>
+                  <b>Customization Data:</b>
+                  <ul className="list-disc ml-6 text-sm">
+                    <li>color: blue &amp; white</li>
+                    <li>accessory: dual shoulder missile pods</li>
+                    <li>creator: 0x123...</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+            {showDetails && (
+              <div className="my-2 text-sm">
+                <b>Soulbound:</b> true<br />
+                <b>Edition:</b> 100<br />
+                <b>Royalties:</b> 10%<br />
+                <b>Properties:</b> polygonCount: 5000
+              </div>
+            )}
+          </div>  
         </div>
 
         {/* Background gradient animation */}

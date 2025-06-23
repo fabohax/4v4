@@ -24,24 +24,23 @@ export const Navbar = () => {
               </Link>
               <div className='md:flex hidden'>
                 <div className="relative text-sm">
-                  <Search className="absolute left-4 top-4 text-gray-500 h-[19px]" />
+                  <Search className="absolute left-3 top-3 text-gray-500 h-[14px]" />
                   <Input
                     type="text"
                     placeholder="Search for models, collections, or creators..."
-                    className="w-[360px] bg-gray-900/10 border-gray-700 pl-12 py-6 text-lg rounded-full"
+                    className="w-[360px] bg-gray-900/10 border-gray-700 pl-12 py-3 text-lg rounded-lg"
                   />
-                </div>
+                </div>  
               </div>
             </div>
-
-
           </div>
         </div>
       </nav>
-      <div className="fixed top-9 left-120 right-36 bg-black text-[#555] hover:text-[#999] z-100">
+      <div className="fixed hidden md:block h-9 py-[6px] items-center top-[30px] left-[444px] right-[36px] bg-transparent text-[#777] hover:text-[#999] z-100">
         <Marquee gradient={false} speed={60} pauseOnHover>
-          <span className="mx-8 font-medium tracking-widest" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-            --- EXPLORE - CREATE - <Link href="/mint" className='hover:underline'>MINT</Link> - TRADE - 3D NFT MARKETPLACE - DISCOVER 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---
+          <span className="mx-8 font-lg tracking-widest" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+            --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---             --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---
+                        --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---
           </span>
         </Marquee>
       </div>
