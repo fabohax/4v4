@@ -241,30 +241,102 @@ function ProfilePage() {
 // AddressPage: shows profile for a given address param
 function AddressPage({ address }: { address: string }) {
   // Check session for address
-  let isLoggedIn = false;
   if (typeof window !== 'undefined' && address) {
     try {
       const session = localStorage.getItem('ezstx_session');
       if (session) {
-        const parsed = JSON.parse(session);
-        if (parsed.address === address) {
-          isLoggedIn = true;
-        }
+        // You can add logic here if you need to use session info
       }
     } catch {}
   }
 
+  // Dummy profile data for demonstration (replace with real data as needed)
+  const displayName = "UNAME";
+  const bio =
+    "BIO DESCRIPTION HERE";
+  const floorValue = 523;
+  const totalBought = 8;
+  const followers = 1;
+  const following = 8;
+
   return (
-    <div className='my-24 mx-auto w-full px-8'>
-      <div className='text-center items-center justify-center'>
-        <div className='mt-36 mx-auto'>
-          <div className='mx-auto my-8 bg-[#333] rounded-full h-24 w-24 cursor-pointer select-none'></div>
+    <div className="my-24 mx-auto w-full px-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col items-center gap-8 my-16" >
+          {/* Avatar */}
+          <div className="flex-shrink-0 mt-8">
+            <div className="bg-[#222] rounded-full h-32 w-32 flex items-center justify-center overflow-hidden mx-auto">
+              {/* Replace with user image if available */}
+              <Image
+                src="/default.png"
+                alt="-"
+                width={128}
+                height={128}
+                className="h-32 w-32 object-cover"
+                priority
+              />
+            </div>
+          </div>
+          {/* Name, address, bio, buttons */}
+          <div className="flex flex-col items-center">
+            <h1 className="title text-4xl font-bold text-center">{displayName}</h1>
+            <div className="text-[#aaa] mt-1 text-sm text-center">{address}</div>
+            <div className="mt-4 text-[#ccc] max-w-2xl text-center">{bio}</div>
+            <div className="flex gap-2 mt-4 justify-center">
+              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit Showcase</button>
+              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit profile</button>
+              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Link wallets</button>
+            </div>
+          </div>
         </div>
-        <h2 className='text-4xl mt-8 text-gray-700'></h2>
-        <p className='mt-4 mb-8 text-sm text-[#777]'>
-          {address}
-          {isLoggedIn && <span clasdelta-logosName="ml-2 text-green-500 font-semibold select-none">•</span>}
-        </p>
+        {/* Stats */}
+        <div className="flex flex-row gap-6 items-center justify-center mt-8">
+          <div>
+            <span className="font-semibold">{floorValue} STX</span>{" "}
+            <span className="text-[#aaa]">Floor value</span>
+          </div>
+          <div>
+            <span className="font-semibold">{totalBought} STX</span>{" "}
+            <span className="text-[#aaa]">Total bought</span>
+          </div>
+          <div>
+            <span className="font-semibold">{followers}</span>{" "}
+            <span className="text-[#aaa]">Followers</span>
+            {"  "}
+            <span className="font-semibold ml-4">{following}</span>{" "}
+            <span className="text-[#aaa]">Following</span>
+          </div>
+        </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mt-12 mb-8 items-center justify-center">
+          <button className="px-6 py-2 rounded-xl bg-[#ff006a] text-white font-semibold text-base shadow hover:bg-[#e6005c] transition relative">
+            Showcase <span className="ml-2 bg-[#222] text-white text-xs px-2 py-0.5 rounded-full">22</span>
+          </button>
+          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+            Collected <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">28</span>
+          </button>
+          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+            Created <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">1</span>
+          </button>
+          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+            Offers received
+          </button>
+          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+            Offers made
+          </button>
+          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+            Activity
+          </button>
+        </div>
+        {/* Placeholder grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-8">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-[#111] rounded-xl w-full aspect-square"
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
