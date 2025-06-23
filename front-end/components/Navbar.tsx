@@ -12,7 +12,7 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 w-full bg-background/15 backdrop-blur supports-[backdrop-filter]:bg-background/10 z-100">
+      <nav className="fixed top-0 left-0 right-0 w-full bg-background/15 backdrop-blur supports-[backdrop-filter]:bg-background/10 z-100 select-none">
         <div className="mx-auto px-2 md:px-4">
           <div className="flex justify-between h-24 items-center">
             {/* Logo Section */}

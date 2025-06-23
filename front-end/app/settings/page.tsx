@@ -15,20 +15,12 @@ export default function SettingsPage() {
   // New state for links
   const [website, setWebsite] = useState('');
   const [twitter, setTwitter] = useState('');
-  const [savingLinks, setSavingLinks] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     // Simulate save
     setTimeout(() => setSaving(false), 1000);
-  };
-
-  const handleSaveLinks = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingLinks(true);
-    // Simulate save
-    setTimeout(() => setSavingLinks(false), 1000);
   };
 
   return (

@@ -73,7 +73,7 @@ export default function UserModal({ onClose }: UserModalProps) {
       await disconnect();
     }
     onClose();
-    router.push('/');
+    router.replace('/');
   };
 
   return (
@@ -82,7 +82,7 @@ export default function UserModal({ onClose }: UserModalProps) {
         <div className="flex items-center w-full mb-6">
           <Link
             href={`/${currentAddress}`}
-            className="title mr-4 text-right text-black text-xl font-bold tracking-wider flex-1"
+            className="title mr-4 text-right text-black text-xl font-bold tracking-wider flex-1 cursor-pointer select-none"
             onClick={onClose}
           >
             {truncateMiddle(currentAddress)}
@@ -99,7 +99,11 @@ export default function UserModal({ onClose }: UserModalProps) {
         </div>
         <div className="w-full mb-4">
           <div className="flex items-center justify-between bg-white rounded-xl px-6 py-4 mb-2">
-            <span className="title text-2xl font-bold">
+            <button
+              onClick={() => { onClose(); router.push('/wallet'); }}
+              className="title text-2xl font-bold text-left hover:underline cursor-pointer select-none"
+              style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            >
               {balance === null ? (
                 <Image
                   src="/loaderb.gif"
@@ -114,8 +118,14 @@ export default function UserModal({ onClose }: UserModalProps) {
                   {balance} <span className="text-lg">STX</span>
                 </>
               )}
-            </span>
-            <span className="text-base text-gray-500 select-none">Balance</span>
+            </button>
+            <button
+              onClick={() => { onClose(); router.push('/wallet'); }}
+              className="text-base text-gray-500 text-right hover:underline cursor-pointer select-none"
+              style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            >
+              Balance
+            </button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 w-full mb-2 font-sans text-base">
@@ -134,7 +144,7 @@ export default function UserModal({ onClose }: UserModalProps) {
             Settings
           </button>
           <button
-            onClick={() => { onClose(); router.push('/help'); }}
+            onClick={() => { onClose(); router.push('/support'); }}
             className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-sm hover:bg-gray-100 cursor-pointer select-none"
           >
             <HelpCircle className="mb-2" size={20} />

@@ -3,6 +3,7 @@ import { Inter, Chakra_Petch } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { GetInButton } from "@/components/GetIn";
 import { Providers } from '@/components/ui/provider';
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
 
 const inter = Inter({
@@ -36,6 +37,7 @@ export default function RootLayout({
             {children}
           </>
         </Providers>
+        <Toaster />
       </body>
     </html>
   );
