@@ -33,7 +33,7 @@ export default function FeaturedCard({ model }: FeaturedCardProps) {
 
       {/* Content container */}
       <div
-        className="relative w-full h-full flex flex-col justify-center items-center p-8"
+        className="relative w-full h-full flex flex-col justify-center items-center p-2"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

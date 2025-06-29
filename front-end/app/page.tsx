@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import FeaturedCard from "@/components/FeaturedCard"
 import Footer from "@/components/Footer" 
 import ModelViewer from "@/components/features/avatar/ModelViewer"
 
@@ -20,40 +19,6 @@ export default function Home() {
   useEffect(() => {
     setIsLoaded(true)
   }, [])
-
-  const featuredModels = [
-    {
-      id: 1,
-      title: "CyberHead",
-      author: "CryptoArtist",
-      price: "SAT 1200",
-      image: "/01.png?height=400&width=400",
-      category: "Collectible",
-      likes: 243,
-      views: 1.2,
-    },
-    {
-      id: 2,
-      title: "Space Explorer",
-      author: "NFT_Creator",
-      price: "SAT 850",
-      image: "/02.png?height=400&width=400",
-      category: "Avatar",
-      likes: 187,
-      views: 0.9,
-    },
-    {
-      id: 3,
-      title: "Minecraft Boy",
-      author: "3D_Master",
-      price: "SAT 2000",
-      image: "/03.png?height=400&width=400",
-      category: "Avatar",
-      likes: 312,
-      views: 1.5,
-    },
-  ]
-
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -131,12 +96,12 @@ export default function Home() {
         </div>
 
         {/* Background gradient animation */}
-        <div className="inset-0 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-teal-900/20 animate-gradient-x"></div>
+        <div className="inset-0  animate-gradient-x"></div>
 
         <div className="container mx-auto px-4 py-20 relative z-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center justify-center text-center gap-8">
             <motion.div
-              className="md:w-1/2"
+              className="md:w-full"
               initial="hidden"
               animate={isLoaded ? "visible" : "hidden"}
               variants={fadeIn}
@@ -158,7 +123,7 @@ export default function Home() {
                 Explore, buy, and showcase high-quality 3D models from talented creators worldwide.
               </motion.p>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex items-center justify-center text-center gap-4">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -166,7 +131,7 @@ export default function Home() {
                 >
                   <Button
                     size="lg"
-                    className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 rounded-xl cursor-pointer"
+                    className="text-lg bg-black border-1 border-white text-white px-12 py-6 rounded-md mt-6 hover:bg-white hover:text-black cursor-pointer select-none"
                   >
                     Explore
                   </Button>
@@ -180,22 +145,12 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-2 border-white/20 hover:bg-white/10 text-white hover:text-white px-8 py-6 rounded-xl cursor-pointer"
+                    className="text-lg bg-black border-1 border-white text-white px-12 py-6 rounded-md mt-6 hover:bg-white hover:text-black cursor-pointer select-none"
                   >
                     <Link href="/mint">Create & Mint</Link>
                   </Button>
                 </motion.div>
               </div>
-            </motion.div>
-
-            <motion.div
-              className="mx-auto h-auto relative"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-            >
-              {/* FeaturedCard remains, but add ModelViewer below for 3D showcase */}
-              <FeaturedCard model={featuredModels[0]} />
             </motion.div>
           </div>
         </div>
