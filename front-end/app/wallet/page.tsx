@@ -72,7 +72,7 @@ export default function WalletPage() {
   // If no session user and no Hiro wallet, ask to connect wallet
   if (!sessionAddress && !mainnetAddress && !testnetAddress) {
     return (
-      <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white flex flex-col items-center justify-center">
+      <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white flex flex-col items-center justify-center select-none">
         <h1 className="text-3xl font-bold mb-6">Wallet</h1>
         <p className="mb-8 text-lg text-gray-300 text-center">
           Please connect your wallet to manage your funds.
@@ -88,7 +88,7 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white">
+    <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white select-none">
       <h1 className="title text-3xl font-bold mb-8">Wallet</h1>
       <div className="mb-8 flex justify-center">
         <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export default function WalletPage() {
       <div className="mb-8">
         <div className="mb-2 text-gray-400 text-sm font-semibold">Address</div>
         <div className="flex items-center gap-2">
-          <span className="title border-[1px] border-[#333] px-4 py-2 rounded-xl text-base break-all">{address}</span>
+          <span className="font-light font-sm border-[1px] border-[#333] px-4 py-2 rounded-xl text-base break-all select-text">{address}</span>
           <button
             className="text-blue-400 p-1 rounded transition"
             onClick={() => {
@@ -224,7 +224,7 @@ export default function WalletPage() {
                   QR
                 </div>
               )}
-            <div className="title bg-[#222] text-lg px-6 py-3 rounded-xl mt-6 break-all">{address}</div>
+            <div className="title bg-[#222] text-lg px-6 py-6 rounded-xl mt-3 break-all select-text">{address}</div>
             </div>
           </div>
         </div>

@@ -38,7 +38,7 @@ export default function Home() {
             modelUrl={modelUrl}
             lightIntensity={lightIntensity}
           />
-          <div className="py-36">
+          <div className="py-36 select-none">
             <span className="relative w-auto text-[8px] my-4 bg-[#111] rounded-full px-4 py-2">AVATAR</span>
             <h1 className="text-4xl md:text-5xl font-bold my-4" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>AMZ Shooter</h1>
             <p style={{ fontFamily: 'Chakra Petch, sans-serif' }}>by CYMODS</p>
@@ -96,9 +96,9 @@ export default function Home() {
         </div>
 
         {/* Background gradient animation */}
-        <div className="inset-0  animate-gradient-x"></div>
+        <div className="inset-0  animate-gradient-x select-none"></div>
 
-        <div className="container mx-auto px-4 py-20 relative z-10">
+        <div className="container mx-auto px-4 py-20 relative z-10 select-none">
           <div className="flex flex-col md:flex-row items-center justify-center text-center gap-8">
             <motion.div
               className="md:w-full"

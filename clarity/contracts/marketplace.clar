@@ -159,7 +159,7 @@
       (taker tx-sender)
       (current-block-height stacks-block-height)
     )
-    (try! (assert-can-fulfil (unwrap! (contract-of nft-asset-contract nft-trait)) (get payment-asset-contract listing) listing))
+    (try! (assert-can-fulfil (contract-of nft-asset-contract) (get payment-asset-contract listing) listing))
     (try! (safe-transfer-nft nft-asset-contract (get token-id listing) (as-contract tx-sender) taker))
     (try! (stx-transfer? (get price listing) taker (get maker listing)))
     (map-delete listings listing-id)

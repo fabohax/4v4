@@ -286,7 +286,7 @@ export default function CenterPanel({
                     fontSize: '12px',
                     textAlign: 'right',
                 }}
-                className='flex space-x-4' 
+                className='flex space-x-4 select-none' 
             >
                 <div>{cameraPositionState}</div>
                 <div>{cameraZoomState.toFixed(2)}</div>

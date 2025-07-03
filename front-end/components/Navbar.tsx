@@ -38,7 +38,7 @@ export const Navbar = () => {
       </nav>
       <div className="fixed hidden md:block h-9 py-[6px] items-center top-[30px] left-[444px] right-[36px] bg-transparent text-[#777] hover:text-[#999] z-100">
         <Marquee gradient={false} speed={60} pauseOnHover>
-          <span className="mx-8 font-lg tracking-widest" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+          <span className="mx-8 font-lg tracking-widest select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
             --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---             --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---
                         --- CREATE - <Link href="/explore" className='hover:underline'>EXPLORE</Link> - <Link href="/mint" className='hover:underline'>MINT</Link> - SELL - 3D MODELS - BE A WORLDWIDE CREATOR - DO IT YOURSELF ---
           </span>
