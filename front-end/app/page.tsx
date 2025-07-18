@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Footer from "@/components/Footer" 
+import JoinWaitlistForm from "@/components/JoinWaitlistForm"
 import ModelViewer from "@/components/features/avatar/ModelViewer"
 
 export default function Home() {
@@ -155,6 +156,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <div className="container mx-auto px-4 py-12">
+        <JoinWaitlistForm />
+      </div>
       <Footer /> 
     </div>
   )

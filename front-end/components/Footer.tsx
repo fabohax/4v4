@@ -46,7 +46,7 @@ export default function Footer() {
         </div>
 
         <div className="text-sm mt-12 flex flex-col md:flex-row justify-between items-center text-white">
-          <p>© 2025 4V4</p>
+          <p>🄯 2025 4V4</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="hover:text-white">X</a>
             <a href="#" className="hover:text-white">Discord</a>
