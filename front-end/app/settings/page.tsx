@@ -1,32 +1,77 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCurrentAddress } from '@/hooks/useCurrentAddress';
+import { getProfile, upsertProfile } from '@/lib/profileApi';
 import Link from "next/link";
 
 export default function SettingsPage() {
+  const address = useCurrentAddress();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [tagline, setTagline] = useState('');
   const [biography, setBiography] = useState('');
   const [location, setLocation] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // New state for links
   const [website, setWebsite] = useState('');
   const [twitter, setTwitter] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!address) return;
+    getProfile(address)
+      .then((profile) => {
+        if (profile) {
+          setUsername(profile.username || '');
+          setEmail(profile.email || '');
+          setDisplayName(profile.display_name || '');
+          setTagline(profile.tagline || '');
+          setBiography(profile.biography || '');
+          setLocation(profile.location || '');
+          setWebsite(profile.website || '');
+          setTwitter(profile.twitter || '');
+        }
+      })
+      .catch(() => {});
+  }, [address]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // Simulate save
-    setTimeout(() => setSaving(false), 1000);
+    setError('');
+    setSuccess('');
+    try {
+      if (!address) throw new Error('Wallet not connected');
+      await upsertProfile({
+        address,
+        username,
+        email,
+        display_name: displayName,
+        tagline,
+        biography,
+        location,
+        website,
+        twitter,
+      });
+      setSuccess('Profile saved!');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to save profile');
+      }
+    }
+    setSaving(false);
   };
 
   return (
     <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       <form onSubmit={handleSave} className="space-y-6">
+        {error && <div className="text-red-500 text-sm">{error}</div>}
+        {success && <div className="text-green-500 text-sm">{success}</div>}
         <div>
           <label className="block mb-2 text-sm font-semibold">Username</label>
           <input
