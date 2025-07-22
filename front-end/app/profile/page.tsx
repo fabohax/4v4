@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Pen } from 'lucide-react';
+import { getProfile } from '@/lib/profileApi';
 
 const contract = getNftContract();
 const CONTRACT_ADDRESS = contract.contractAddress;
@@ -27,6 +28,27 @@ export default function ProfilePage() {
   const [mintedTokens, setMintedTokens] = useState<{ tokenId: number, tokenUri: string }[]>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<number, TokenMetadata>>({});
   const [loading, setLoading] = useState(false);
+  // Define a type for the profile object
+  type Profile = {
+    display_name?: string;
+    username?: string;
+    tagline?: string;
+    biography?: string;
+    location?: string;
+    website?: string;
+    twitter?: string;
+    [key: string]: unknown;
+  };
+
+  // Add state for profile
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!address) return;
+    getProfile(address)
+      .then((profile) => setProfile(profile))
+      .catch(() => setProfile(null));
+  }, [address]);
 
   useEffect(() => {
     if (!address) return;
@@ -147,7 +169,41 @@ export default function ProfilePage() {
           <div className='mx-auto my-8 bg-[#333] rounded-full h-24 w-24'>
             <User className='mx-auto h-24 text-[#777]'/></div>
         </div>
-        <h2 className='text-4xl mt-8'>40230</h2>
+        {/* Show profile fields if available */}
+        {profile && (
+          <div className="mb-8">
+            {profile.display_name && (
+              <h2 className='text-4xl mt-8'>{profile.display_name}</h2>
+            )}
+            {profile.username && (
+              <div className="text-lg text-[#aaa]">@{profile.username}</div>
+            )}
+            {profile.tagline && (
+              <div className="mt-2 text-[#bbb] italic">{profile.tagline}</div>
+            )}
+            {profile.biography && (
+              <div className="mt-2 text-[#ccc]">{profile.biography}</div>
+            )}
+            {profile.location && (
+              <div className="mt-2 text-[#888]">📍 {profile.location}</div>
+            )}
+            {profile.website && (
+              <div className="mt-2">
+                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{profile.website}</a>
+              </div>
+            )}
+            {profile.twitter && (
+              <div className="mt-2">
+                <a href={`https://twitter.com/${profile.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                  @{profile.twitter.replace(/^@/, '')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+        {!profile && (
+          <h2 className='text-4xl mt-8'>40230</h2>
+        )}
         <p className='mt-4 mb-8 text-sm text-[#777]'>{address}</p>
         <Button className="p-2 mb-8 cursor-pointer"><Pen/></Button>
       </div>
