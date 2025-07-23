@@ -8,8 +8,8 @@
 
 ## 🔥 Features
 
-- Mint 3D avatars to user wallets as NFTs
-- List avatars for sale with optional takers, expiry, or batch operations
+- Mint 3D models to user wallets as NFTs
+- List models for sale with optional takers, expiry, or batch operations
 - Trade NFTs using STX, SIP-010 tokens, and (soon) sBTC
 - Supports royalties per NFT via `get-royalty-info`
 - Secure SIP-009 ownership and transfers
@@ -39,7 +39,7 @@
 ### 2. Clone and Set Up Project Locally
 
 ```bash
-git clone https://github.com/fabohax/4v4-stx.git
+git clone https://github.com/fabohax/4v4.git
 cd 4v4/clarity
 npm install
 
@@ -62,8 +62,8 @@ NEXT_PUBLIC_PLATFORM_HIRO_API_KEY=your-api-key-here
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to use the marketplace UI.
+Visit [http://localhost:3000](http://localhost:3000) to use the UI.
 
 ---
 
-OSS Built with ❤️
+OSS Built with ♥️
