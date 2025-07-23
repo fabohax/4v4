@@ -1,6 +1,6 @@
 ![4V4 NFT Marketplace on Stacks](./4v4-screenshot.png)
 
-**4V4** is a digital playground for 3D avatars, built on the Stacks blockchain. This full-stack dApp enables users to mint, list, and trade 3D avatars as NFTs using STX or other SIP-010 tokens—plus future support for sBTC. It demonstrates how to build scalable and expressive NFT platforms using Clarity smart contracts, Next.js, and the Hiro Platform.
+**4V4** is a digital playground for 3D mods, built on the Stacks blockchain. This full-stack dApp enables users to mint, list, and trade 3D models as NFTs using L2 satoshis. It demonstrates how to build scalable and expressive NFT platforms using Clarity smart contracts, Next.js, and Hiro.
 
 ⚠️ This project is intended for development purposes only. Contracts have not been audited for production.
 
@@ -63,59 +63,6 @@ npm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to use the marketplace UI.
-
----
-
-## 🧲 Testing with Devnet
-
-Devnet is a sandboxed blockchain for testing dApps. It resets every time you restart it, so use it to test all features before moving to testnet/mainnet.
-
-### 1. Deploy Contracts
-
-- Inside Hiro Platform, hit **Start Devnet**
-- Your contracts (`avatar-minter.clar` and `4v4-marketplace.clar`) will deploy automatically
-
-### 2. Test Contracts
-
-- Use “Call Functions” inside Devnet
-- Try minting an avatar, listing it, and fulfilling listings
-- Watch for events and state changes on the dashboard
-
-### 3. Test Frontend Integration
-
-- With Devnet running and frontend live (`npm run dev`)
-- Interact with the marketplace: mint, list, and buy 3D avatars
-- Check the blockchain explorer view in Hiro Platform to confirm transactions
-
----
-
-## 🗱️ Clarity Contracts
-
-- `avatar-minter.clar`: SIP-009 NFT contract for avatar minting
-- `4v4-marketplace.clar`: Fully featured NFT marketplace with batch listings, royalties, pagination, SIP-010 & STX support
-
----
-
-## 🌐 Next Steps
-
-### Move to Testnet
-
-1. Get STX from [Testnet Faucet](https://explorer.hiro.so/sandbox/faucet?chain=testnet)
-2. Deploy contracts to testnet via Hiro Platform
-3. Update `.env` to use testnet API URL
-4. Confirm interactions via [Testnet Explorer](https://explorer.hiro.so/?chain=testnet)
-
----
-
-### Launch on Mainnet
-
-1. Acquire real STX tokens for deployment
-2. Update deployment settings to mainnet
-3. Deploy contracts and test thoroughly
-4. Point frontend to mainnet API
-5. Launch 4V4 to the world 🌐
-
-⚠️ Mainnet transactions are irreversible. Ensure contracts and UI are 100% tested and verified.
 
 ---
 
