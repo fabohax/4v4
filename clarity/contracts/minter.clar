@@ -52,39 +52,49 @@
     (ok true)
   ))
 
-(define-public (add-to-whitelist (addr principal) (allowance uint))
+;; Burn functionality
+(define-public (burn (token-id uint))
+  (begin
+    (asserts! (is-eq (unwrap! (nft-get-owner? mod token-id) ERR_UNAUTHORIZED) tx-sender) ERR_UNAUTHORIZED)
+    (try! (nft-burn? mod token-id tx-sender))
+    (ok true)))
+
+;; Batch minting for efficiency
+(define-public (mint-batch (count uint) (recipient principal))
+  (let ((current-supply (var-get last-token-id)))
+    (begin
+      (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+      (asserts! (<= (+ current-supply count) COLLECTION_LIMIT) ERR_SOLD_OUT)
+      (batch-mint count recipient current-supply)
+      (var-set last-token-id (+ current-supply count))
+      (ok true))))
+
+;; Helper function for batch minting
+(define-private (batch-mint (count uint) (recipient principal) (start-id uint))
+  (if (is-eq count u0)
+    true
+    (begin
+      (unwrap! (nft-mint? mod (+ start-id u1) recipient) false)
+      (batch-mint (- count u1) recipient (+ start-id u1)))))
+
+;; Price configuration
+(define-data-var mint-price uint u100000000) ;; 1 STX default
+
+(define-public (set-mint-price (new-price uint))
   (begin
     (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
-    (map-set whitelist {user: addr} {allowed: allowance, minted: u0})
-    (ok true)
-  ))
+    (var-set mint-price new-price)
+    (ok true)))
 
-;; Minting with Whitelist
-(define-public (mint-whitelist (recipient principal))
-  (let ((token-id (+ (var-get last-token-id) u1)))
-    (begin
-      (asserts! (<= token-id COLLECTION_LIMIT) ERR_SOLD_OUT)
-      (match (map-get? whitelist {user: tx-sender})
-        whitelist-entry
-          (let (
-              (allowed (get allowed whitelist-entry))
-              (minted (get minted whitelist-entry))
-            )
-            (begin
-              (asserts! (< minted allowed) ERR_WHITELIST_LIMIT)
-              (try! (nft-mint? mod token-id recipient))
-              (map-set whitelist {user: tx-sender} {allowed: allowed, minted: (+ minted u1)})
-              (var-set last-token-id token-id)
-              (ok token-id)))
-        (err u401)))))
-
-
-;; Public Mint (post-whitelist phase)
+;; Update mint-public to include payment
 (define-public (mint-public (metadata-cid (string-ascii 256)))
   (let ((token-id (+ (var-get last-token-id) u1)))
     (begin
       ;; Ensure the collection limit is not exceeded
       (asserts! (<= token-id COLLECTION_LIMIT) ERR_SOLD_OUT)
+      
+      ;; Process payment
+      (try! (stx-transfer? (var-get mint-price) tx-sender CONTRACT_OWNER))
       
       ;; Mint the NFT to the sender
       (try! (nft-mint? mod token-id tx-sender))
@@ -98,12 +108,29 @@
       ;; Return the token ID
       (ok token-id))))
 
-;; Transfer NFT
-(define-public (transfer (id uint) (sender principal) (recipient principal))
+;; Contract ownership transfer
+(define-public (transfer-contract-ownership (new-owner principal))
   (begin
-    (asserts! (is-eq sender contract-caller) ERR_UNAUTHORIZED)
-    (try! (nft-transfer? mod id sender recipient))
+    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+    (var-set royalty-recipient new-owner)
     (ok true)))
+
+;; Add functions to manage royalty settings
+(define-public (set-royalty-percent (new-percent uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+    (asserts! (<= new-percent u25) (err u405)) ;; Max 25%
+    (var-set royalty-percent new-percent)
+    (ok true)))
+
+;; Collection metadata
+(define-read-only (get-collection-info)
+  (ok {
+    name: "4V4",
+    artist: CONTRACT_OWNER,
+    total-supply: COLLECTION_LIMIT,
+    minted: (var-get last-token-id)
+  }))
 
 ;; SIP-009 Required Functions
 (define-read-only (get-last-token-id)
