@@ -2,7 +2,7 @@
 
 (impl-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 
-(define-non-fungible-token avatar uint)
+(define-non-fungible-token mod uint)
 
 ;; Constants
 (define-constant COLLECTION_LIMIT u10000)
@@ -37,7 +37,7 @@
   ))
 
 (define-public (set-token-uri (id uint) (uri (string-ascii 256)))
-  (match (nft-get-owner? avatar id)
+  (match (nft-get-owner? mod id)
     owner
       (begin
         (asserts! (is-eq tx-sender owner) (err u401))
@@ -72,7 +72,7 @@
             )
             (begin
               (asserts! (< minted allowed) ERR_WHITELIST_LIMIT)
-              (try! (nft-mint? avatar token-id recipient))
+              (try! (nft-mint? mod token-id recipient))
               (map-set whitelist {user: tx-sender} {allowed: allowed, minted: (+ minted u1)})
               (var-set last-token-id token-id)
               (ok token-id)))
@@ -87,7 +87,7 @@
       (asserts! (<= token-id COLLECTION_LIMIT) ERR_SOLD_OUT)
       
       ;; Mint the NFT to the sender
-      (try! (nft-mint? avatar token-id tx-sender))
+      (try! (nft-mint? mod token-id tx-sender))
       
       ;; Store the metadata CID in the token-uri-map
       (map-set token-uri-map { id: token-id } { uri: metadata-cid })
@@ -102,7 +102,7 @@
 (define-public (transfer (id uint) (sender principal) (recipient principal))
   (begin
     (asserts! (is-eq sender contract-caller) ERR_UNAUTHORIZED)
-    (try! (nft-transfer? avatar id sender recipient))
+    (try! (nft-transfer? mod id sender recipient))
     (ok true)))
 
 ;; SIP-009 Required Functions
@@ -115,7 +115,7 @@
     (ok none)))
 
 (define-read-only (get-owner (id uint))
-  (ok (nft-get-owner? avatar id)))
+  (ok (nft-get-owner? mod id)))
 
 ;; Royalty Info for Marketplaces
 (define-read-only (get-royalty-info (sale-price uint))

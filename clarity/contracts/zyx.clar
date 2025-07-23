@@ -7,7 +7,7 @@
 (define-constant INITIAL_SUPPLY u7000000000000000) ;; 7B * 10^6
 (define-constant MAX-BATCH u200)
 
-(define-fungible-token zyx-token)
+(define-fungible-token zyx)
 (define-constant contract-owner tx-sender)
 
 (define-data-var token-uri (optional (string-utf8 256)) none)
@@ -19,7 +19,7 @@
 (define-public (transfer (amount uint) (from principal) (to principal) (memo (optional (buff 34))))
   (begin
     (asserts! (is-eq from tx-sender) (err ERR-UNAUTHORIZED))
-    (ft-transfer? zyx-token amount from to)
+    (ft-transfer? zyx amount from to)
   )
 )
 
@@ -37,11 +37,11 @@
 )
 
 (define-read-only (get-balance (who principal))
-  (ok (ft-get-balance zyx-token who))
+  (ok (ft-get-balance zyx who))
 )
 
 (define-read-only (get-total-supply)
-  (ok (ft-get-supply zyx-token))
+  (ok (ft-get-supply zyx))
 )
 
 ;; Token URI (optional metadata URL)
@@ -77,5 +77,5 @@
 
 ;; Token Generation Event (TGE)
 (begin
-  (try! (ft-mint? zyx-token INITIAL_SUPPLY contract-owner))
+  (try! (ft-mint? zyx INITIAL_SUPPLY contract-owner))
 )
