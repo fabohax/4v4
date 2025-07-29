@@ -13,6 +13,7 @@
 (define-constant ERR_SOLD_OUT (err u402))
 (define-constant ERR_WHITELIST_LIMIT (err u403))
 (define-constant ERR_METADATA_FROZEN (err u404))
+(define-constant ERR_INVALID_PARAMS (err u405))
 
 ;; Storage
 (define-data-var last-token-id uint u0)
@@ -55,28 +56,26 @@
 ;; Burn functionality
 (define-public (burn (token-id uint))
   (begin
-    (asserts! (is-eq (unwrap! (nft-get-owner? mod token-id) ERR_UNAUTHORIZED) tx-sender) ERR_UNAUTHORIZED)
+    (match (nft-get-owner? mod token-id)
+      owner (asserts! (is-eq owner tx-sender) ERR_UNAUTHORIZED)
+      (err u404)) ;; Token doesn't exist
     (try! (nft-burn? mod token-id tx-sender))
     (ok true)))
 
-;; Batch minting for efficiency
+;; Batch minting 
 (define-public (mint-batch (count uint) (recipient principal))
   (let ((current-supply (var-get last-token-id)))
     (begin
       (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+      (asserts! (> count u0) ERR_INVALID_PARAMS)
       (asserts! (<= (+ current-supply count) COLLECTION_LIMIT) ERR_SOLD_OUT)
-      (batch-mint count recipient current-supply)
+      (for
+        (lambda (i)
+          (unwrap! (nft-mint? mod (+ current-supply (+ i u1)) recipient) false))
+        (range u0 count))
       (var-set last-token-id (+ current-supply count))
       (ok true))))
-
-;; Helper function for batch minting
-(define-private (batch-mint (count uint) (recipient principal) (start-id uint))
-  (if (is-eq count u0)
-    true
-    (begin
-      (unwrap! (nft-mint? mod (+ start-id u1) recipient) false)
-      (batch-mint (- count u1) recipient (+ start-id u1)))))
-
+        
 ;; Price configuration
 (define-data-var mint-price uint u100000000) ;; 1 STX default
 
@@ -108,45 +107,35 @@
       ;; Return the token ID
       (ok token-id))))
 
+;; Update whitelist minting to include payment
+(define-public (mint-whitelist (recipient principal))
+  (let ((token-id (+ (var-get last-token-id) u1)))
+    (begin
+      (asserts! (<= token-id COLLECTION_LIMIT) ERR_SOLD_OUT)
+      (match (map-get? whitelist {user: tx-sender})
+        whitelist-entry
+          (let (
+              (allowed (get allowed whitelist-entry))
+              (minted (get minted whitelist-entry))
+            )
+            (begin
+              (asserts! (< minted allowed) ERR_WHITELIST_LIMIT)
+              ;; Process payment if price is set above zero
+              (if (> (var-get mint-price) u0)
+                  (try! (stx-transfer? (var-get mint-price) tx-sender CONTRACT_OWNER))
+                  true)
+              (try! (nft-mint? mod token-id recipient))
+              (map-set whitelist {user: tx-sender} {allowed: allowed, minted: (+ minted u1)})
+              (var-set last-token-id token-id)
+              (ok token-id)))
+        (err u401)))))
+
 ;; Contract ownership transfer
 (define-public (transfer-contract-ownership (new-owner principal))
   (begin
     (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+    ;; Update royalty recipient as well as contract owner
     (var-set royalty-recipient new-owner)
+    ;; Note: We can't actually update CONTRACT_OWNER as it's a constant
+    ;; Would need to redesign with principal variable instead of constant
     (ok true)))
-
-;; Add functions to manage royalty settings
-(define-public (set-royalty-percent (new-percent uint))
-  (begin
-    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
-    (asserts! (<= new-percent u25) (err u405)) ;; Max 25%
-    (var-set royalty-percent new-percent)
-    (ok true)))
-
-;; Collection metadata
-(define-read-only (get-collection-info)
-  (ok {
-    name: "4V4",
-    artist: CONTRACT_OWNER,
-    total-supply: COLLECTION_LIMIT,
-    minted: (var-get last-token-id)
-  }))
-
-;; SIP-009 Required Functions
-(define-read-only (get-last-token-id)
-  (ok (var-get last-token-id)))
-
-(define-read-only (get-token-uri (id uint))
-  (match (map-get? token-uri-map { id: id })
-    entry (ok (some (get uri entry)))
-    (ok none)))
-
-(define-read-only (get-owner (id uint))
-  (ok (nft-get-owner? mod id)))
-
-;; Royalty Info for Marketplaces
-(define-read-only (get-royalty-info (sale-price uint))
-  (ok {recipient: (var-get royalty-recipient), amount: (/ (* sale-price (var-get royalty-percent)) u100)}))
-
-(define-read-only (get-remaining-supply)
-  (ok (- COLLECTION_LIMIT (var-get last-token-id))))

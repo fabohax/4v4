@@ -5,29 +5,11 @@ authors = []
 telemetry = true
 cache_dir = './.cache'
 
-[[project.requirements]]
-contract_id = 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait'
-
 [accounts.deployer]
 mnemonic = "prison help inch era stage soon raise despair burger advice empty shift flight stand keep index symptom waste shrimp assist north warm again zoo"
 
-[contracts.minter]
-path = 'contracts/minter.clar'
-clarity_version = 3
-epoch = 3.1
-
-[contracts.marketplace]
-path = 'contracts/mkt.clar'
-clarity_version = 3
-epoch = 3.1
-
-[contracts.mkt-bid]
-path = 'contracts/mkt-bid.clar'
-clarity_version = 3
-epoch = 3.1
-
-[contracts.zyx]
-path = 'contracts/zyx.clar'
+[contracts.claim]
+path = 'contracts/claim.clar'
 clarity_version = 3
 epoch = 3.1
 

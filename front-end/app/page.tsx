@@ -46,10 +46,11 @@ export default function Home() {
             <p className="my-2 pr-20 text-xl">
               A heavy-duty combat mech avatar built for open metaverse warfare. Equipped with missile arrays and reinforced armor.
             </p>
-            
-            <Button className="text-lg bg-black border-1 border-white text-white px-12 py-6 rounded-md mt-6 hover:bg-white hover:text-black cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-              Mint Now
-            </Button>
+            <Link href="/mint">
+              <Button className="text-lg bg-black border-1 border-white text-white px-12 py-6 rounded-md mt-6 hover:bg-white hover:text-black cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+                Mint Now
+              </Button>
+            </Link>
             <Button
               className="ml-3 text-sm bg-transparent border-1 border-transparent text-white px-12 py-6 rounded-md mt-2 mb-4 cursor-pointer select-none"
               style={{ fontFamily: 'Chakra Petch, sans-serif' }}

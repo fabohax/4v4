@@ -1,4 +1,4 @@
-(use-trait nft-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
+(use-trait nft-trait .biddable-nft-trait.biddable-nft)
 
 ;; bids map
 ;; if nft-id is `none`, the bid is a collection bid
@@ -29,6 +29,7 @@
 (define-constant err-bid-expired u107)
 (define-constant err-wrong-collection u108)
 (define-constant err-wrong-nft-id u109)
+(define-constant err-royalty-issue u110)
 
 (define-data-var placing-bids-enabled bool true)
 (define-data-var accepting-bids-enabled bool true)
@@ -47,8 +48,6 @@
         (nft {collection: (contract-of collection), nft-id: nft-id, bid-amount: amount, buyer: tx-sender, seller: nft-owner, expiration-block: (+ expiration block), action-event-index: u0}))
     (asserts! (var-get placing-bids-enabled) 
               (err err-placing-bids-disabled))
-    (asserts! (contract-call? .nft-oracle-v2 is-trusted (contract-of collection))
-              (err err-contract-not-authorized))
 
     (try! (stx-transfer? amount tx-sender contract-address))
     (map-set bids next-bid-id nft)
@@ -114,16 +113,14 @@
         (bid-action-event-index (get action-event-index bid))
         (expiration-block (get expiration-block bid))
         (nft-owner (unwrap! (get-owner collection nft-id) (err err-user-not-authorized)))
-        (royalty (get-royalty (contract-of collection)))
-        (royalty-address (get address royalty))
+        (royalty-percent (unwrap! (get-royalty-amount collection) (err err-royalty-issue)))
+        (royalty-address (unwrap! (get-royalty-address collection) (err err-royalty-issue)))
         (commission-amount (/ (* bid-amount (var-get commission)) u10000))
-        (royalty-amount (/ (* bid-amount (get percent royalty)) u10000))
+        (royalty-amount (/ (* bid-amount royalty-percent) u10000))
         (to-owner-amount (- (- bid-amount commission-amount) royalty-amount))
         (block block-height))
     (asserts! (var-get accepting-bids-enabled) 
               (err err-accepting-bids-disabled))
-    (asserts! (contract-call? .nft-oracle-v2 is-trusted (contract-of collection))
-              (err err-contract-not-authorized))
     (asserts! (> bid-amount u0) (err err-no-bid-found))
     (asserts! (is-eq (contract-of collection) bid-collection) (err err-wrong-collection))
     (asserts! (or 
@@ -155,7 +152,7 @@
         expiration_block: expiration-block,
         royalty: {
           recipient_address: royalty-address,
-          percent: (get percent royalty),
+          percent: royalty-percent
         }
       }
     })
@@ -240,8 +237,10 @@
   (unwrap-panic (contract-call? nft get-owner nft-id))
 )
 
-(define-private (get-royalty (collection principal))
-  (default-to
-    { address: contract-owner, percent: u0 }
-    (contract-call? .nft-oracle-v2 get-royalty-amount collection))
+(define-private (get-royalty-amount (collection <nft-trait>))
+  (contract-call? collection get-royalty-percent)
+)
+
+(define-private (get-royalty-address (collection <nft-trait>))
+  (contract-call? collection get-artist-address)
 )

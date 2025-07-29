@@ -1,10 +1,8 @@
 'use client';
 
 import { useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { HiroWalletContext } from '@/components/HiroWalletProvider';
-import { request } from '@stacks/connect';
-import { stringAsciiCV } from '@stacks/transactions';
-//import { useRouter } from 'next/navigation';
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 import { Label } from "@/components/ui/label";
@@ -14,23 +12,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner"
-import { ChevronDown } from 'lucide-react';
-import { getNftContract } from '@/constants/contracts';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
-  // Use HiroWalletContext directly to get currentAddress
   const { currentAddress, isWalletConnected } = useContext(HiroWalletContext);
+  const router = useRouter();
 
-  // Debug: log currentAddress and isWalletConnected
   useEffect(() => {
     console.log('currentAddress:', currentAddress, 'isWalletConnected:', isWalletConnected);
   }, [currentAddress, isWalletConnected]);
 
-  // Default placeholder values for testing
   const [name, setName] = useState<string>('Test Model Name');
   const [description, setDescription] = useState<string>('This is a test model description for minting.');
-  const [modelFile, setModelFile] = useState<File | null>(null); // File upload will still be required
-  const [imageFile, setImageFile] = useState<File | null>(null); // Optional file upload
+  const [modelFile, setModelFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [externalUrl, setExternalUrl] = useState<string>('https://example.com');
   const [attributes, setAttributes] = useState<string>('{"style": "futuristic", "rarity": "Rare"}');
   const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('{"glb", "fbx"}');
@@ -39,10 +34,8 @@ export default function ProfilePage() {
   const [royalties, setRoyalties] = useState<string>('10%');
   const [properties, setProperties] = useState<string>('{"polygonCount": 5000}');
   const [location, setLocation] = useState<string>('lat: -12.72596, lon: -77.89962');
-  const [tokenURI] = useState<string>('');
   const [soulbound, setSoulbound] = useState<boolean>(false);
   const [minting, setMinting] = useState<boolean>(false);
-  const [transactionHash, setTransactionHash] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [secondaryColor] = useState<string>('#ffffff');
   const [background] = useState<string>('#212121');
@@ -51,66 +44,34 @@ export default function ProfilePage() {
   const [lastTxId, setLastTxId] = useState<string>('');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
-  //const router = useRouter();
-
-  const handleMintNFT = async (metadataCid: string) => {
-    if (!currentAddress) {
-      setError("Wallet not connected.");
-      console.error("Wallet not connected.");
-      return false;
-    }
-  
-    try {
-      const contract = getNftContract();
-      console.log('Raw Metadata CID:', metadataCid);
-      const cl_metadataCid = stringAsciiCV(metadataCid.trim()); 
-  
-      const response = await request('stx_callContract', {
-        contract: `${contract.contractAddress}.${contract.contractName}` as `${string}.${string}`,
-        functionName: 'mint-public',
-        functionArgs: [cl_metadataCid], 
-        network: 'testnet',
-      });
-
-      console.log('Transaction Response:', response);
-
-      if (response && response.txid) {
-        setLastTxId(response.txid);
-        return response.txid;
-      } else {
-        setLastTxId('');
-        return false; // No txid, treat as cancelled
-      }
-    } catch (error: unknown) {
-      setLastTxId('');
-      // Only show error if not user cancellation
-      if (
-        error &&
-        typeof error === 'object' &&
-        'message' in error &&
-        typeof (error as { message?: string }).message === 'string' &&
-        (error as { message: string }).message.includes('User rejected the request')
-      ) {
-        toast('Minting was cancelled.');
-      } else {
-        console.error('Error minting NFT:', error);
-        setError('Failed to mint NFT. Please try again.');
-        toast('Failed to mint NFT');
-      }
-      return false;
-    }
-  };
+  const [deployingContract, setDeployingContract] = useState<boolean>(false);
+  const [loadingState, setLoadingState] = useState<'idle' | 'uploading' | 'deploying' | 'minted'>('idle');
 
   const handleModelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-        setModelFile(file);
-        const url = URL.createObjectURL(file);
-        setModelUrl(url);
+      // Add file size validation (300MB as mentioned in UI)
+      if (file.size > 300 * 1024 * 1024) {
+        setError("File size must be less than 300MB");
+        return;
+      }
+      
+      // Validate file type
+      const validTypes = ['.glb', '.gltf', '.fbx'];
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!validTypes.includes(fileExtension)) {
+        setError("Invalid file type. Please upload .glb, .gltf, or .fbx files");
+        return;
+      }
+      
+      setModelFile(file);
+      const url = URL.createObjectURL(file);
+      setModelUrl(url);
+      setError(''); // Clear any previous errors
     } else {
-        if (!modelUrl) {
-            setModelUrl("/models/default.glb");
-        }
+      if (!modelUrl) {
+        setModelUrl("/models/default.glb");
+      }
     }
   };
 
@@ -121,16 +82,31 @@ export default function ProfilePage() {
     }
   };
 
+  const validateJSON = (jsonString: string, fieldName: string): boolean => {
+    try {
+      JSON.parse(jsonString);
+      return true;
+    } catch {
+      setError(`Invalid JSON format in ${fieldName}`);
+      return false;
+    }
+  };
+
   const handleMint = async () => {
     if (!name || !description || !modelFile) {
       setError("Please fill in all the essential information and upload your model.");
       return;
     }
-  
+
+    // Validate JSON fields
+    if (!validateJSON(attributes, 'Attributes')) return;
+    if (!validateJSON(customizationData, 'Customization Data')) return;
+    if (!validateJSON(properties, 'Properties')) return;
+
     setMinting(true);
     setError('');
-    setTransactionHash('');
-  
+    setLoadingState('uploading');
+
     try {
       const formData = new FormData();
       formData.append('file', modelFile);
@@ -148,12 +124,13 @@ export default function ProfilePage() {
       formData.append('properties', properties);
       formData.append('location', location);
       formData.append('soulbound', soulbound.toString());
-  
+
+      console.log('Starting file upload to IPFS...');
       const metadataResponse = await fetch('/api/files', {
         method: 'POST',
         body: formData,
       });
-  
+
       if (!metadataResponse.ok) {
         const contentType = metadataResponse.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -168,60 +145,134 @@ export default function ProfilePage() {
           throw new Error(errorMessage);
         }
       }
-  
+
       const contentType = metadataResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const errorMessage = 'Invalid response format from server. Expected JSON.';
         setError(errorMessage);
         throw new Error(errorMessage);
       }
-  
+
       let responseData;
       try {
         responseData = await metadataResponse.json();
-        console.log('Server Response Data:', responseData); // Log server response data
+        console.log('Server Response Data:', responseData);
       } catch {
         const errorMessage = 'Failed to parse server response as JSON.';
         setError(errorMessage);
         throw new Error(errorMessage);
       }
-  
+
       if (!responseData || typeof responseData !== 'object' || !responseData.metadataCid) {
-        console.error('Invalid Server Response:', responseData); // Log invalid server response
+        console.error('Invalid Server Response:', responseData);
         const errorMessage = 'Invalid or missing metadata CID in server response.';
         setError(errorMessage);
         throw new Error(errorMessage);
       }
-  
-      const sanitizedCid = responseData.metadataCid.trim(); // Use metadataCid and sanitize it
+
+      const sanitizedCid = responseData.metadataCid.trim();
       console.log('Sanitized Metadata CID:', sanitizedCid);
-  
+
       if (!sanitizedCid || typeof sanitizedCid !== 'string' || !sanitizedCid.trim()) {
         const errorMessage = 'Invalid metadata CID retrieved from server.';
         setError(errorMessage);
         throw new Error(errorMessage);
       }
-  
-      const txid = await handleMintNFT(sanitizedCid);
 
-      if (txid) {
-        alert('Avatar minted successfully!');
-        //router.push('/profile');
+      setDeployingContract(true);
+      setLoadingState('deploying');
+      
+      console.log('Deploying contract with initial CID:', sanitizedCid);
+      console.log('Starting contract deployment...');
+      console.log('Deploy request payload:', {
+        modelName: name,
+        initialCid: sanitizedCid,
+        userAddress: currentAddress,
+        network: 'testnet'
+      });
+      
+      try {
+        const deployResponse = await fetch('/api/deploy-contract', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            modelName: name,
+            initialCid: sanitizedCid,
+            userAddress: currentAddress,
+            network: 'testnet'
+          })
+        });
+
+        console.log('Deploy response status:', deployResponse.status);
+        console.log('Deploy response ok:', deployResponse.ok);
+
+        if (!deployResponse.ok) {
+          console.error('Deploy response not ok, status:', deployResponse.status);
+          let errorData;
+          try {
+            errorData = await deployResponse.json();
+            console.error('Deploy error data:', errorData);
+          } catch (parseError) {
+            console.error('Failed to parse deploy error response:', parseError);
+            throw new Error(`Deploy request failed with status ${deployResponse.status}`);
+          }
+          throw new Error(errorData.error || 'Failed to deploy contract');
+        }
+
+        console.log('Parsing deploy response...');
+        const deployData = await deployResponse.json();
+        console.log('Deploy response data:', deployData);
+
+        if (deployData.success) {
+          if (deployData.txid) {
+            console.log('Contract deployed successfully with txid:', deployData.txid);
+            setLastTxId(deployData.txid);
+            setLoadingState('minted');
+            toast('NFT Contract deployed with your model! Redirecting to NFT page...');
+            
+            // Redirect to NFT page after 2 seconds
+            setTimeout(() => {
+              router.push(`/nft/${deployData.txid}?contractName=${deployData.contractName}`);
+            }, 2000);
+          } else {
+            console.warn('Contract deployed successfully but no txid returned:', deployData);
+            setLoadingState('minted');
+            toast('NFT Contract deployed successfully!');
+          }
+        } else {
+          console.error('Deploy response indicates failure:', deployData);
+          throw new Error(deployData.error || 'Contract deployment failed');
+        }
+      } catch (deployError) {
+        console.error('Deploy request failed:', deployError);
+        throw deployError;
       }
-      // No need to show toast here, handled in handleMintNFT
+      
+      setDeployingContract(false);
+      
     } catch (e: unknown) {
+      console.error('Minting error:', e);
+      
       if (e instanceof Error) {
-        console.error('Error:', e.message);
-        setError(e.message);
-      } else if (typeof e === 'object') {
-        console.error('Unknown error:', JSON.stringify(e));
-        setError('An unexpected error occurred.');
+        if (e.message.includes('network')) {
+          setError('Network error. Please check your connection and try again.');
+        } else if (e.message.includes('wallet')) {
+          setError('Wallet error. Please ensure your wallet is connected.');
+        } else {
+          setError(e.message);
+        }
       } else {
-        console.error('Unknown error:', e);
-        setError('An unexpected error occurred.');
+        setError('An unexpected error occurred. Please try again.');
       }
     } finally {
       setMinting(false);
+      setDeployingContract(false);
+      // Don't reset loading state immediately if redirecting
+      if (loadingState !== 'minted') {
+        setTimeout(() => setLoadingState('idle'), 3000);
+      }
     }
   };
 
@@ -229,14 +280,34 @@ export default function ProfilePage() {
     setShowAdvancedOptions((prev) => !prev);
   };
 
-  // Ensure wallet connection is checked after hydration
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      // Cleanup object URL when component unmounts or modelUrl changes
+      if (modelUrl && modelUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(modelUrl);
+      }
+    };
+  }, [modelUrl]);
+
+  const getLoadingText = () => {
+    switch (loadingState) {
+      case 'uploading':
+        return 'Uploading file to IPFS...';
+      case 'deploying':
+        return 'Deploying contract...';
+      case 'minted':
+        return 'NFT minted successfully!';
+      default:
+        return '';
+    }
+  };
+
   if (!hydrated) {
-    // Prevent SSR mismatch and "connect wallet" flicker
     return null;
   }
 
@@ -296,7 +367,14 @@ export default function ProfilePage() {
               <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>Mint</CardTitle>
 
             {error && <p className="text-red-500">{error}</p>}
-            {transactionHash && <p className="text-green-500">Transaction Hash: {transactionHash}</p>}
+            
+            {loadingState !== 'idle' && (
+              <div className="flex items-center justify-center p-4 bg-[#111] border border-[#333] rounded-md">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <span className="text-white">{getLoadingText()}</span>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="name" className='hidden mb-4'>Name</Label>
               <Input
@@ -437,16 +515,23 @@ export default function ProfilePage() {
               </div>
             )}
             <div className="justify-start">
-              <Button onClick={handleMint} disabled={minting} className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer'>
-                {minting ? 'Minting...' : 'Mint'}
+              <Button 
+                onClick={handleMint} 
+                disabled={minting || deployingContract} 
+                className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer'
+              >
+                {deployingContract 
+                  ? 'Deploying Contract...' 
+                  : minting 
+                    ? 'Processing...' 
+                    : 'Deploy NFT Contract'}
               </Button>
             </div>
             <div>
-              {tokenURI} <br/> {lastTxId}
-              </div>
+              {lastTxId && <p>Transaction ID: {lastTxId}</p>}
+            </div>
           </div>
         </CardContent>
-        
       </Card>
     </div>
   );
