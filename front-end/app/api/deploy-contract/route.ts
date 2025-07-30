@@ -56,7 +56,7 @@ function generateContractName(modelName: string): string {
   // Sanitize model name for contract naming
   const sanitized = modelName
     .toUpperCase()
-    .replace(/[^a-z0-9]/g, '-')
+    .replace(/[^A-Z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
   

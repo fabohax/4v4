@@ -46,6 +46,10 @@ export default function ProfilePage() {
 
   const [deployingContract, setDeployingContract] = useState<boolean>(false);
   const [loadingState, setLoadingState] = useState<'idle' | 'uploading' | 'deploying' | 'minted'>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [contractDeploymentStep, setContractDeploymentStep] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const handleModelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,194 +86,248 @@ export default function ProfilePage() {
     }
   };
 
-  const validateJSON = (jsonString: string, fieldName: string): boolean => {
+  // Enhanced validation function
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!name.trim()) {
+      errors.name = 'Name is required';
+    } else if (name.length > 50) {
+      errors.name = 'Name must be less than 50 characters';
+    }
+    
+    if (!description.trim()) {
+      errors.description = 'Description is required';
+    } else if (description.length > 500) {
+      errors.description = 'Description must be less than 500 characters';
+    }
+    
+    if (!modelFile) {
+      errors.modelFile = 'Please upload a 3D model file';
+    }
+    
+    if (!currentAddress) {
+      errors.wallet = 'Please connect your wallet';
+    }
+    
+    // Validate JSON fields
     try {
-      JSON.parse(jsonString);
-      return true;
+      JSON.parse(attributes);
     } catch {
-      setError(`Invalid JSON format in ${fieldName}`);
-      return false;
+      errors.attributes = 'Invalid JSON format';
+    }
+    
+    try {
+      JSON.parse(customizationData);
+    } catch {
+      errors.customizationData = 'Invalid JSON format';
+    }
+    
+    try {
+      JSON.parse(properties);
+    } catch {
+      errors.properties = 'Invalid JSON format';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const uploadWithProgress = async (formData: FormData) => {
+    return new Promise<Response>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(progress);
+        }
+      });
+      
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(new Response(xhr.response, {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            headers: new Headers(xhr.getAllResponseHeaders().split('\r\n').reduce((headers, line) => {
+              const [key, value] = line.split(': ');
+              if (key && value) headers[key] = value;
+              return headers;
+            }, {} as Record<string, string>))
+          }));
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+      
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
+      
+      xhr.open('POST', '/api/files');
+      xhr.timeout = 300000; // 5 minutes timeout
+      xhr.send(formData);
+    });
+  };
+
+  type DeployData = {
+    modelName: string;
+    initialCid: string;
+    userAddress: string;
+    network: string;
+  };
+
+  const deployContractWithRetry = async (deployData: DeployData, maxRetries = 3) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        setContractDeploymentStep(`Deploying contract (attempt ${attempt}/${maxRetries})...`);
+        setRetryCount(attempt - 1);
+        
+        const deployResponse = await fetch('/api/deploy-contract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(deployData),
+          signal: AbortSignal.timeout(120000) // 2 minutes timeout
+        });
+
+        if (!deployResponse.ok) {
+          const errorData = await deployResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Deploy request failed with status ${deployResponse.status}`);
+        }
+
+        const result = await deployResponse.json();
+        if (result.success) {
+          return result;
+        } else {
+          throw new Error(result.error || 'Contract deployment failed');
+        }
+      } catch (error) {
+        console.error(`Deploy attempt ${attempt} failed:`, error);
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Wait before retry (exponential backoff)
+        const waitTime = Math.pow(2, attempt) * 1000;
+        setContractDeploymentStep(`Retrying in ${waitTime / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
   };
 
   const handleMint = async () => {
-    if (!name || !description || !modelFile) {
-      setError("Please fill in all the essential information and upload your model.");
+    // Reset states
+    setError('');
+    setValidationErrors({});
+    setUploadProgress(0);
+    setContractDeploymentStep('');
+    setRetryCount(0);
+
+    // Validate form
+    if (!validateForm()) {
+      setError('Please fix the validation errors before proceeding.');
       return;
     }
 
-    // Validate JSON fields
-    if (!validateJSON(attributes, 'Attributes')) return;
-    if (!validateJSON(customizationData, 'Customization Data')) return;
-    if (!validateJSON(properties, 'Properties')) return;
-
     setMinting(true);
-    setError('');
     setLoadingState('uploading');
 
     try {
+      // Step 1: Upload to IPFS with progress
       const formData = new FormData();
-      formData.append('file', modelFile);
-      if (imageFile) {
-        formData.append('imageFile', imageFile);
-      }
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('externalUrl', externalUrl);
-      formData.append('attributes', attributes);
-      formData.append('interoperabilityFormats', interoperabilityFormats);
-      formData.append('customizationData', customizationData);
-      formData.append('edition', edition);
-      formData.append('royalties', royalties);
-      formData.append('properties', properties);
-      formData.append('location', location);
-      formData.append('soulbound', soulbound.toString());
+      formData.append('file', modelFile!);
+      if (imageFile) formData.append('imageFile', imageFile);
+      
+      // Add metadata
+      const metadata = {
+        name: name.trim(),
+        description: description.trim(),
+        externalUrl,
+        attributes: JSON.parse(attributes),
+        interoperabilityFormats,
+        customizationData: JSON.parse(customizationData),
+        edition,
+        royalties,
+        properties: JSON.parse(properties),
+        location,
+        soulbound
+      };
+      
+      Object.entries(metadata).forEach(([key, value]) => {
+        formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+      });
 
       console.log('Starting file upload to IPFS...');
-      const metadataResponse = await fetch('/api/files', {
-        method: 'POST',
-        body: formData,
-      });
+      const metadataResponse = await uploadWithProgress(formData);
 
       if (!metadataResponse.ok) {
-        const contentType = metadataResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await metadataResponse.json();
-          console.error('Server Error Response:', errorData);
-          const errorMessage = errorData?.error || 'Failed to upload metadata to IPFS';
-          setError(errorMessage);
-          throw new Error(errorMessage);
-        } else {
-          const errorMessage = `Unexpected response from server: ${metadataResponse.statusText}`;
-          setError(errorMessage);
-          throw new Error(errorMessage);
-        }
+        const errorData = await metadataResponse.json().catch(() => ({}));
+        throw new Error(errorData?.error || 'Failed to upload metadata to IPFS');
       }
 
-      const contentType = metadataResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const errorMessage = 'Invalid response format from server. Expected JSON.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
+      const responseData = await metadataResponse.json();
+      const sanitizedCid = responseData.metadataCid?.trim();
+
+      if (!sanitizedCid) {
+        throw new Error('Invalid metadata CID retrieved from server');
       }
 
-      let responseData;
-      try {
-        responseData = await metadataResponse.json();
-        console.log('Server Response Data:', responseData);
-      } catch {
-        const errorMessage = 'Failed to parse server response as JSON.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
+      console.log('Upload successful, CID:', sanitizedCid);
 
-      if (!responseData || typeof responseData !== 'object' || !responseData.metadataCid) {
-        console.error('Invalid Server Response:', responseData);
-        const errorMessage = 'Invalid or missing metadata CID in server response.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const sanitizedCid = responseData.metadataCid.trim();
-      console.log('Sanitized Metadata CID:', sanitizedCid);
-
-      if (!sanitizedCid || typeof sanitizedCid !== 'string' || !sanitizedCid.trim()) {
-        const errorMessage = 'Invalid metadata CID retrieved from server.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      setDeployingContract(true);
+      // Step 2: Deploy contract with retry logic
       setLoadingState('deploying');
-      
-      console.log('Deploying contract with initial CID:', sanitizedCid);
-      console.log('Starting contract deployment...');
-      console.log('Deploy request payload:', {
-        modelName: name,
+      setContractDeploymentStep('Preparing contract deployment...');
+
+      const deployData = {
+        modelName: name.trim(),
         initialCid: sanitizedCid,
-        userAddress: currentAddress,
+        userAddress: currentAddress!, // non-null assertion since we already check for currentAddress above
         network: 'testnet'
-      });
+      };
+
+      const deployResult = await deployContractWithRetry(deployData);
+
+      setLastTxId(deployResult.txid);
+      setLoadingState('minted');
+      setContractDeploymentStep('Contract deployed successfully!');
+
+      toast.success('NFT Contract deployed successfully! Redirecting...');
+
+      // Redirect to NFT page
+      setTimeout(() => {
+        router.push(`/${deployResult.contractAddress || currentAddress}/${deployResult.contractName}`);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Minting error:', error);
       
-      try {
-        const deployResponse = await fetch('/api/deploy-contract', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            modelName: name,
-            initialCid: sanitizedCid,
-            userAddress: currentAddress,
-            network: 'testnet'
-          })
-        });
-
-        console.log('Deploy response status:', deployResponse.status);
-        console.log('Deploy response ok:', deployResponse.ok);
-
-        if (!deployResponse.ok) {
-          console.error('Deploy response not ok, status:', deployResponse.status);
-          let errorData;
-          try {
-            errorData = await deployResponse.json();
-            console.error('Deploy error data:', errorData);
-          } catch (parseError) {
-            console.error('Failed to parse deploy error response:', parseError);
-            throw new Error(`Deploy request failed with status ${deployResponse.status}`);
-          }
-          throw new Error(errorData.error || 'Failed to deploy contract');
-        }
-
-        console.log('Parsing deploy response...');
-        const deployData = await deployResponse.json();
-        console.log('Deploy response data:', deployData);
-
-        if (deployData.success) {
-          if (deployData.txid) {
-            console.log('Contract deployed successfully with txid:', deployData.txid);
-            setLastTxId(deployData.txid);
-            setLoadingState('minted');
-            toast('NFT Contract deployed with your model! Redirecting to NFT page...');
-            
-            // Redirect to NFT page after 2 seconds
-            setTimeout(() => {
-              router.push(`/nft/${deployData.txid}?contractName=${deployData.contractName}`);
-            }, 2000);
-          } else {
-            console.warn('Contract deployed successfully but no txid returned:', deployData);
-            setLoadingState('minted');
-            toast('NFT Contract deployed successfully!');
-          }
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Operation timed out. Please check your connection and try again.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('wallet')) {
+          errorMessage = 'Wallet error. Please ensure your wallet is connected.';
+        } else if (error.message.includes('CID') || error.message.includes('IPFS')) {
+          errorMessage = 'Failed to upload to IPFS. Please try again.';
+        } else if (error.message.includes('contract') || error.message.includes('deploy')) {
+          errorMessage = 'Contract deployment failed. Please try again.';
         } else {
-          console.error('Deploy response indicates failure:', deployData);
-          throw new Error(deployData.error || 'Contract deployment failed');
+          errorMessage = error.message;
         }
-      } catch (deployError) {
-        console.error('Deploy request failed:', deployError);
-        throw deployError;
       }
       
-      setDeployingContract(false);
+      setError(errorMessage);
+      toast.error(errorMessage);
       
-    } catch (e: unknown) {
-      console.error('Minting error:', e);
-      
-      if (e instanceof Error) {
-        if (e.message.includes('network')) {
-          setError('Network error. Please check your connection and try again.');
-        } else if (e.message.includes('wallet')) {
-          setError('Wallet error. Please ensure your wallet is connected.');
-        } else {
-          setError(e.message);
-        }
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
     } finally {
       setMinting(false);
       setDeployingContract(false);
-      // Don't reset loading state immediately if redirecting
+      setUploadProgress(0);
+      
+      // Reset loading state after delay unless redirecting
       if (loadingState !== 'minted') {
         setTimeout(() => setLoadingState('idle'), 3000);
       }
@@ -297,9 +355,9 @@ export default function ProfilePage() {
   const getLoadingText = () => {
     switch (loadingState) {
       case 'uploading':
-        return 'Uploading file to IPFS...';
+        return uploadProgress > 0 ? `Uploading file to IPFS... ${uploadProgress}%` : 'Preparing upload...';
       case 'deploying':
-        return 'Deploying contract...';
+        return contractDeploymentStep || 'Deploying contract...';
       case 'minted':
         return 'NFT minted successfully!';
       default:
@@ -364,38 +422,82 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="space-y-4 overflow-y-auto max-h-auto">
-              <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>Mint</CardTitle>
+              <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+                Mint NFT
+              </CardTitle>
 
-            {error && <p className="text-red-500">{error}</p>}
+            {error && (
+              <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
             
             {loadingState !== 'idle' && (
-              <div className="flex items-center justify-center p-4 bg-[#111] border border-[#333] rounded-md">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="text-white">{getLoadingText()}</span>
+              <div className="p-4 bg-[#111] border border-[#333] rounded-lg">
+                <div className="flex items-center mb-2">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="text-white text-sm">{getLoadingText()}</span>
+                </div>
+                
+                {loadingState === 'uploading' && uploadProgress > 0 && (
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+                
+                {loadingState === 'deploying' && retryCount > 0 && (
+                  <p className="text-yellow-400 text-xs mt-1">
+                    Retry attempt: {retryCount}
+                  </p>
+                )}
               </div>
             )}
 
+            {/* Name field with validation */}
             <div>
-              <Label htmlFor="name" className='hidden mb-4'>Name</Label>
               <Input
                 type="text"
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Name"
-                className='border-[#333] p-6 text-lg'
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (validationErrors.name) {
+                    setValidationErrors(prev => ({ ...prev, name: '' }));
+                  }
+                }}
+                placeholder="NFT Name *"
+                className={`border-[#333] p-6 text-lg ${validationErrors.name ? 'border-red-500' : ''}`}
               />
+              {validationErrors.name && (
+                <p className="text-red-400 text-xs mt-1">{validationErrors.name}</p>
+              )}
             </div>
+
+            {/* Description field with validation */}
             <div>
-              <Label htmlFor="description" className='hidden mb-4'>Description</Label>
               <Textarea
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Model Description"
-                className='border-[#333] p-6 text-lg min-h-[210px]'
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (validationErrors.description) {
+                    setValidationErrors(prev => ({ ...prev, description: '' }));
+                  }
+                }}
+                placeholder="Model Description *"
+                className={`border-[#333] p-6 text-lg min-h-[210px] ${validationErrors.description ? 'border-red-500' : ''}`}
               />
+              {validationErrors.description && (
+                <p className="text-red-400 text-xs mt-1">{validationErrors.description}</p>
+              )}
+              <p className="text-gray-400 text-xs mt-1">
+                {description.length}/500 characters
+              </p>
             </div>
+
             <div className='grid grid-cols-2 gap-4'>
               <div className='w-full justify-center flex text-center border-1 py-2 border-[#333] rounded-md select-none'>
                 <Checkbox
@@ -517,19 +619,24 @@ export default function ProfilePage() {
             <div className="justify-start">
               <Button 
                 onClick={handleMint} 
-                disabled={minting || deployingContract} 
-                className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer'
+                disabled={minting || deployingContract || !currentAddress || !isWalletConnected} 
+                className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                {deployingContract 
-                  ? 'Deploying Contract...' 
-                  : minting 
-                    ? 'Processing...' 
-                    : 'Deploy NFT Contract'}
+                {!currentAddress ? 'Connect Wallet First' :
+                 deployingContract ? 'Deploying Contract...' : 
+                 minting ? 'Processing...' : 
+                 'Deploy NFT Contract'}
               </Button>
             </div>
-            <div>
-              {lastTxId && <p>Transaction ID: {lastTxId}</p>}
-            </div>
+
+            {lastTxId && (
+              <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 text-sm mb-2">Contract deployed successfully!</p>
+                <p className="text-gray-300 text-xs">
+                  Transaction ID: <code className="bg-gray-800 px-2 py-1 rounded">{lastTxId}</code>
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

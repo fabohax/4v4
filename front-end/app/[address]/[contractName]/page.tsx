@@ -29,6 +29,7 @@ interface NFTMetadata {
 export default function NFTViewerPage() {
   const params = useParams();
   const router = useRouter();
+  const address = params.address as string;
   const contractName = params.contractName as string;
   
   const [metadata, setMetadata] = useState<NFTMetadata | null>(null);
@@ -43,73 +44,41 @@ export default function NFTViewerPage() {
         setError('');
         
         // Try to fetch from an API endpoint that queries the contract
-        try {
-          const contractResponse = await fetch(`/api/nft/${contractName}`);
-          if (contractResponse.ok) {
-            const contractData = await contractResponse.json();
-            if (contractData.metadataCid) {
-              // Fetch metadata from IPFS using the CID from contract
-              const metadataUrl = `${process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL}/ipfs/${contractData.metadataCid}`;
-              const response = await fetch(metadataUrl);
+        const contractResponse = await fetch(`/api/nft/${address}/${contractName}`);
+        if (contractResponse.ok) {
+          const contractData = await contractResponse.json();
+          if (contractData.success && contractData.metadataCid) {
+            // Fetch metadata from IPFS using the CID from contract
+            const metadataUrl = `${process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL}/ipfs/${contractData.metadataCid}`;
+            const response = await fetch(metadataUrl);
+            
+            if (response.ok) {
+              const nftData: NFTMetadata = await response.json();
+              setMetadata(nftData);
               
-              if (response.ok) {
-                const nftData: NFTMetadata = await response.json();
-                setMetadata(nftData);
-                
-                if (nftData.animation_url) {
-                  setModelUrl(nftData.animation_url);
-                }
-                return;
+              if (nftData.animation_url) {
+                setModelUrl(nftData.animation_url);
               }
+              return;
             }
           }
-        } catch (contractError) {
-          console.warn('Failed to fetch from contract API:', contractError);
         }
-
-        // Fallback: Create mock data based on contract name
-        console.log('Using fallback data for contract:', contractName);
-        const mockMetadata: NFTMetadata = {
-          name: contractName.split('-').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' ') + ' NFT',
-          description: `A 3D model NFT deployed with contract: ${contractName}`,
-          external_url: `https://example.com/nft/${contractName}`,
-          animation_url: '/models/default.glb', // Fallback model
-          image: '/images/nft-placeholder.png',
-          attributes: {
-            'Contract Name': contractName,
-            'Network': 'Stacks Testnet',
-            'Type': '3D Model NFT'
-          },
-          properties: {
-            'Blockchain': 'Stacks',
-            'Standard': 'SIP-009',
-            'Format': '3D Model'
-          },
-          customizationData: {},
-          interoperabilityFormats: ['glb', 'gltf'],
-          edition: '1',
-          royalties: '5%',
-          location: null,
-          soulbound: false
-        };
-
-        setMetadata(mockMetadata);
-        setModelUrl('/models/default.glb');
+        
+        // If we get here, contract was not found or has no metadata
+        setError('NFT contract not found or has no metadata available.');
         
       } catch (err) {
         console.error('Error fetching NFT data:', err);
-        setError('Failed to load NFT data. This might be a new contract or the metadata is not yet available.');
+        setError('Failed to load NFT data. Contract may not exist or be inaccessible.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (contractName) {
+    if (address && contractName) {
       fetchNFTData();
     }
-  }, [contractName]);
+  }, [address, contractName]);
 
   const downloadModel = () => {
     if (modelUrl) {
@@ -155,23 +124,25 @@ export default function NFTViewerPage() {
       <div className="flex items-center justify-center h-screen dotted-grid-background">
         <Card className='border-[#333] shadow-lg text-white bg-[#000] p-8 max-w-md'>
           <div className="text-center">
-            <p className="text-yellow-400 mb-4">{error || 'NFT data not available'}</p>
-            <p className="text-gray-400 text-sm mb-6">
-              This could be because the contract is newly deployed or the metadata is still being processed.
+            <div className="text-3xl my-8">🚫</div>
+            <h2 className="text-xl font-bold mb-4">NFT Not Found</h2>
+            <p className="text-red-400 mb-4">{error || 'NFT contract not found'}</p>
+            <p className="text-gray-400 text-sm mb-6 break-all">
+              The contract {address}.{contractName} does not exist or has no accessible metadata.
             </p>
             <div className="space-y-2">
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                Retry
-              </Button>
               <Button 
                 onClick={() => router.back()} 
                 variant="outline" 
                 className="w-full border-[#333]"
               >
                 Go Back
+              </Button>
+              <Button 
+                onClick={() => router.push('/')}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Back to Home
               </Button>
             </div>
           </div>
