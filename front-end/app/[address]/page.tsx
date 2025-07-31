@@ -2,15 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { fetchCallReadOnlyFunction, uintCV } from '@stacks/transactions';
 import { getNftContract } from '@/constants/contracts';
 import { cvToValue, cvToJSON } from '@stacks/transactions';
+import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
 import { User, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 const contract = getNftContract();
 const CONTRACT_ADDRESS = contract.contractAddress;
@@ -35,7 +36,11 @@ function ProfilePage() {
     const fetchMints = async () => {
       setLoading(true);
       try {
-        const network = "testnet";
+        const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+        const network =
+          networkEnv === "mainnet"
+            ? STACKS_MAINNET
+            : STACKS_TESTNET;
         const lastTokenIdCV = await fetchCallReadOnlyFunction({
           contractAddress: CONTRACT_ADDRESS,
           contractName: CONTRACT_NAME,

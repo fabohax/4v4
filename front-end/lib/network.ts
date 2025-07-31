@@ -15,7 +15,7 @@ export function getPersistedNetwork(): Network {
       console.error('Failed to access network from localStorage:', error);
     }
   }
-  return 'testnet';
+  return (process.env.NEXT_PUBLIC_STACKS_NETWORK as Network) || 'testnet';
 }
 
 export function persistNetwork(newNetwork: Network): void {

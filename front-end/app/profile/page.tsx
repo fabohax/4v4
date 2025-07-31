@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { fetchCallReadOnlyFunction, uintCV } from '@stacks/transactions';
 import { getNftContract } from '@/constants/contracts';
 import { cvToValue, cvToJSON } from '@stacks/transactions';
 import axios from 'axios';
 import Image from 'next/image';
-import { User } from 'lucide-react';
+import { User, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Pen } from 'lucide-react';
 import { getProfile } from '@/lib/profileApi';
 
 const contract = getNftContract();
@@ -55,7 +55,11 @@ export default function ProfilePage() {
     const fetchMints = async () => {
       setLoading(true);
       try {
-        const network = "testnet";
+        const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+        const network =
+          networkEnv === "mainnet"
+            ? STACKS_MAINNET
+            : STACKS_TESTNET;
 
         const lastTokenIdCV = await fetchCallReadOnlyFunction({
           contractAddress: CONTRACT_ADDRESS,
@@ -99,7 +103,9 @@ export default function ProfilePage() {
 
           if (owner === address) {
             isOwned = true;
-          } else if (isOwned = false) 
+          } else {
+            isOwned = false;
+          }
 
           console.log(`Token ${tokenId} owner: |${owner}|, User address: |${address}|, isOwned: ${isOwned}`);
 

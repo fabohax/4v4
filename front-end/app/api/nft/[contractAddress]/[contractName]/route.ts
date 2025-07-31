@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchCallReadOnlyFunction, cvToJSON, uintCV } from '@stacks/transactions';
 
-async function getContractMetadata(contractAddress: string, contractName: string, network: 'testnet' | 'mainnet' = 'testnet') {
+async function getContractMetadata(
+  contractAddress: string, 
+  contractName: string, 
+  network: 'testnet' | 'mainnet' = (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'testnet' | 'mainnet') || 'testnet'
+) {
   try {
     const stacksNetwork = network; // "testnet" or "mainnet"
     
@@ -32,7 +36,11 @@ async function getContractMetadata(contractAddress: string, contractName: string
   }
 }
 
-async function checkContractExists(contractAddress: string, contractName: string, network: 'testnet' | 'mainnet') {
+async function checkContractExists(
+  contractAddress: string, 
+  contractName: string, 
+  network: 'testnet' | 'mainnet'
+) {
   try {
     const stacksNetwork = network; // "testnet" or "mainnet"
     
@@ -56,10 +64,10 @@ async function checkContractExists(contractAddress: string, contractName: string
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { contractAddress: string; contractName: string } }
+  context: { params: Promise<{ contractAddress: string; contractName: string }> }
 ) {
   try {
-    const { contractAddress, contractName } = params;
+    const { contractAddress, contractName } = await context.params;
 
     if (!contractAddress || !contractName) {
       return NextResponse.json(
@@ -70,9 +78,11 @@ export async function GET(
 
     console.log('Fetching NFT data for contract:', { contractAddress, contractName });
 
-    // Get network from query parameters or default to testnet
+    // Get network from query parameters or default to env variable
     const url = new URL(request.url);
-    const network = (url.searchParams.get('network') as 'testnet' | 'mainnet') || 'testnet';
+    const network = (url.searchParams.get('network') as 'testnet' | 'mainnet') || 
+                   (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'testnet' | 'mainnet') || 
+                   'testnet';
 
     // Check if contract exists using direct contract call
     const contractExists = await checkContractExists(contractAddress, contractName, network);

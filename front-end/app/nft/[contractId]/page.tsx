@@ -42,7 +42,11 @@ export default function NFTPage() {
   };
 
   const openInExplorer = () => {
-    window.open(`https://explorer.stacks.co/txid/${txid}?chain=testnet`, '_blank');
+    const network = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet';
+    const explorerUrl = network === 'mainnet' 
+      ? `https://explorer.stacks.co/txid/${txid}?chain=mainnet`
+      : `https://explorer.stacks.co/txid/${txid}?chain=testnet`;
+    window.open(explorerUrl, '_blank');
   };
 
   const shareNFT = async () => {
@@ -160,7 +164,7 @@ export default function NFTPage() {
                 <div>
                   <label className="text-sm text-gray-400 block mb-2">Network</label>
                   <Badge variant="outline" className="border-blue-500 text-blue-400">
-                    Stacks Testnet
+                    Stacks {(process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet').charAt(0).toUpperCase() + (process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet').slice(1)}
                   </Badge>
                 </div>
               </div>

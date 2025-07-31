@@ -3,6 +3,12 @@
 import { useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiroWalletContext } from '@/components/HiroWalletProvider';
+import { 
+  AnchorMode,
+  PostConditionMode
+} from '@stacks/transactions';
+import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
+import { openContractDeploy } from '@stacks/connect';
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 import { Label } from "@/components/ui/label";
@@ -26,7 +32,7 @@ export default function ProfilePage() {
   const [description, setDescription] = useState<string>('This is a test model description for minting.');
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [externalUrl, setExternalUrl] = useState<string>('https://example.com');
+  const [externalUrl, setExternalUrl] = useState<string>('https://4v4.xyz');
   const [attributes, setAttributes] = useState<string>('{"style": "futuristic", "rarity": "Rare"}');
   const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('{"glb", "fbx"}');
   const [customizationData, setCustomizationData] = useState<string>('{"color": "blue", "accessory": "hat"}');
@@ -45,11 +51,63 @@ export default function ProfilePage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const [deployingContract, setDeployingContract] = useState<boolean>(false);
-  const [loadingState, setLoadingState] = useState<'idle' | 'uploading' | 'deploying' | 'minted'>('idle');
+  const [loadingState, setLoadingState] = useState<'idle' | 'uploading' | 'deploying' | 'minted' | 'verifying'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [contractDeploymentStep, setContractDeploymentStep] = useState('');
   const [retryCount, setRetryCount] = useState(0);
+  // Add STX balance check
+  const [stxBalance, setStxBalance] = useState<number | null>(null);
+  const [checkingBalance, setCheckingBalance] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [deploymentStatus, setDeploymentStatus] = useState<{
+    txId?: string;
+    contractAddress?: string;
+    contractName?: string;
+    verified?: boolean;
+  }>({});
+
+  // Check STX balance when address changes
+  useEffect(() => {
+    if (!currentAddress) {
+      setStxBalance(null);
+      return;
+    }
+
+    const checkBalance = async () => {
+      setCheckingBalance(true);
+      try {
+        const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+        const baseUrl = networkEnv === "mainnet" 
+          ? "https://api.mainnet.hiro.so" 
+          : "https://api.testnet.hiro.so";
+        
+        const response = await fetch(`${baseUrl}/extended/v1/address/${currentAddress}/balances`);
+        if (response.ok) {
+          const data = await response.json();
+          const balance = Number(data.stx.balance) / 1_000_000; // Convert from microSTX
+          setStxBalance(balance);
+        }
+      } catch (error) {
+        console.error('Error checking STX balance:', error);
+      } finally {
+        setCheckingBalance(false);
+      }
+    };
+
+    checkBalance();
+  }, [currentAddress]);
+
+  // Pre-flight checks before minting
+  const performPreflightChecks = () => {
+    const errors: Record<string, string> = {};
+    
+    // Check STX balance (estimate 0.1 STX minimum for deployment fees)
+    if (stxBalance !== null && stxBalance < 0.1) {
+      errors.balance = 'Insufficient STX balance. You need at least 0.1 STX for transaction fees.';
+    }
+    
+    return errors;
+  };
 
   const handleModelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,6 +152,8 @@ export default function ProfilePage() {
       errors.name = 'Name is required';
     } else if (name.length > 50) {
       errors.name = 'Name must be less than 50 characters';
+    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
+      errors.name = 'Name can only contain letters, numbers, spaces, hyphens, and underscores';
     }
     
     if (!description.trim()) {
@@ -104,29 +164,63 @@ export default function ProfilePage() {
     
     if (!modelFile) {
       errors.modelFile = 'Please upload a 3D model file';
+    } else {
+      // Additional file validation
+      const validExtensions = ['.glb', '.gltf', '.fbx'];
+      const fileExtension = '.' + modelFile.name.split('.').pop()?.toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        errors.modelFile = 'Invalid file type. Please upload .glb, .gltf, or .fbx files';
+      }
+      if (modelFile.size > 300 * 1024 * 1024) {
+        errors.modelFile = 'File size must be less than 300MB';
+      }
     }
     
     if (!currentAddress) {
       errors.wallet = 'Please connect your wallet';
     }
     
-    // Validate JSON fields
+    // Validate URL format
+    if (externalUrl && !externalUrl.match(/^https?:\/\/.+/)) {
+      errors.externalUrl = 'External URL must be a valid HTTP/HTTPS URL';
+    }
+    
+    // Validate JSON fields with better error messages
     try {
-      JSON.parse(attributes);
+      const parsedAttributes = JSON.parse(attributes);
+      if (typeof parsedAttributes !== 'object' || Array.isArray(parsedAttributes)) {
+        errors.attributes = 'Attributes must be a valid JSON object';
+      }
     } catch {
-      errors.attributes = 'Invalid JSON format';
+      errors.attributes = 'Invalid JSON format in attributes field';
     }
     
     try {
-      JSON.parse(customizationData);
+      const parsedCustomization = JSON.parse(customizationData);
+      if (typeof parsedCustomization !== 'object' || Array.isArray(parsedCustomization)) {
+        errors.customizationData = 'Customization data must be a valid JSON object';
+      }
     } catch {
-      errors.customizationData = 'Invalid JSON format';
+      errors.customizationData = 'Invalid JSON format in customization data field';
     }
     
     try {
-      JSON.parse(properties);
+      const parsedProperties = JSON.parse(properties);
+      if (typeof parsedProperties !== 'object' || Array.isArray(parsedProperties)) {
+        errors.properties = 'Properties must be a valid JSON object';
+      }
     } catch {
-      errors.properties = 'Invalid JSON format';
+      errors.properties = 'Invalid JSON format in properties field';
+    }
+    
+    // Validate edition is a positive number if provided
+    if (edition && (isNaN(Number(edition)) || Number(edition) <= 0)) {
+      errors.edition = 'Edition must be a positive number';
+    }
+    
+    // Validate royalties format (should be a percentage)
+    if (royalties && !royalties.match(/^\d+(\.\d+)?%?$/)) {
+      errors.royalties = 'Royalties must be a valid percentage (e.g., "10%" or "5.5")';
     }
     
     setValidationErrors(errors);
@@ -176,10 +270,32 @@ export default function ProfilePage() {
     network: string;
   };
 
+  const deployContractWithWallet = async (contractCode: string, contractName: string) => {
+    return new Promise((resolve, reject) => {
+      const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+      const network = networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
+      
+      openContractDeploy({
+        contractName,
+        codeBody: contractCode,
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        onFinish: (data) => {
+          console.log('Contract deployment initiated:', data);
+          resolve(data);
+        },
+        onCancel: () => {
+          reject(new Error('User cancelled contract deployment'));
+        },
+      });
+    });
+  };
+
   const deployContractWithRetry = async (deployData: DeployData, maxRetries = 3) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        setContractDeploymentStep(`Deploying contract (attempt ${attempt}/${maxRetries})...`);
+        setContractDeploymentStep(`Preparing contract (attempt ${attempt}/${maxRetries})...`);
         setRetryCount(attempt - 1);
         
         const deployResponse = await fetch('/api/deploy-contract', {
@@ -195,7 +311,77 @@ export default function ProfilePage() {
         }
 
         const result = await deployResponse.json();
-        if (result.success) {
+        console.log('Deploy API response:', result);
+        
+        // Validate API response structure
+        if (!result.success) {
+          throw new Error(result.error || 'Contract deployment preparation failed');
+        }
+        
+        if (!result.contractCode || !result.contractName) {
+          throw new Error('Invalid API response - missing contract data');
+        }
+        
+        // Validate the deployment data if provided
+        if (result.validation) {
+          console.log('Contract validation results:', result.validation);
+          
+          if (!result.validation.hasNftDefinition) {
+            throw new Error('Invalid contract - missing NFT token definition');
+          }
+          
+          if (!result.validation.noPlaceholders) {
+            throw new Error('Contract contains unreplaced template placeholders');
+          }
+          
+          if (!result.validation.contractNameValid) {
+            throw new Error('Generated contract name does not meet Stacks requirements');
+          }
+        }
+        
+        if (result.requiresWalletSignature) {
+          setContractDeploymentStep('Waiting for wallet signature...');
+          
+          // Use the deploymentData if available, otherwise fallback to individual fields
+          const deploymentConfig = result.deploymentData || {
+            contractName: result.contractName,
+            codeBody: result.contractCode,
+            network: process.env.NEXT_PUBLIC_STACKS_NETWORK === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+          };
+          
+          console.log('Deploying contract with configuration:', {
+            contractName: deploymentConfig.contractName,
+            codeLength: deploymentConfig.codeBody?.length,
+            network: deploymentConfig.network
+          });
+          
+          // Deploy contract using wallet with validated configuration
+          interface WalletDeployResponse {
+            txId: string;
+            [key: string]: unknown;
+          }
+          const walletResponse = await deployContractWithWallet(
+            deploymentConfig.codeBody, 
+            deploymentConfig.contractName
+          ) as WalletDeployResponse;
+          
+          const deployResult = {
+            success: true,
+            txid: walletResponse.txId,
+            contractAddress: deployData.userAddress,
+            contractName: result.contractName
+          };
+          
+          // Update deployment status
+          setDeploymentStatus(deployResult);
+          
+          return deployResult;
+        } else if (result.success) {
+          // Fallback for backwards compatibility
+          if (!result.contractAddress || !result.contractName) {
+            throw new Error('Invalid deployment response: missing contract address or name');
+          }
+          setDeploymentStatus(result);
           return result;
         } else {
           throw new Error(result.error || 'Contract deployment failed');
@@ -215,6 +401,53 @@ export default function ProfilePage() {
     }
   };
 
+  // Add transaction verification function
+  const verifyTransaction = async (txId: string): Promise<boolean> => {
+    if (!txId) return false;
+    
+    setLoadingState('verifying');
+    setContractDeploymentStep('Verifying transaction on blockchain...');
+    
+    const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+    const baseUrl = networkEnv === "mainnet" 
+      ? "https://api.mainnet.hiro.so" 
+      : "https://api.testnet.hiro.so";
+    
+    // Poll for transaction confirmation (max 5 minutes)
+    const maxAttempts = 30; // 30 attempts * 10 seconds = 5 minutes
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`${baseUrl}/extended/v1/tx/${txId}`);
+        if (response.ok) {
+          const txData = await response.json();
+          
+          if (txData.tx_status === 'success') {
+            setContractDeploymentStep('Transaction confirmed! Contract is live.');
+            setDeploymentStatus(prev => ({ ...prev, verified: true }));
+            return true;
+          } else if (txData.tx_status === 'abort_by_response' || txData.tx_status === 'abort_by_post_condition') {
+            throw new Error(`Transaction failed: ${txData.tx_status}`);
+          }
+          // If pending, continue polling
+        }
+        
+        setContractDeploymentStep(`Waiting for confirmation... (${attempt}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+        
+      } catch (error) {
+        console.error('Error verifying transaction:', error);
+        if (attempt === maxAttempts) {
+          // Don't fail the entire process if verification times out
+          setContractDeploymentStep('Transaction submitted (verification timed out)');
+          return false;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   const handleMint = async () => {
     // Reset states
     setError('');
@@ -226,6 +459,14 @@ export default function ProfilePage() {
     // Validate form
     if (!validateForm()) {
       setError('Please fix the validation errors before proceeding.');
+      return;
+    }
+
+    // Perform preflight checks
+    const preflightErrors = performPreflightChecks();
+    if (Object.keys(preflightErrors).length > 0) {
+      setValidationErrors(prev => ({ ...prev, ...preflightErrors }));
+      setError('Please address the issues above before proceeding.');
       return;
     }
 
@@ -281,45 +522,74 @@ export default function ProfilePage() {
       const deployData = {
         modelName: name.trim(),
         initialCid: sanitizedCid,
-        userAddress: currentAddress!, // non-null assertion since we already check for currentAddress above
-        network: 'testnet'
+        userAddress: currentAddress!,
+        network: process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet'
       };
 
       const deployResult = await deployContractWithRetry(deployData);
 
-      setLastTxId(deployResult.txid);
+      // Set txid if available
+      if (deployResult.txid) {
+        setLastTxId(deployResult.txid);
+        
+        // Verify transaction in background (optional)
+        verifyTransaction(deployResult.txid).catch(error => {
+          console.warn('Transaction verification failed:', error);
+          // Don't block the flow if verification fails
+        });
+      }
+      
       setLoadingState('minted');
       setContractDeploymentStep('Contract deployed successfully!');
 
       toast.success('NFT Contract deployed successfully! Redirecting...');
 
-      // Redirect to NFT page
+      // Redirect using contractAddress and contractName
       setTimeout(() => {
-        router.push(`/${deployResult.contractAddress || currentAddress}/${deployResult.contractName}`);
-      }, 2000);
+        const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}`;
+        console.log('Redirecting to:', redirectPath);
+        router.push(redirectPath);
+      }, 3000); // Increased delay to allow for verification
 
     } catch (error) {
       console.error('Minting error:', error);
       
       let errorMessage = 'An unexpected error occurred. Please try again.';
+      let errorSuggestion = '';
       
       if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
-          errorMessage = 'Operation timed out. Please check your connection and try again.';
-        } else if (error.message.includes('network')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (error.message.includes('wallet')) {
-          errorMessage = 'Wallet error. Please ensure your wallet is connected.';
-        } else if (error.message.includes('CID') || error.message.includes('IPFS')) {
-          errorMessage = 'Failed to upload to IPFS. Please try again.';
+        if (error.message.includes('timeout') || error.message.includes('AbortError')) {
+          errorMessage = 'Operation timed out. This may be due to network congestion.';
+          errorSuggestion = 'Please try again in a few minutes or check your internet connection.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error occurred while processing your request.';
+          errorSuggestion = 'Please check your internet connection and try again.';
+        } else if (error.message.includes('wallet') || error.message.includes('cancelled')) {
+          errorMessage = 'Wallet operation was cancelled or failed.';
+          errorSuggestion = 'Please ensure your wallet is unlocked and try again. Check that you have sufficient STX for transaction fees.';
+        } else if (error.message.includes('CID') || error.message.includes('IPFS') || error.message.includes('upload')) {
+          errorMessage = 'Failed to upload files to IPFS storage.';
+          errorSuggestion = 'This might be a temporary issue with the storage service. Please try again.';
         } else if (error.message.includes('contract') || error.message.includes('deploy')) {
-          errorMessage = 'Contract deployment failed. Please try again.';
+          errorMessage = 'Smart contract deployment failed.';
+          errorSuggestion = 'This could be due to network congestion or insufficient funds. Please ensure you have enough STX and try again.';
+        } else if (error.message.includes('validation') || error.message.includes('Invalid')) {
+          errorMessage = 'Input validation failed.';
+          errorSuggestion = 'Please check all fields for valid input and try again.';
+        } else if (error.message.includes('file') || error.message.includes('size')) {
+          errorMessage = 'File upload error.';
+          errorSuggestion = 'Please ensure your file is under 300MB and in a supported format (.glb, .gltf, .fbx).';
         } else {
           errorMessage = error.message;
+          errorSuggestion = 'If this issue persists, please contact support.';
         }
       }
       
-      setError(errorMessage);
+      const fullErrorMessage = errorSuggestion 
+        ? `${errorMessage} ${errorSuggestion}` 
+        : errorMessage;
+      
+      setError(fullErrorMessage);
       toast.error(errorMessage);
       
     } finally {
@@ -358,6 +628,8 @@ export default function ProfilePage() {
         return uploadProgress > 0 ? `Uploading file to IPFS... ${uploadProgress}%` : 'Preparing upload...';
       case 'deploying':
         return contractDeploymentStep || 'Deploying contract...';
+      case 'verifying':
+        return contractDeploymentStep || 'Verifying transaction...';
       case 'minted':
         return 'NFT minted successfully!';
       default:
@@ -431,16 +703,71 @@ export default function ProfilePage() {
                 <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
+
+            {/* Balance display */}
+            {currentAddress && (
+              <div className="p-3 bg-[#111] border border-[#333] rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">STX Balance:</span>
+                  <span className={`font-mono ${
+                    checkingBalance ? 'text-gray-400' : 
+                    stxBalance !== null && stxBalance < 0.1 ? 'text-red-400' : 'text-green-400'
+                  }`}>
+                    {checkingBalance ? 'Checking...' : 
+                     stxBalance !== null ? `${stxBalance.toFixed(6)} STX` : 'Unable to load'}
+                  </span>
+                </div>
+                {stxBalance !== null && stxBalance < 0.1 && (
+                  <p className="text-red-400 text-xs mt-1">
+                    Low balance! You may need more STX for transaction fees.
+                  </p>
+                )}
+              </div>
+            )}
             
             {loadingState !== 'idle' && (
               <div className="p-4 bg-[#111] border border-[#333] rounded-lg">
-                <div className="flex items-center mb-2">
+                <div className="flex items-center mb-3">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span className="text-white text-sm">{getLoadingText()}</span>
+                  <span className="text-white text-sm font-medium">{getLoadingText()}</span>
+                </div>
+                
+                {/* Progress indicators */}
+                <div className="space-y-2 mb-3">
+                  <div className="flex items-center text-xs">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${
+                      loadingState === 'uploading' ? 'bg-blue-400 animate-pulse' : 
+                      ['deploying', 'verifying', 'minted'].includes(loadingState) ? 'bg-green-400' : 'bg-gray-500'
+                    }`} />
+                    <span className={loadingState === 'uploading' ? 'text-blue-400' : 
+                                   ['deploying', 'verifying', 'minted'].includes(loadingState) ? 'text-green-400' : 'text-gray-400'}>
+                      Upload to IPFS
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${
+                      loadingState === 'deploying' ? 'bg-blue-400 animate-pulse' : 
+                      ['verifying', 'minted'].includes(loadingState) ? 'bg-green-400' : 'bg-gray-500'
+                    }`} />
+                    <span className={loadingState === 'deploying' ? 'text-blue-400' : 
+                                   ['verifying', 'minted'].includes(loadingState) ? 'text-green-400' : 'text-gray-400'}>
+                      Deploy Contract
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${
+                      loadingState === 'verifying' ? 'bg-blue-400 animate-pulse' : 
+                      loadingState === 'minted' ? 'bg-green-400' : 'bg-gray-500'
+                    }`} />
+                    <span className={loadingState === 'verifying' ? 'text-blue-400' : 
+                                   loadingState === 'minted' ? 'text-green-400' : 'text-gray-400'}>
+                      Verify Transaction
+                    </span>
+                  </div>
                 </div>
                 
                 {loadingState === 'uploading' && uploadProgress > 0 && (
-                  <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
@@ -449,9 +776,16 @@ export default function ProfilePage() {
                 )}
                 
                 {loadingState === 'deploying' && retryCount > 0 && (
-                  <p className="text-yellow-400 text-xs mt-1">
+                  <p className="text-yellow-400 text-xs">
                     Retry attempt: {retryCount}
                   </p>
+                )}
+                
+                {deploymentStatus.txId && (
+                  <div className="mt-2 p-2 bg-[#222] rounded text-xs">
+                    <p className="text-gray-400 mb-1">Transaction ID:</p>
+                    <code className="text-green-400 break-all">{deploymentStatus.txId}</code>
+                  </div>
                 )}
               </div>
             )}
@@ -616,7 +950,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-            <div className="justify-start">
+            <div className="justify-start space-y-3">
               <Button 
                 onClick={handleMint} 
                 disabled={minting || deployingContract || !currentAddress || !isWalletConnected} 
@@ -627,13 +961,31 @@ export default function ProfilePage() {
                  minting ? 'Processing...' : 
                  'Deploy NFT Contract'}
               </Button>
+              
+              {(minting || deployingContract) && loadingState !== 'minted' && (
+                <Button 
+                  onClick={() => {
+                    setMinting(false);
+                    setDeployingContract(false);
+                    setLoadingState('idle');
+                    setUploadProgress(0);
+                    setContractDeploymentStep('');
+                    setError('Operation cancelled by user');
+                    toast.error('Minting process cancelled');
+                  }}
+                  variant="outline"
+                  className='w-full py-3 border-red-500 text-red-400 hover:bg-red-900/20'
+                >
+                  Cancel Process
+                </Button>
+              )}
             </div>
 
             {lastTxId && (
               <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
                 <p className="text-green-400 text-sm mb-2">Contract deployed successfully!</p>
                 <p className="text-gray-300 text-xs">
-                  Transaction ID: <code className="bg-gray-800 px-2 py-1 rounded">{lastTxId}</code>
+                  Transaction ID: <code className="bg-gray-800 px-2 py-1 rounded text-xs break-all">{lastTxId}</code>
                 </p>
               </div>
             )}
