@@ -1,13 +1,25 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { fetchCallReadOnlyFunction, cvToJSON, uintCV } from '@stacks/transactions';
+
+// Helper function to get the correct network string for fetchCallReadOnlyFunction
+function getNetworkString(networkEnv: string): 'testnet' | 'mainnet' {
+  switch (networkEnv) {
+    case 'mainnet':
+      return 'mainnet';
+    case 'devnet':
+    case 'testnet':
+    default:
+      return 'testnet';
+  }
+}
 
 async function getContractMetadata(
   contractAddress: string, 
   contractName: string, 
-  network: 'testnet' | 'mainnet' = (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'testnet' | 'mainnet') || 'testnet'
+  network: string = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet'
 ) {
   try {
-    const stacksNetwork = network; // "testnet" or "mainnet"
+    const stacksNetwork = getNetworkString(network);
     
     // Try to read the metadata-uri from the contract
     const options = {
@@ -21,10 +33,24 @@ async function getContractMetadata(
 
     const result = await fetchCallReadOnlyFunction(options);
     const jsonResult = cvToJSON(result);
+    
+    // Handle different possible response structures
+    let metadataCid = null;
+    if (jsonResult.value) {
+      if (typeof jsonResult.value === 'string') {
+        metadataCid = jsonResult.value;
+      } else if (jsonResult.value.value && typeof jsonResult.value.value === 'string') {
+        metadataCid = jsonResult.value.value;
+      } else if (jsonResult.value.data && typeof jsonResult.value.data === 'string') {
+        metadataCid = jsonResult.value.data;
+      } else if (jsonResult.value.value?.value && typeof jsonResult.value.value.value === 'string') {
+        metadataCid = jsonResult.value.value.value;
+      }
+    }
 
     return {
       success: true,
-      metadataCid: jsonResult.value || null,
+      metadataCid: metadataCid,
       rawResult: jsonResult
     };
   } catch (error) {
@@ -39,10 +65,10 @@ async function getContractMetadata(
 async function checkContractExists(
   contractAddress: string, 
   contractName: string, 
-  network: 'testnet' | 'mainnet'
+  network: string
 ) {
   try {
-    const stacksNetwork = network; // "testnet" or "mainnet"
+    const stacksNetwork = getNetworkString(network);
     
     // Try to call a basic function to check if contract exists
     const options = {
@@ -63,29 +89,16 @@ async function checkContractExists(
 }
 
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ contractAddress: string; contractName: string }> }
+  request: Request,
+  { params }: { params: Promise<{ contractAddress: string; contractName: string }> }
 ) {
   try {
-    const { contractAddress, contractName } = await context.params;
-
-    if (!contractAddress || !contractName) {
-      return NextResponse.json(
-        { error: "Contract address and contract name are required" },
-        { status: 400 }
-      );
-    }
-
-    console.log('Fetching NFT data for contract:', { contractAddress, contractName });
-
-    // Get network from query parameters or default to env variable
-    const url = new URL(request.url);
-    const network = (url.searchParams.get('network') as 'testnet' | 'mainnet') || 
-                   (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'testnet' | 'mainnet') || 
-                   'testnet';
-
-    // Check if contract exists using direct contract call
-    const contractExists = await checkContractExists(contractAddress, contractName, network);
+    const { contractAddress, contractName } = await params;
+    
+    const currentNetwork = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet';
+    
+    // Check if contract exists on blockchain
+    const contractExists = await checkContractExists(contractAddress, contractName, currentNetwork);
     
     if (!contractExists) {
       return NextResponse.json({
@@ -97,10 +110,8 @@ export async function GET(
       }, { status: 404 });
     }
 
-    console.log('Contract found on blockchain');
-
     // Get metadata CID from contract
-    const metadataResult = await getContractMetadata(contractAddress, contractName, network);
+    const metadataResult = await getContractMetadata(contractAddress, contractName, currentNetwork);
     
     if (metadataResult.success) {
       return NextResponse.json({
@@ -109,7 +120,8 @@ export async function GET(
         contractName,
         fullContractId: `${contractAddress}.${contractName}`,
         metadataCid: metadataResult.metadataCid,
-        network,
+        gatewayUrl: 'https://gateway.pinata.cloud',
+        network: currentNetwork,
         message: "Successfully fetched contract metadata"
       }, { status: 200 });
     } else {
@@ -119,7 +131,7 @@ export async function GET(
         contractName,
         fullContractId: `${contractAddress}.${contractName}`,
         error: `Failed to read metadata from contract: ${metadataResult.error}`,
-        network
+        network: currentNetwork
       }, { status: 200 });
     }
 

@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect, useContext } from "react";
 import { HiroWalletContext } from "@/components/HiroWalletProvider";
+import { getApiUrl } from "@/lib/stacks-api";
+import { getPersistedNetwork } from "@/lib/network";
 import Image from "next/image";
 import { Copy, X } from "lucide-react";
 import { toast } from "sonner";
@@ -41,8 +43,16 @@ export default function WalletPage() {
       setLoading(false);
       return;
     }
+    
     setLoading(true);
-    const apiUrl = `https://api.hiro.so/extended/v1/address/${address}/balances?unanchored=false`;
+    
+    // Get current network and use appropriate API endpoint
+    const currentNetwork = getPersistedNetwork();
+    const apiBaseUrl = getApiUrl(currentNetwork);
+    const apiUrl = `${apiBaseUrl}/extended/v1/address/${address}/balances?unanchored=false`;
+    
+    console.log(`Fetching balance from ${currentNetwork} network:`, apiUrl);
+    
     fetch(apiUrl)
       .then(res => res.json())
       .then(data => {
@@ -53,7 +63,8 @@ export default function WalletPage() {
         );
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Failed to fetch balance:', error);
         setBalance('--');
         setLoading(false);
       });
@@ -106,6 +117,21 @@ export default function WalletPage() {
           )}
         </div>
       </div>
+      
+      {/* Network and Address Info */}
+      <div className="mb-6 p-4 bg-[#111] rounded-lg border border-[#333]">
+        <div className="flex items-center justify-between text-sm mb-2">
+          <span className="text-gray-400">Network:</span>
+          <span className="text-blue-400 capitalize">{getPersistedNetwork()}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-400">Address:</span>
+          <span className="text-gray-300 font-mono text-xs">
+            {address ? `${address.slice(0, 8)}...${address.slice(-8)}` : '--'}
+          </span>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-2 gap-4 mb-8">
         <button
           className="bg-transparent border-[1px] border-[#333] text-white w-full px-6 py-3 rounded-xl hover:bg-white hover:text-black cursor-pointer select-none transition-all duration-200"
@@ -206,7 +232,7 @@ export default function WalletPage() {
             <h2 className="text-xl font-bold mb-6">Receive</h2>
             <div className="mb-6">
               {address ? (
-                <div className="w-full  p-6 flex items-center justify-center rounded-xl bg-white p-0">
+                <div className="w-full p-6 flex items-center justify-center rounded-xl bg-white">
                   <QRCodeSVG
                     value={address}
                     width="100%"

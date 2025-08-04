@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { fetchCallReadOnlyFunction, uintCV } from '@stacks/transactions';
-import { getNftContract } from '@/constants/contracts';
 import { cvToValue, cvToJSON } from '@stacks/transactions';
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
@@ -13,9 +12,10 @@ import Image from 'next/image';
 import { User, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const contract = getNftContract();
-const CONTRACT_ADDRESS = contract.contractAddress;
-const CONTRACT_NAME = contract.contractName;
+// Note: This page is for viewing existing NFTs from deprecated contracts
+// For new NFT minting, use the /mint page which deploys contracts dynamically
+const CONTRACT_ADDRESS = 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'; // Deprecated testnet address
+const CONTRACT_NAME = 'avatar-minter'; // Deprecated contract name
 
 type TokenMetadata = {
   name?: string;

@@ -3,6 +3,10 @@
 
 (define-non-fungible-token {NFT_NAME} uint)
 
+;; Commission trait for marketplace functionality
+(define-trait commission-trait
+  ((pay (uint uint) (response bool uint))))
+
 (define-constant DEPLOYER tx-sender)
 (define-constant BUILDER-ADDRESS 'SP7FM7445TXTJEJ54GBCV2GJPCJF887NXJW2BE78)
 (define-constant BUILDER-FEE u100) ;; 1%

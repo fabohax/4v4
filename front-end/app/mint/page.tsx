@@ -3,12 +3,77 @@
 import { useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiroWalletContext } from '@/components/HiroWalletProvider';
+import { useDevnetWallet } from '@/components/DevnetWalletProvider';
 import { 
   AnchorMode,
-  PostConditionMode
+  PostConditionMode,
+  makeContractDeploy,
+  broadcastTransaction
 } from '@stacks/transactions';
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
-import { openContractDeploy } from '@stacks/connect';
+import { request } from '@stacks/connect';
+import { validateAndGenerateWallet } from '@/lib/walletHelpers';
+import { getApiUrl } from '@/lib/stacks-api';
+import { forceSessionClear } from '@/lib/sessionUtils';
+import { getPersistedNetwork } from '@/lib/network';
+
+// Utility to detect wallet type
+interface WindowWithWallets extends Window {
+  XverseProviders?: { StacksProvider: unknown };
+  LeatherProvider?: unknown;
+  BitcoinProvider?: unknown; // Xverse also provides this
+  StacksProvider?: unknown; // Hiro Wallet
+}
+
+const detectWalletType = () => {
+  if (typeof window !== 'undefined') {
+    const win = window as WindowWithWallets;
+    
+    // Check for Leather first (most specific check)
+    if (win.LeatherProvider) {
+      return 'leather';
+    }
+    
+    // Check for Xverse via XverseProviders
+    if (win.XverseProviders?.StacksProvider) {
+      return 'xverse';
+    }
+    
+    // Alternative Xverse check - BitcoinProvider without LeatherProvider
+    if (win.BitcoinProvider && !win.LeatherProvider) {
+      return 'xverse';
+    }
+    
+    // Check for Hiro Wallet
+    if (win.StacksProvider && !win.XverseProviders && !win.LeatherProvider && !win.BitcoinProvider) {
+      return 'hiro';
+    }
+    
+    // Generic Stacks wallet
+    if (win.StacksProvider) {
+      return 'unknown';
+    }
+  }
+  
+  return 'unknown';
+};
+
+// Enhanced wallet detection that also considers the connected address
+const getWalletTypeFromContext = (effectiveAddress: string | null) => {
+  const providerType = detectWalletType();
+  
+  // If we can't detect from providers, try to infer from user agent or other clues
+  if (providerType === 'unknown' && effectiveAddress) {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const win = window as WindowWithWallets & { xverse?: unknown };
+    
+    if (userAgent.includes('xverse') || win.xverse) {
+      return 'xverse';
+    }
+  }
+  
+  return providerType;
+};
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 import { Label } from "@/components/ui/label";
@@ -22,13 +87,27 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { currentAddress, isWalletConnected } = useContext(HiroWalletContext);
+  const { currentWallet } = useDevnetWallet();
   const router = useRouter();
 
-  useEffect(() => {
-    console.log('currentAddress:', currentAddress, 'isWalletConnected:', isWalletConnected);
-  }, [currentAddress, isWalletConnected]);
+  // Determine which wallet system is active - prioritize external wallet
+  const isInternalWallet = !isWalletConnected && !!currentWallet;
+  const effectiveAddress = isWalletConnected ? currentAddress : (currentWallet?.stxAddress || null);
+  const isAnyWalletConnected = isWalletConnected || !!currentWallet;
 
-  const [name, setName] = useState<string>('Test Model Name');
+  // Wallet status monitoring (minimal logging)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Wallet Status:', {
+        effectiveAddress,
+        isConnected: isAnyWalletConnected,
+        walletType: isInternalWallet ? 'Internal' : 'External',
+        network: getPersistedNetwork()
+      });
+    }
+  }, [effectiveAddress, isAnyWalletConnected, isInternalWallet]);
+
+  const [name, setName] = useState<string>('Test Model');
   const [description, setDescription] = useState<string>('This is a test model description for minting.');
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -68,7 +147,7 @@ export default function ProfilePage() {
 
   // Check STX balance when address changes
   useEffect(() => {
-    if (!currentAddress) {
+    if (!effectiveAddress) {
       setStxBalance(null);
       return;
     }
@@ -76,12 +155,10 @@ export default function ProfilePage() {
     const checkBalance = async () => {
       setCheckingBalance(true);
       try {
-        const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
-        const baseUrl = networkEnv === "mainnet" 
-          ? "https://api.mainnet.hiro.so" 
-          : "https://api.testnet.hiro.so";
+        const currentNetwork = getPersistedNetwork();
+        const baseUrl = getApiUrl(currentNetwork);
         
-        const response = await fetch(`${baseUrl}/extended/v1/address/${currentAddress}/balances`);
+        const response = await fetch(`${baseUrl}/extended/v1/address/${effectiveAddress}/balances`);
         if (response.ok) {
           const data = await response.json();
           const balance = Number(data.stx.balance) / 1_000_000; // Convert from microSTX
@@ -95,7 +172,7 @@ export default function ProfilePage() {
     };
 
     checkBalance();
-  }, [currentAddress]);
+  }, [effectiveAddress]);
 
   // Pre-flight checks before minting
   const performPreflightChecks = () => {
@@ -150,8 +227,8 @@ export default function ProfilePage() {
     
     if (!name.trim()) {
       errors.name = 'Name is required';
-    } else if (name.length > 50) {
-      errors.name = 'Name must be less than 50 characters';
+    } else if (name.length > 23) {
+      errors.name = 'Name must be 23 characters or less (allows space for timestamp suffix)';
     } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
       errors.name = 'Name can only contain letters, numbers, spaces, hyphens, and underscores';
     }
@@ -176,7 +253,7 @@ export default function ProfilePage() {
       }
     }
     
-    if (!currentAddress) {
+    if (!effectiveAddress) {
       errors.wallet = 'Please connect your wallet';
     }
     
@@ -268,28 +345,96 @@ export default function ProfilePage() {
     initialCid: string;
     userAddress: string;
     network: string;
+    royalties?: string; // Optional royalty percentage string like "10%"
+    edition?: string; // Optional edition size string like "100"
+    description?: string; // Optional description
   };
 
   const deployContractWithWallet = async (contractCode: string, contractName: string) => {
-    return new Promise((resolve, reject) => {
-      const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
-      const network = networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
+    const currentNetwork = getPersistedNetwork();
+    const walletType = getWalletTypeFromContext(effectiveAddress);
+    
+    // Check if wallet is properly connected before attempting deployment
+    if (!effectiveAddress) {
+      throw new Error('No wallet address available for deployment');
+    }
+    
+    try {
+      // Use the new request method with stx_deployContract
+      const response = await request('stx_deployContract', {
+        name: contractName,
+        clarityCode: contractCode,
+        clarityVersion: '2',
+        network: currentNetwork,
+      });
       
-      openContractDeploy({
+      const txId = response.txid;
+      
+      if (txId) {
+        return {
+          txId: txId,
+          contractAddress: effectiveAddress,
+          contractName: contractName
+        };
+      } else {
+        throw new Error('No transaction ID returned from wallet');
+      }
+    } catch (error) {
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected') || error.message.includes('cancelled')) {
+          throw new Error('User cancelled contract deployment');
+        } else if (error.message.includes('timeout')) {
+          throw new Error(`Wallet deployment timed out. Please ensure your ${walletType === 'xverse' ? 'Xverse' : walletType === 'leather' ? 'Leather' : 'Hiro'} wallet extension is unlocked and try again.`);
+        }
+      }
+      
+      throw error;
+    }
+  };
+
+  // New function for internal wallet contract deployment
+  const deployContractWithInternalWallet = async (contractCode: string, contractName: string, mnemonic: string) => {
+    try {
+      const currentNetwork = getPersistedNetwork();
+      const network = currentNetwork === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
+      
+      // Generate wallet from mnemonic
+      const { privateKey, address } = await validateAndGenerateWallet(mnemonic);
+      
+      // Create contract deploy transaction
+      const txOptions = {
         contractName,
         codeBody: contractCode,
+        senderKey: privateKey,
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
-        onFinish: (data) => {
-          console.log('Contract deployment initiated:', data);
-          resolve(data);
-        },
-        onCancel: () => {
-          reject(new Error('User cancelled contract deployment'));
-        },
+        fee: BigInt(10000), // 0.01 STX fee
+      };
+      
+      const transaction = await makeContractDeploy(txOptions);
+      
+      // Broadcast transaction  
+      const broadcastResponse = await broadcastTransaction({ 
+        transaction, 
+        network 
       });
-    });
+      
+      if ('error' in broadcastResponse) {
+        throw new Error(`Broadcast failed: ${broadcastResponse.error}`);
+      }
+      
+      return {
+        txId: broadcastResponse.txid,
+        contractAddress: address,
+        contractName
+      };
+      
+    } catch (error) {
+      console.error('Internal wallet deployment failed:', error);
+      throw error;
+    }
   };
 
   const deployContractWithRetry = async (deployData: DeployData, maxRetries = 3) => {
@@ -311,7 +456,6 @@ export default function ProfilePage() {
         }
 
         const result = await deployResponse.json();
-        console.log('Deploy API response:', result);
         
         // Validate API response structure
         if (!result.success) {
@@ -324,14 +468,12 @@ export default function ProfilePage() {
         
         // Validate the deployment data if provided
         if (result.validation) {
-          console.log('Contract validation results:', result.validation);
-          
           if (!result.validation.hasNftDefinition) {
             throw new Error('Invalid contract - missing NFT token definition');
           }
           
           if (!result.validation.noPlaceholders) {
-            throw new Error('Contract contains unreplaced template placeholders');
+            throw new Error('Contract contains unreplaced template placeholders. Please check the contract template and API logs.');
           }
           
           if (!result.validation.contractNameValid) {
@@ -343,34 +485,71 @@ export default function ProfilePage() {
           setContractDeploymentStep('Waiting for wallet signature...');
           
           // Use the deploymentData if available, otherwise fallback to individual fields
+          const currentNetwork = getPersistedNetwork();
           const deploymentConfig = result.deploymentData || {
             contractName: result.contractName,
             codeBody: result.contractCode,
-            network: process.env.NEXT_PUBLIC_STACKS_NETWORK === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+            network: currentNetwork === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
           };
           
-          console.log('Deploying contract with configuration:', {
-            contractName: deploymentConfig.contractName,
-            codeLength: deploymentConfig.codeBody?.length,
-            network: deploymentConfig.network
-          });
-          
-          // Deploy contract using wallet with validated configuration
+          // Deploy contract using appropriate wallet method
           interface WalletDeployResponse {
             txId: string;
+            contractAddress?: string;
+            contractName?: string;
             [key: string]: unknown;
           }
-          const walletResponse = await deployContractWithWallet(
-            deploymentConfig.codeBody, 
-            deploymentConfig.contractName
-          ) as WalletDeployResponse;
+          
+          let walletResponse: WalletDeployResponse;
+          
+          if (isInternalWallet && currentWallet) {
+            // Use internal wallet signing
+            setContractDeploymentStep('Signing with internal wallet...');
+            walletResponse = await deployContractWithInternalWallet(
+              deploymentConfig.codeBody, 
+              deploymentConfig.contractName,
+              currentWallet.mnemonic
+            );
+          } else {
+            // Use external wallet
+            setContractDeploymentStep('Opening wallet extension for signature...');
+            
+            try {
+              const externalResponse = await deployContractWithWallet(
+                deploymentConfig.codeBody, 
+                deploymentConfig.contractName
+              ) as WalletDeployResponse;
+              
+              walletResponse = {
+                txId: externalResponse.txId,
+                contractAddress: deployData.userAddress,
+                contractName: externalResponse.contractName || result.contractName
+              };
+            } catch (error) {
+              if (error instanceof Error) {
+                if (error.message.includes('timeout')) {
+                  setContractDeploymentStep('Wallet signing timed out. Please check your wallet extension.');
+                } else if (error.message.includes('cancelled')) {
+                  setContractDeploymentStep('User cancelled wallet signing.');
+                } else {
+                  setContractDeploymentStep('Wallet signing failed. Please try again.');
+                }
+              }
+              throw error; // Re-throw to be caught by the retry mechanism
+            }
+          }
           
           const deployResult = {
             success: true,
             txid: walletResponse.txId,
-            contractAddress: deployData.userAddress,
-            contractName: result.contractName
+            contractAddress: walletResponse.contractAddress || deployData.userAddress,
+            contractName: walletResponse.contractName || result.contractName
           };
+          
+          // Validate deployResult before returning
+          if (!deployResult.contractName) {
+            throw new Error('Contract deployment succeeded but contract name is missing from response');
+          }
           
           // Update deployment status
           setDeploymentStatus(deployResult);
@@ -408,10 +587,8 @@ export default function ProfilePage() {
     setLoadingState('verifying');
     setContractDeploymentStep('Verifying transaction on blockchain...');
     
-    const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
-    const baseUrl = networkEnv === "mainnet" 
-      ? "https://api.mainnet.hiro.so" 
-      : "https://api.testnet.hiro.so";
+    const currentNetwork = getPersistedNetwork();
+    const baseUrl = getApiUrl(currentNetwork);
     
     // Poll for transaction confirmation (max 5 minutes)
     const maxAttempts = 30; // 30 attempts * 10 seconds = 5 minutes
@@ -522,8 +699,11 @@ export default function ProfilePage() {
       const deployData = {
         modelName: name.trim(),
         initialCid: sanitizedCid,
-        userAddress: currentAddress!,
-        network: process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet'
+        userAddress: effectiveAddress!,
+        network: process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet',
+        royalties: royalties.trim(), // Pass royalties from form
+        edition: edition.trim(), // Pass edition from form
+        description: description.trim() // Pass description from form
       };
 
       const deployResult = await deployContractWithRetry(deployData);
@@ -547,7 +727,6 @@ export default function ProfilePage() {
       // Redirect using contractAddress and contractName
       setTimeout(() => {
         const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}`;
-        console.log('Redirecting to:', redirectPath);
         router.push(redirectPath);
       }, 3000); // Increased delay to allow for verification
 
@@ -641,7 +820,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  if (!currentAddress) {
+  if (!effectiveAddress) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p>Please connect your wallet to mint your models</p>
@@ -705,7 +884,7 @@ export default function ProfilePage() {
             )}
 
             {/* Balance display */}
-            {currentAddress && (
+            {effectiveAddress && (
               <div className="p-3 bg-[#111] border border-[#333] rounded-lg">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">STX Balance:</span>
@@ -717,10 +896,51 @@ export default function ProfilePage() {
                      stxBalance !== null ? `${stxBalance.toFixed(6)} STX` : 'Unable to load'}
                   </span>
                 </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-gray-500">Wallet Type:</span>
+                  <span className="text-blue-400">
+                    {isInternalWallet ? `Internal (${currentWallet?.label})` : 
+                     getWalletTypeFromContext(effectiveAddress).charAt(0).toUpperCase() + 
+                     getWalletTypeFromContext(effectiveAddress).slice(1) + ' Extension'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-gray-500">Network:</span>
+                  <span className="text-green-400 capitalize">
+                    {getPersistedNetwork()}
+                  </span>
+                </div>
                 {stxBalance !== null && stxBalance < 0.1 && (
                   <p className="text-red-400 text-xs mt-1">
                     Low balance! You may need more STX for transaction fees.
                   </p>
+                )}
+                
+                {/* Troubleshooting section for wallet issues */}
+                {!isInternalWallet && (
+                  <div className="mt-3 pt-3 border-t border-[#333]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-xs">Wallet Issues?</span>
+                      <Button
+                        onClick={() => {
+                          console.log('Clearing all wallet sessions...');
+                          forceSessionClear();
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-6 px-2 text-gray-400 border-gray-600 hover:text-white hover:border-gray-400"
+                      >
+                        Clear Sessions
+                      </Button>
+                    </div>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Use if wallet shows wrong network or stale data
+                    </p>
+                    <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-800 rounded">
+                      <p>Detected: {getWalletTypeFromContext(effectiveAddress)}</p>
+                      <p className="text-gray-600">If wrong, try disconnecting and reconnecting your wallet</p>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -804,10 +1024,14 @@ export default function ProfilePage() {
                 }}
                 placeholder="NFT Name *"
                 className={`border-[#333] p-6 text-lg ${validationErrors.name ? 'border-red-500' : ''}`}
+                maxLength={23}
               />
               {validationErrors.name && (
                 <p className="text-red-400 text-xs mt-1">{validationErrors.name}</p>
               )}
+              <p className="text-gray-400 text-xs mt-1">
+                {name.length}/23 characters (final contract name: ~{name.length + 9} chars)
+              </p>
             </div>
 
             {/* Description field with validation */}
@@ -953,10 +1177,10 @@ export default function ProfilePage() {
             <div className="justify-start space-y-3">
               <Button 
                 onClick={handleMint} 
-                disabled={minting || deployingContract || !currentAddress || !isWalletConnected} 
+                disabled={minting || deployingContract || !effectiveAddress || !isAnyWalletConnected} 
                 className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                {!currentAddress ? 'Connect Wallet First' :
+                {!effectiveAddress ? 'Connect Wallet First' :
                  deployingContract ? 'Deploying Contract...' : 
                  minting ? 'Processing...' : 
                  'Deploy NFT Contract'}

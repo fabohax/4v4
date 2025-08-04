@@ -4,15 +4,42 @@ import axios from 'axios';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Files API called');
+    
     const data = await request.formData();
     const modelFile = data.get("file") as File | null;
     const imageFile = data.get("imageFile") as File | null;
+
+    console.log('Received files:', {
+      modelFile: modelFile ? { name: modelFile.name, size: modelFile.size, type: modelFile.type } : null,
+      imageFile: imageFile ? { name: imageFile.name, size: imageFile.size, type: imageFile.type } : null
+    });
 
     if (!modelFile) {
       return NextResponse.json({ error: "No model file provided" }, { status: 400 });
     }
 
+    // Validate file size (300MB limit)
+    const maxSize = 300 * 1024 * 1024; // 300MB
+    if (modelFile.size > maxSize) {
+      return NextResponse.json({ 
+        error: `Model file too large. Maximum size is 300MB, received ${Math.round(modelFile.size / 1024 / 1024)}MB` 
+      }, { status: 413 });
+    }
+
+    if (imageFile && imageFile.size > maxSize) {
+      return NextResponse.json({ 
+        error: `Image file too large. Maximum size is 300MB, received ${Math.round(imageFile.size / 1024 / 1024)}MB` 
+      }, { status: 413 });
+    }
+
     console.log('Uploading model file to Pinata:', modelFile.name);
+
+    // Check environment variables
+    if (!process.env.PINATA_JWT) {
+      console.error('PINATA_JWT environment variable not set');
+      return NextResponse.json({ error: "Server configuration error - missing Pinata credentials" }, { status: 500 });
+    }
 
     // Upload the model file to Pinata
     const modelResult = await pinata.upload.public.file(modelFile);
@@ -20,7 +47,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Failed to upload model file to Pinata");
     }
     const modelCid = modelResult.IpfsHash;
-    const modelUrl = `${process.env.PINATA_GATEWAY_URL}/ipfs/${modelCid}`;
+    const modelUrl = `https://gateway.pinata.cloud/ipfs/${modelCid}`;
     console.log('Model File CID:', modelCid);
 
     let imageCid = null;
@@ -34,7 +61,7 @@ export async function POST(request: NextRequest) {
         throw new Error("Failed to upload image file to Pinata");
       }
       imageCid = imageResult.IpfsHash;
-      imageUrl = `${process.env.PINATA_GATEWAY_URL}/ipfs/${imageCid}`;
+      imageUrl = `https://gateway.pinata.cloud/ipfs/${imageCid}`;
       console.log('Image File CID:', imageCid);
     }
 
@@ -47,36 +74,46 @@ export async function POST(request: NextRequest) {
 
     const parseJSON = (value: string | null) => {
       try {
-        return value ? JSON.parse(value) : {};
-      } catch {
-        console.error('Invalid JSON:', value);
-        throw new Error(`Invalid JSON format: ${value}`);
+        if (!value || value.trim() === '') return {};
+        return JSON.parse(value);
+      } catch (error) {
+        console.error('Invalid JSON:', value, 'Error:', error);
+        throw new Error(`Invalid JSON format in field: ${value}`);
       }
     };
 
     const parseJSONOrArray = (value: string | null) => {
       try {
-        // Try parsing as JSON
-        return value ? JSON.parse(value) : [];
+        if (!value || value.trim() === '') return [];
+        // Try parsing as JSON first
+        return JSON.parse(value);
       } catch {
         // If parsing fails, treat it as a comma-separated string
-        return value ? value.split(',').map((item) => item.trim()) : [];
+        return value ? value.split(',').map((item) => item.trim()).filter(item => item.length > 0) : [];
       }
     };
 
     const parseLocation = (value: string | null) => {
-      if (!value) return {};
-      const match = value.match(/lat:\s*(-?\d+(\.\d+)?),\s*lon:\s*(-?\d+(\.\d+)?)/);
-      if (match) {
-        return {
-          lat: parseFloat(match[1]),
-          lon: parseFloat(match[3]),
-        };
+      try {
+        if (!value || value.trim() === '') return {};
+        const match = value.match(/lat:\s*(-?\d+(\.\d+)?),\s*lon:\s*(-?\d+(\.\d+)?)/);
+        if (match) {
+          return {
+            lat: parseFloat(match[1]),
+            lon: parseFloat(match[3]),
+          };
+        }
+        console.warn('Location format not recognized, using empty object:', value);
+        return {}; // Return empty object instead of throwing error
+      } catch (error) {
+        console.warn('Error parsing location, using empty object:', value, error);
+        return {}; // Return empty object instead of throwing error
       }
-      throw new Error(`Invalid location format: ${value}`);
     };
 
     // Generate metadata
+    console.log('Generating metadata...');
+    
     const metadata = {
       name: data.get("name") as string,
       description: data.get("description") as string,
@@ -94,9 +131,10 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Parsed location:', metadata.location);
-    console.log('Generated Metadata:', metadata);
+    console.log('Generated Metadata:', JSON.stringify(metadata, null, 2));
 
     // Upload metadata JSON to Pinata
+    console.log('Uploading metadata to Pinata...');
     const metadataResult = await pinata.upload.public.json(metadata);
     if (!metadataResult || !metadataResult.IpfsHash) {
       throw new Error("Failed to upload metadata to Pinata");
@@ -105,55 +143,47 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ metadataCid }, { status: 200 });
   } catch (error) {
-    console.error('Error in API route:', error);
+    console.error('Error in files API route:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
-    // Improved error handling
+    // Improved error handling with more specific error messages
     let errorMessage = "Internal Server Error";
+    let statusCode = 500;
+    
     if (axios.isAxiosError(error)) {
-      errorMessage = error.response?.data?.error || error.response?.data || error.message;
+      console.error('Axios error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      
+      if (error.response?.status === 401) {
+        errorMessage = "Pinata authentication failed - check API credentials";
+        statusCode = 500; // Don't expose auth details to client
+      } else if (error.response?.status === 413) {
+        errorMessage = "File too large for upload";
+        statusCode = 413;
+      } else {
+        errorMessage = error.response?.data?.error || error.response?.data || error.message || "Upload service error";
+      }
     } else if (error instanceof Error) {
-      errorMessage = error.message;
+      if (error.message.includes('Invalid JSON format')) {
+        errorMessage = error.message;
+        statusCode = 400;
+      } else if (error.message.includes('Invalid location format')) {
+        errorMessage = error.message;
+        statusCode = 400;
+      } else if (error.message.includes('Failed to upload')) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error.message;
+      }
     }
 
     return NextResponse.json(
-      { error: `Internal Server Error: ${errorMessage}` },
-      { status: 500 }
+      { error: errorMessage },
+      { status: statusCode }
     );
   }
 }
-
-pinata.upload.public.file = async (file: File) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
-      headers: {
-        Authorization: `Bearer ${process.env.PINATA_JWT}`, // Use the JWT from your environment variables
-      },
-    });
-
-    console.log('Pinata File Upload Response:', response.data);
-    return response.data; // Return the response from Pinata
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error('Pinata File Upload Error:', error.response?.data || error.message);
-      return new Response(
-        JSON.stringify({
-          error: error.response?.data?.error || 'Failed to upload file to Pinata',
-          details: error.response?.data || null,
-        }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    } else {
-      console.error('Pinata File Upload Error:', error);
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to upload file to Pinata',
-          details: error instanceof Error ? error.message : null,
-        }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-  }
-};

@@ -5,6 +5,9 @@ import { Bell, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { HiroWalletContext } from './HiroWalletProvider';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
+import { getPersistedNetwork } from '@/lib/network';
+import { getApiUrl } from '@/lib/stacks-api';
+import { forceSessionClear } from '@/lib/sessionUtils';
 
 interface UserModalProps {
   onClose: () => void;
@@ -38,9 +41,14 @@ export default function UserModal({ onClose }: UserModalProps) {
       setBalance(null);
       return;
     }
-    const apiUrl = `https://api.hiro.so/extended/v1/address/${currentAddress}/balances?unanchored=false`;
+    
+    const network = getPersistedNetwork();
+    const baseApiUrl = getApiUrl(network);
+    const apiUrl = `${baseApiUrl}/extended/v1/address/${currentAddress}/balances?unanchored=false`;
+    
     const fetchBalance = async () => {
       try {
+        console.log(`Fetching balance for ${currentAddress} on ${network}:`, apiUrl);
         const res = await fetch(apiUrl, { method: "GET" });
         const data = await res.json();
         // STX balance is in microstacks, convert to STX
@@ -49,7 +57,8 @@ export default function UserModal({ onClose }: UserModalProps) {
             ? (Number(data.stx.balance) / 1e6).toLocaleString()
             : '0'
         );
-      } catch {
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
         setBalance('--');
       }
     };
@@ -63,17 +72,25 @@ export default function UserModal({ onClose }: UserModalProps) {
   };
 
   const handleDisconnect = async () => {
+    // Comprehensive session clearing
+    console.log('Disconnecting and clearing all sessions...');
+    
     // Remove session user if present
     if (typeof window !== "undefined") {
       localStorage.removeItem('ezstx_session');
       // Trigger GetInButton to update
       window.dispatchEvent(new Event('ezstx-session-update'));
     }
+    
     if (disconnect) {
       await disconnect();
     }
+    
+    // Force clear all wallet sessions and storage
+    forceSessionClear();
+    
     onClose();
-    router.replace('/');
+    // Note: forceSessionClear() will reload the page, so we don't need router.replace
   };
 
   return (
@@ -126,6 +143,9 @@ export default function UserModal({ onClose }: UserModalProps) {
             >
               Balance
             </button>
+          </div>
+          <div className="text-xs text-gray-400 text-center mb-2">
+            Network: {getPersistedNetwork().toUpperCase()}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 w-full mb-2 font-sans text-base">

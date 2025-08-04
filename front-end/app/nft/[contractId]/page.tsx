@@ -16,7 +16,6 @@ export default function NFTPage() {
   
   const txid = params.contractId as string;
   const contractName = searchParams.get('contractName');
-  const contractAddress = searchParams.get('contractAddress'); // Add this to get contract address
   
   const [copied, setCopied] = useState<string>('');
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleString());
@@ -185,7 +184,7 @@ export default function NFTPage() {
                 </Button>
                 
                 <Button 
-                  onClick={() => router.push(`/nft/${contractAddress || txid}/${contractName}`)}
+                  onClick={() => router.push(`/mod/${txid}`)}
                   className="w-full bg-green-600 hover:bg-green-700 text-white cursor-pointer"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />

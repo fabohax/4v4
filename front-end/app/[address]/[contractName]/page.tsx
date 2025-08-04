@@ -48,8 +48,10 @@ export default function NFTViewerPage() {
         if (contractResponse.ok) {
           const contractData = await contractResponse.json();
           if (contractData.success && contractData.metadataCid) {
-            // Fetch metadata from IPFS using the CID from contract
-            const metadataUrl = `${process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL}/ipfs/${contractData.metadataCid}`;
+            // Fetch metadata from IPFS using the CID and gateway URL from contract response
+            const gatewayUrl = contractData.gatewayUrl || 'https://gateway.pinata.cloud';
+            const metadataUrl = `${gatewayUrl}/ipfs/${contractData.metadataCid}`;
+            
             const response = await fetch(metadataUrl);
             
             if (response.ok) {

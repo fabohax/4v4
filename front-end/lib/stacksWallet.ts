@@ -11,7 +11,7 @@ import {
  */
 export async function createStacksAccount(
   password = 'default-password',
-  network: 'mainnet' | 'testnet' | 'devnet' | 'mocknet' = (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'mainnet' | 'testnet') || 'mainnet'
+  network: 'mainnet' | 'testnet' | 'devnet' | 'mocknet' = (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'mainnet' | 'testnet' | 'devnet') || 'mainnet'
 ) {
   const secretKey = generateSecretKey(); // 24-word mnemonic
   const wallet = await generateWallet({ secretKey, password });

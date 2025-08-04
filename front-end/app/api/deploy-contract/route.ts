@@ -8,6 +8,10 @@ interface DeployContractParams {
   initialCid: string;
   userAddress: string;
   network: 'testnet' | 'mainnet';
+  royaltyPercent?: number; // Optional royalty percentage (0-1000, representing 0%-10%)
+  builderFee?: number; // Optional builder fee (0-1000, representing 0%-10%)
+  maxSupply?: number; // Optional maximum supply limit
+  description?: string; // Optional NFT collection description
 }
 
 async function prepareContractCode(params: DeployContractParams) {
@@ -52,18 +56,37 @@ async function prepareContractCode(params: DeployContractParams) {
     
     // Replace placeholders with actual values
     console.log('> Replacing template placeholders...');
-    console.log('> NFT Name:', nftName);
+    console.log('> NFT Name (sanitized):', nftName);
     console.log('> Initial CID:', params.initialCid);
     
+    // Count placeholders before replacement
+    const nftNameMatches = (contractCode.match(/{NFT_NAME}/g) || []).length;
+    const cidMatches = (contractCode.match(/{INITIAL_CID}/g) || []).length;
+    console.log('> Found', nftNameMatches, '{NFT_NAME} placeholders');
+    console.log('> Found', cidMatches, '{INITIAL_CID} placeholders');
+    
+    // Perform replacements
     contractCode = contractCode.replace(/{NFT_NAME}/g, nftName);
     contractCode = contractCode.replace(/{INITIAL_CID}/g, params.initialCid);
     
     console.log('> Placeholders replaced successfully');
     console.log('> Final contract length:', contractCode.length, 'characters');
     
-    // Validate the final contract code doesn't have unreplaced placeholders
-    if (contractCode.includes('{') || contractCode.includes('}')) {
-      console.warn('> Warning: Contract code may contain unreplaced placeholders');
+    // Validate the final contract code doesn't have unreplaced template placeholders
+    // Only check for template placeholders (UPPERCASE words), not Clarity record syntax
+    const templatePlaceholders = contractCode.match(/{[A-Z_][A-Z0-9_]*}/g);
+    if (templatePlaceholders) {
+      console.error('> ERROR: Contract still contains unreplaced template placeholders:', templatePlaceholders);
+      throw new Error(`Contract contains unreplaced template placeholders: ${templatePlaceholders.join(', ')}`);
+    }
+    
+    // Verify replacements were successful
+    if (!contractCode.includes(nftName)) {
+      throw new Error('NFT name replacement failed - name not found in contract');
+    }
+    
+    if (!contractCode.includes(params.initialCid)) {
+      throw new Error('CID replacement failed - CID not found in contract');
     }
     
     // Basic Clarity syntax validation - check for required elements
@@ -111,7 +134,10 @@ export async function POST(request: NextRequest) {
       modelName, 
       initialCid, 
       userAddress, 
-      network = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet' 
+      network = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet',
+      royalties, // From form input like "10%"
+      edition, // From form input like "100"
+      description // From form input
     } = body;
 
     if (!modelName || !initialCid || !userAddress) {
@@ -124,28 +150,60 @@ export async function POST(request: NextRequest) {
 
     console.log('All required parameters provided');
     
+    // Parse royalty percentage from string like "10%" to number (500 = 5%)
+    let royaltyPercent = 500; // Default 5%
+    if (royalties && typeof royalties === 'string') {
+      const royaltyMatch = royalties.match(/^(\d+(?:\.\d+)?)%?$/);
+      if (royaltyMatch) {
+        const royaltyValue = parseFloat(royaltyMatch[1]);
+        if (royaltyValue >= 0 && royaltyValue <= 10) {
+          royaltyPercent = Math.round(royaltyValue * 100); // Convert 5% to 500
+        }
+      }
+    }
+    
+    // Parse max supply from edition string
+    let maxSupply: number | undefined;
+    if (edition && typeof edition === 'string') {
+      const editionMatch = edition.match(/^(\d+)$/);
+      if (editionMatch) {
+        maxSupply = parseInt(editionMatch[1], 10);
+      }
+    }
+    
     const contractName = generateContractName(modelName);
-    const nftName = modelName.toUpperCase().replace(/[^A-Z0-9]/g, '-');
     
     console.log('Generated contract identifiers:');
     console.log('  - Contract Name:', contractName);
-    console.log('  - NFT Name:', nftName);
+    console.log('  - Model Name:', modelName);
     console.log('  - User Address:', userAddress);
     console.log('  - Network:', network);
     console.log('  - Initial CID:', initialCid);
+    console.log('  - Royalty Percent:', royaltyPercent);
+    console.log('  - Max Supply:', maxSupply);
+    console.log('  - Description:', description);
     
     // Prepare contract code for client-side deployment
     const contractCode = await prepareContractCode({
       contractName,
-      nftName,
+      nftName: modelName, // Pass the original modelName to be processed in prepareContractCode
       initialCid,
       userAddress,
-      network
+      network,
+      royaltyPercent,
+      maxSupply,
+      description
     });
 
     console.log('Contract code prepared successfully');
     console.log('=== FINAL CONTRACT CODE ===');
-    console.log(contractCode);
+    console.log('First 500 characters:');
+    console.log(contractCode.substring(0, 500));
+    if (contractCode.length > 500) {
+      console.log('...(truncated)');
+      console.log('Last 500 characters:');
+      console.log(contractCode.substring(contractCode.length - 500));
+    }
     console.log('=== END CONTRACT CODE ===');
 
     // Validate contract code for Stacks Connect deployment
@@ -166,8 +224,10 @@ export async function POST(request: NextRequest) {
       throw new Error('Invalid Clarity contract - missing NFT token definition');
     }
     
-    if (contractCode.includes('{') || contractCode.includes('}')) {
-      throw new Error('Contract contains unreplaced template placeholders');
+    // Only check for template placeholders (UPPERCASE), not Clarity record syntax
+    const templatePlaceholders = contractCode.match(/{[A-Z_][A-Z0-9_]*}/g);
+    if (templatePlaceholders) {
+      throw new Error(`Contract contains unreplaced template placeholders: ${templatePlaceholders.join(', ')}`);
     }
     
     // Prepare deployment data according to Stacks Connect openContractDeploy specification
@@ -203,7 +263,7 @@ export async function POST(request: NextRequest) {
       validation: {
         codeLength: contractCode.length,
         hasNftDefinition: contractCode.includes('define-non-fungible-token'),
-        noPlaceholders: !contractCode.includes('{') && !contractCode.includes('}'),
+        noPlaceholders: !contractCode.match(/{[A-Z_][A-Z0-9_]*}/g), // Only check for template placeholders, not Clarity syntax
         contractNameValid: /^[a-z][a-z0-9-]*[a-z0-9]$/.test(contractName)
       }
     }, { status: 200 });

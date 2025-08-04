@@ -2,7 +2,9 @@
 import { createContext, FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { getPersistedNetwork, persistNetwork } from '@/lib/network';
 import { Network } from '@/lib/network';
-import { connect, disconnect, isConnected, getLocalStorage } from '@stacks/connect';
+import { showConnect, disconnect, isConnected, getLocalStorage } from '@stacks/connect';
+import { checkForStaleDevnetConnections } from '@/lib/sessionUtils';
+
 interface HiroWallet {
   isWalletOpen: boolean;
   isWalletConnected: boolean;
@@ -13,6 +15,7 @@ interface HiroWallet {
   setNetwork: (network: Network) => void;
   authenticate: () => void;
   disconnect: () => void;
+  clearAllSessions: () => void;
 }
 
 const HiroWalletContext = createContext<HiroWallet>({
@@ -25,6 +28,7 @@ const HiroWalletContext = createContext<HiroWallet>({
   setNetwork: () => {},
   authenticate: () => {},
   disconnect: () => {},
+  clearAllSessions: () => {},
 });
 
 interface ProviderProps {
@@ -43,10 +47,63 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     persistNetwork(newNetwork);
   }, []);
 
+  // Function to clear all wallet sessions and storage
+  const clearAllWalletSessions = useCallback(() => {
+    console.log('Clearing all wallet sessions and storage...');
+    
+    if (typeof window !== 'undefined') {
+      // Clear all wallet-related storage
+      const keysToRemove = [
+        'blockstack-session',
+        'blockstack',
+        'connect-session', 
+        'stacks-wallet-connect',
+        'xverse-stacks',
+        'xverse-session',
+        'leather-stacks',
+        'leather-session'
+      ];
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Clear any other potential wallet storage
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('wallet') || key.includes('stacks') || key.includes('blockstack'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      sessionStorage.clear();
+    }
+    
+    // Reset all state
+    setIsWalletConnected(false);
+    setCurrentAddress('');
+    setNetwork(null);
+    setIsWalletOpen(false);
+  }, []);
+
   useEffect(() => {
     const loadStacksConnect = async () => {
       try {
         setMounted(true);
+        
+        // Check for stale devnet connections and clear if found
+        const hadStaleConnections = checkForStaleDevnetConnections();
+        if (hadStaleConnections) {
+          // Early return as page will reload
+          return;
+        }
+        
+        // Check if we should clear stale sessions on startup
+        const shouldClearSessions = typeof window !== 'undefined' && 
+          localStorage.getItem('force-clear-sessions');
+        if (shouldClearSessions) {
+          clearAllWalletSessions();
+          localStorage.removeItem('force-clear-sessions');
+        }
+        
         setIsWalletConnected(isConnected());
       } catch (error) {
         console.error('Failed to load @stacks/connect:', error);
@@ -54,7 +111,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
     };
 
     loadStacksConnect();
-  }, []);
+  }, [clearAllWalletSessions]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -65,18 +122,156 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
   const authenticate = useCallback(async () => {
     try {
       setIsWalletOpen(true);
-      await connect();
+      console.log('Attempting to connect wallet...');
+      
+      // First, clear any stale sessions to prevent network conflicts
+      console.log('Clearing any stale wallet sessions before connecting...');
+      if (typeof window !== 'undefined') {
+        // Clear potentially conflicting storage
+        localStorage.removeItem('blockstack-session');
+        localStorage.removeItem('connect-session');
+        
+        // Clear network-specific storage that might force devnet
+        localStorage.removeItem('stacks-network');
+        localStorage.removeItem('stacks-connect-network');
+        localStorage.removeItem('blockstack-network');
+        
+        const win = window as { XverseProviders?: { StacksProvider: unknown }; LeatherProvider?: unknown };
+        if (win.XverseProviders?.StacksProvider) {
+          console.log('Xverse wallet detected');
+          // Clear Xverse-specific stale data and network info
+          localStorage.removeItem('xverse-stacks');
+          localStorage.removeItem('xverse-session');
+          localStorage.removeItem('xverse-network');
+          localStorage.removeItem('xverse-stacks-network');
+          
+          // Clear any devnet-specific storage
+          const xverseKeys = Object.keys(localStorage).filter(key => 
+            key.includes('xverse') && (key.includes('devnet') || key.includes('ST3'))
+          );
+          xverseKeys.forEach(key => localStorage.removeItem(key));
+          
+        } else if (win.LeatherProvider) {
+          console.log('Leather wallet detected');
+          // Clear Leather-specific stale data  
+          localStorage.removeItem('leather-stacks');
+          localStorage.removeItem('leather-session');
+          localStorage.removeItem('leather-network');
+        }
+      }
+      
+      await showConnect({
+        appDetails: {
+          name: '4V4 NFT Minter',
+          icon: typeof window !== 'undefined' ? window.location.origin + '/4V4-DIY.png' : '',
+        },
+        onFinish: (authData: unknown) => {
+          console.log('Wallet connected successfully:', authData);
+          
+          // Validate that we're connected to the expected network
+          const data = getLocalStorage();
+          const stxAddresses = data?.addresses?.stx || [];
+          const address = stxAddresses.length > 0 ? stxAddresses[0].address : null;
+          
+          if (address) {
+            // Check for specific devnet addresses (well-known devnet faucet addresses)
+            const knownDevnetAddresses = [
+              'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM', // Common devnet faucet
+              'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5',  // Another common devnet address
+              'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',  // Another devnet address
+            ];
+            
+            if (knownDevnetAddresses.includes(address)) {
+              console.warn('⚠️  Connected to known devnet address:', address);
+              console.warn('⚠️  Please connect with a testnet wallet instead');
+              
+              // Clear connection and force reconnect
+              disconnect();
+              setIsWalletConnected(false);
+              
+              // Show warning and clear all sessions
+              if (typeof window !== 'undefined') {
+                alert('Warning: Connected to devnet address. Please use a testnet wallet and reconnect.');
+                clearAllWalletSessions();
+              }
+              return;
+            } else if (address.startsWith('ST')) {
+              console.log('✅ Connected to testnet address:', address);
+            } else if (address.startsWith('SP')) {
+              console.log('✅ Connected to mainnet address:', address);
+            } else {
+              console.log('ℹ️  Connected to address:', address);
+            }
+          }
+          
+          setIsWalletConnected(true);
+        },
+        onCancel: () => {
+          console.log('User cancelled wallet connection');
+          setIsWalletConnected(false);
+        },
+      });
       setIsWalletOpen(false);
-      setIsWalletConnected(isConnected());
+      
+      // Double-check connection status
+      const connected = isConnected();
+      console.log('Final connection status:', connected);
+      setIsWalletConnected(connected);
     } catch (error) {
       console.error('Connection failed:', error);
       setIsWalletOpen(false);
+      setIsWalletConnected(false);
     }
-  }, []);
+  }, [clearAllWalletSessions]);
 
   const handleDisconnect = useCallback(() => {
+    console.log('Disconnecting wallet and clearing all sessions...');
+    
+    // Disconnect from Stacks Connect
     disconnect();
+    
+    // Clear all wallet-related local storage
+    if (typeof window !== 'undefined') {
+      // Clear Stacks Connect storage
+      localStorage.removeItem('blockstack-session');
+      localStorage.removeItem('blockstack');
+      localStorage.removeItem('connect-session');
+      localStorage.removeItem('stacks-wallet-connect');
+      
+      // Clear network-specific storage
+      localStorage.removeItem('stacks-network');
+      localStorage.removeItem('stacks-connect-network');
+      localStorage.removeItem('blockstack-network');
+      
+      // Clear any Xverse-specific storage
+      localStorage.removeItem('xverse-stacks');
+      localStorage.removeItem('xverse-session');
+      localStorage.removeItem('xverse-network');
+      localStorage.removeItem('xverse-stacks-network');
+      
+      // Clear any Leather-specific storage
+      localStorage.removeItem('leather-stacks');
+      localStorage.removeItem('leather-session');
+      localStorage.removeItem('leather-network');
+      
+      // Clear any other potential wallet storage
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('wallet') || key.includes('stacks') || key.includes('blockstack'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // Also clear session storage
+      sessionStorage.clear();
+    }
+    
+    // Reset component state
     setIsWalletConnected(false);
+    setCurrentAddress('');
+    setNetwork(null);
+    
+    console.log('Wallet disconnected and all sessions cleared');
   }, []);
 
   useEffect(() => {
@@ -119,6 +314,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       setNetwork: updateNetwork,
       authenticate,
       disconnect: handleDisconnect,
+      clearAllSessions: clearAllWalletSessions,
     }),
     [
       isWalletOpen,
@@ -130,6 +326,7 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       authenticate,
       handleDisconnect,
       updateNetwork,
+      clearAllWalletSessions,
     ]
   );
 
