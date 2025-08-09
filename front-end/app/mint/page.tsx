@@ -2,8 +2,10 @@
 
 import { useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { HiroWalletContext } from '@/components/HiroWalletProvider';
 import { useDevnetWallet } from '@/components/DevnetWalletProvider';
+import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
 import { 
   AnchorMode,
   PostConditionMode,
@@ -14,7 +16,6 @@ import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import { request } from '@stacks/connect';
 import { validateAndGenerateWallet } from '@/lib/walletHelpers';
 import { getApiUrl } from '@/lib/stacks-api';
-import { forceSessionClear } from '@/lib/sessionUtils';
 import { getPersistedNetwork } from '@/lib/network';
 
 // Utility to detect wallet type
@@ -82,18 +83,31 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner"
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, X, Lock } from 'lucide-react';
+import Image from 'next/image';
+
+// Dynamic import to avoid SSR issues with Leaflet
+const LocationMapModal = dynamic(() => import('@/components/LocationMapModal'), {
+  ssr: false,
+});
 
 export default function ProfilePage() {
   const { currentAddress, isWalletConnected } = useContext(HiroWalletContext);
   const { currentWallet } = useDevnetWallet();
+  const { 
+    currentWallet: encryptedWallet, 
+    isAuthenticated: isEncryptedAuthenticated,
+    isSessionLocked
+  } = useEncryptedWallet();
   const router = useRouter();
 
-  // Determine which wallet system is active - prioritize external wallet
-  const isInternalWallet = !isWalletConnected && !!currentWallet;
-  const effectiveAddress = isWalletConnected ? currentAddress : (currentWallet?.stxAddress || null);
-  const isAnyWalletConnected = isWalletConnected || !!currentWallet;
+  // Enhanced wallet determination - prioritize encrypted wallet, then external, then devnet
+  const isInternalWallet = !isWalletConnected && (isEncryptedAuthenticated || !!currentWallet);
+  const effectiveAddress = isWalletConnected ? currentAddress : 
+    (isEncryptedAuthenticated ? encryptedWallet?.address : currentWallet?.stxAddress || null);
+  const isAnyWalletConnected = isWalletConnected || isEncryptedAuthenticated || !!currentWallet;
 
   // Wallet status monitoring (minimal logging)
   useEffect(() => {
@@ -111,14 +125,129 @@ export default function ProfilePage() {
   const [description, setDescription] = useState<string>('This is a test model description for minting.');
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [externalUrl, setExternalUrl] = useState<string>('https://4v4.xyz');
   const [attributes, setAttributes] = useState<string>('{"style": "futuristic", "rarity": "Rare"}');
-  const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('{"glb", "fbx"}');
+  const [interoperabilityFormats, setInteroperabilityFormats] = useState<string>('glb');
+  
+  // Available format options
+  const availableFormats = ['glb', 'gltf', 'fbx', 'obj'];
   const [customizationData, setCustomizationData] = useState<string>('{"color": "blue", "accessory": "hat"}');
   const [edition, setEdition] = useState<string>('100');
   const [royalties, setRoyalties] = useState<string>('10%');
   const [properties, setProperties] = useState<string>('{"polygonCount": 5000}');
-  const [location, setLocation] = useState<string>('lat: -12.72596, lon: -77.89962');
+  
+  // Helper states for better UX
+  const [attributesList, setAttributesList] = useState<Array<{key: string, value: string}>>([
+    {key: 'style', value: 'futuristic'},
+    {key: 'rarity', value: 'Rare'}
+  ]);
+  const [propertiesList, setPropertiesList] = useState<Array<{key: string, value: string}>>([
+    {key: 'polygonCount', value: '5000'}
+  ]);
+  const [customizationList, setCustomizationList] = useState<Array<{key: string, value: string}>>([
+    {key: 'color', value: 'blue'},
+    {key: 'accessory', value: 'hat'}
+  ]);
+
+  // Helper functions to sync list states with JSON strings
+  const updateAttributesFromList = (list: Array<{key: string, value: string}>) => {
+    const obj = list.reduce((acc, item) => {
+      if (item.key.trim() && item.value.trim()) {
+        acc[item.key.trim()] = item.value.trim();
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    setAttributes(JSON.stringify(obj));
+  };
+
+  const updatePropertiesFromList = (list: Array<{key: string, value: string}>) => {
+    const obj = list.reduce((acc, item) => {
+      if (item.key.trim() && item.value.trim()) {
+        // Try to parse as number if possible
+        const value = isNaN(Number(item.value)) ? item.value.trim() : Number(item.value);
+        acc[item.key.trim()] = value;
+      }
+      return acc;
+    }, {} as Record<string, string | number>);
+    setProperties(JSON.stringify(obj));
+  };
+
+  const updateCustomizationFromList = (list: Array<{key: string, value: string}>) => {
+    const obj = list.reduce((acc, item) => {
+      if (item.key.trim() && item.value.trim()) {
+        acc[item.key.trim()] = item.value.trim();
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    setCustomizationData(JSON.stringify(obj));
+  };
+
+  const addAttributeField = () => {
+    const newList = [...attributesList, {key: '', value: ''}];
+    setAttributesList(newList);
+    updateAttributesFromList(newList);
+  };
+
+  const removeAttributeField = (index: number) => {
+    const newList = attributesList.filter((_, i) => i !== index);
+    setAttributesList(newList);
+    updateAttributesFromList(newList);
+  };
+
+  const updateAttributeField = (index: number, field: 'key' | 'value', value: string) => {
+    const newList = [...attributesList];
+    newList[index][field] = value;
+    setAttributesList(newList);
+    updateAttributesFromList(newList);
+  };
+
+  const addPropertyField = () => {
+    const newList = [...propertiesList, {key: '', value: ''}];
+    setPropertiesList(newList);
+    updatePropertiesFromList(newList);
+  };
+
+  const removePropertyField = (index: number) => {
+    const newList = propertiesList.filter((_, i) => i !== index);
+    setPropertiesList(newList);
+    updatePropertiesFromList(newList);
+  };
+
+  const updatePropertyField = (index: number, field: 'key' | 'value', value: string) => {
+    const newList = [...propertiesList];
+    newList[index][field] = value;
+    setPropertiesList(newList);
+    updatePropertiesFromList(newList);
+  };
+
+  const addCustomizationField = () => {
+    const newList = [...customizationList, {key: '', value: ''}];
+    setCustomizationList(newList);
+    updateCustomizationFromList(newList);
+  };
+
+  const removeCustomizationField = (index: number) => {
+    const newList = customizationList.filter((_, i) => i !== index);
+    setCustomizationList(newList);
+    updateCustomizationFromList(newList);
+  };
+
+  const updateCustomizationField = (index: number, field: 'key' | 'value', value: string) => {
+    const newList = [...customizationList];
+    newList[index][field] = value;
+    setCustomizationList(newList);
+    updateCustomizationFromList(newList);
+  };
+
+  const updateInteroperabilityFormat = (value: string) => {
+    setInteroperabilityFormats(value);
+  };
+
+  // Separate latitude and longitude states
+  const [latitude, setLatitude] = useState<string>('-12.72596');
+  const [longitude, setLongitude] = useState<string>('-77.89962');
+  const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [soulbound, setSoulbound] = useState<boolean>(false);
   const [minting, setMinting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -216,8 +345,37 @@ export default function ProfilePage() {
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const image = e.target.files?.[0];
+    
+    // Clean up previous preview URL
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    
     if (image) {
+      // Validate file type
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validImageTypes.includes(image.type)) {
+        setError("Invalid image type. Please upload JPEG, PNG, GIF, or WebP images");
+        setImageFile(null);
+        setImagePreviewUrl(null);
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (image.size > 10 * 1024 * 1024) {
+        setError("Image size must be less than 10MB");
+        setImageFile(null);
+        setImagePreviewUrl(null);
+        return;
+      }
+      
       setImageFile(image);
+      const previewUrl = URL.createObjectURL(image);
+      setImagePreviewUrl(previewUrl);
+      setError(''); // Clear any previous errors
+    } else {
+      setImageFile(null);
+      setImagePreviewUrl(null);
     }
   };
 
@@ -290,14 +448,38 @@ export default function ProfilePage() {
       errors.properties = 'Invalid JSON format in properties field';
     }
     
-    // Validate edition is a positive number if provided
-    if (edition && (isNaN(Number(edition)) || Number(edition) <= 0)) {
-      errors.edition = 'Edition must be a positive number';
+    // Validate edition is a positive number if provided (max 10,000 for contract limits)
+    if (edition && (isNaN(Number(edition)) || Number(edition) <= 0 || Number(edition) > 10000)) {
+      if (Number(edition) > 10000) {
+        errors.edition = 'Edition must be 10,000 or less to prevent contract issues';
+      } else {
+        errors.edition = 'Edition must be a positive number';
+      }
     }
     
-    // Validate royalties format (should be a percentage)
-    if (royalties && !royalties.match(/^\d+(\.\d+)?%?$/)) {
-      errors.royalties = 'Royalties must be a valid percentage (e.g., "10%" or "5.5")';
+    // Validate royalties is a valid percentage number (0-100)
+    const royaltiesNum = royalties.replace('%', '').trim();
+    if (royaltiesNum && (isNaN(Number(royaltiesNum)) || Number(royaltiesNum) < 0 || Number(royaltiesNum) > 100)) {
+      errors.royalties = 'Royalties must be a number between 0 and 100';
+    }
+    
+    // Validate location coordinates if provided
+    if (latitude || longitude) {
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      if (latitude && (isNaN(lat) || lat < -90 || lat > 90)) {
+        errors.latitude = 'Latitude must be a number between -90 and 90';
+      }
+      
+      if (longitude && (isNaN(lng) || lng < -180 || lng > 180)) {
+        errors.longitude = 'Longitude must be a number between -180 and 180';
+      }
+      
+      // If one coordinate is provided, both should be provided
+      if ((latitude && !longitude) || (!latitude && longitude)) {
+        errors.location = 'Both latitude and longitude must be provided together';
+      }
     }
     
     setValidationErrors(errors);
@@ -350,27 +532,59 @@ export default function ProfilePage() {
     description?: string; // Optional description
   };
 
+  // Override type for Stacks Connect deployment parameters  
+  interface StacksDeployParams {
+    name: string;
+    clarityCode: string; // Changed from codeBody to clarityCode
+    clarityVersion: number;
+    network: string; // Changed back to string instead of StacksNetwork object
+  }
+
+  interface StacksWalletRequest {
+    (method: 'stx_deployContract', params: StacksDeployParams): Promise<{ txid: string }>;
+  }
+
   const deployContractWithWallet = async (contractCode: string, contractName: string) => {
     const currentNetwork = getPersistedNetwork();
-    const walletType = getWalletTypeFromContext(effectiveAddress);
     
     // Check if wallet is properly connected before attempting deployment
     if (!effectiveAddress) {
       throw new Error('No wallet address available for deployment');
     }
     
+    const walletType = getWalletTypeFromContext(effectiveAddress);
+    
+    console.log('=== WALLET DEPLOYMENT DEBUG ===');
+    console.log('Contract Name:', contractName);
+    console.log('Contract Code Length:', contractCode.length);
+    console.log('Network String:', currentNetwork);
+    console.log('Wallet Type:', walletType);
+    console.log('Effective Address:', effectiveAddress);
+    
     try {
-      // Use the new request method with stx_deployContract
-      const response = await request('stx_deployContract', {
+      // Stacks Connect wallet expects specific parameter names and types
+      const deployParams = {
         name: contractName,
-        clarityCode: contractCode,
-        clarityVersion: '2',
-        network: currentNetwork,
+        clarityCode: contractCode, // Changed from codeBody to clarityCode
+        clarityVersion: 2, // Number, not string
+        network: currentNetwork, // String, not object
+      };
+      
+      console.log('Deploy Parameters being sent to wallet:', {
+        name: deployParams.name,
+        clarityCodeLength: deployParams.clarityCode.length,
+        clarityVersion: deployParams.clarityVersion,
+        network: deployParams.network
       });
+      
+      const response = await (request as StacksWalletRequest)('stx_deployContract', deployParams);
+      
+      console.log('Wallet response:', response);
       
       const txId = response.txid;
       
       if (txId) {
+        console.log('Success! Transaction ID:', txId);
         return {
           txId: txId,
           contractAddress: effectiveAddress,
@@ -380,12 +594,22 @@ export default function ProfilePage() {
         throw new Error('No transaction ID returned from wallet');
       }
     } catch (error) {
+      console.error('Wallet deployment error details:', error);
       // Handle specific error types
       if (error instanceof Error) {
+        console.log('Error message:', error.message);
+        console.log('Error stack:', error.stack);
+        
         if (error.message.includes('User rejected') || error.message.includes('cancelled')) {
           throw new Error('User cancelled contract deployment');
         } else if (error.message.includes('timeout')) {
           throw new Error(`Wallet deployment timed out. Please ensure your ${walletType === 'xverse' ? 'Xverse' : walletType === 'leather' ? 'Leather' : 'Hiro'} wallet extension is unlocked and try again.`);
+        } else if (error.message.includes('broadcast') || error.message.includes('failed to broadcast')) {
+          throw new Error('Transaction failed to broadcast. This may be due to network congestion or insufficient fees. Please try again with a higher fee.');
+        } else if (error.message.includes('unable to parse node response')) {
+          throw new Error('Network error occurred while broadcasting transaction. Please check your internet connection and try again.');
+        } else if (error.message.includes('insufficient funds') || error.message.includes('balance')) {
+          throw new Error('Insufficient STX balance to cover transaction fees. Please add more STX to your wallet.');
         }
       }
       
@@ -396,6 +620,11 @@ export default function ProfilePage() {
   // New function for internal wallet contract deployment
   const deployContractWithInternalWallet = async (contractCode: string, contractName: string, mnemonic: string) => {
     try {
+      // Check if using encrypted wallet and session is locked
+      if (encryptedWallet && isSessionLocked) {
+        throw new Error('Session locked. Please unlock your wallet to continue with deployment.');
+      }
+
       const currentNetwork = getPersistedNetwork();
       const network = currentNetwork === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
       
@@ -410,19 +639,69 @@ export default function ProfilePage() {
         network,
         anchorMode: AnchorMode.Any,
         postConditionMode: PostConditionMode.Allow,
-        fee: BigInt(10000), // 0.01 STX fee
+        fee: BigInt(100000), // Increased fee to 0.1 STX for better broadcast success and network issues
       };
       
       const transaction = await makeContractDeploy(txOptions);
       
-      // Broadcast transaction  
-      const broadcastResponse = await broadcastTransaction({ 
-        transaction, 
-        network 
-      });
+      console.log('Transaction created successfully, attempting broadcast...');
       
-      if ('error' in broadcastResponse) {
-        throw new Error(`Broadcast failed: ${broadcastResponse.error}`);
+      // Broadcast transaction with enhanced error handling and retry logic
+      let broadcastResponse: { txid: string } | null = null;
+      let retryAttempts = 0;
+      const maxRetries = 3;
+      
+      while (retryAttempts < maxRetries) {
+        try {
+          console.log(`Broadcast attempt ${retryAttempts + 1}/${maxRetries}`);
+          
+          broadcastResponse = await broadcastTransaction({ 
+            transaction, 
+            network 
+          });
+          
+          console.log('Broadcast response:', broadcastResponse);
+          
+          if ('error' in broadcastResponse) {
+            throw new Error(`Broadcast API error: ${broadcastResponse.error}`);
+          }
+          
+          // Success - break out of retry loop
+          break;
+          
+        } catch (error) {
+          retryAttempts++;
+          console.error(`Broadcast attempt ${retryAttempts} failed:`, error);
+          
+          if (retryAttempts >= maxRetries) {
+            // Final attempt failed - provide detailed error info
+            if (error instanceof Error) {
+              if (error.message.includes('unable to parse node response')) {
+                throw new Error(`Network communication failed after ${maxRetries} attempts. The Stacks node may be experiencing issues. Please try again in a few minutes, check your internet connection, or consider switching networks.`);
+              } else if (error.message.includes('timeout')) {
+                throw new Error(`Broadcast timed out after ${maxRetries} attempts. This may be due to network congestion. Please try again later.`);
+              } else if (error.message.includes('insufficient funds')) {
+                throw new Error('Insufficient STX balance to cover transaction fees. Please add more STX to your wallet.');
+              } else if (error.message.includes('fee too low')) {
+                throw new Error('Transaction fee is too low for current network conditions. Please try again with a higher fee.');
+              } else if (error.message.includes('nonce')) {
+                throw new Error('Transaction nonce error. Please wait a moment and try again.');
+              } else if (error.message.includes('network') || error.message.includes('connection')) {
+                throw new Error(`Network connectivity issue after ${maxRetries} attempts. Please check your internet connection and try again.`);
+              }
+            }
+            throw new Error(`Transaction broadcast failed after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          
+          // Wait before retrying (exponential backoff)
+          const waitTime = Math.pow(2, retryAttempts) * 1000; // 2s, 4s, 8s
+          console.log(`Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+      
+      if (!broadcastResponse || !broadcastResponse.txid) {
+        throw new Error('Failed to get transaction ID from broadcast response');
       }
       
       return {
@@ -492,6 +771,16 @@ export default function ProfilePage() {
             network: currentNetwork === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
           };
           
+          console.log('=== API RESPONSE DEBUG ===');
+          console.log('Full API Result:', result);
+          console.log('Deployment Config:', {
+            contractName: deploymentConfig.contractName,
+            codeBodyLength: deploymentConfig.codeBody?.length,
+            network: deploymentConfig.network
+          });
+          console.log('requiresWalletSignature:', result.requiresWalletSignature);
+          console.log('=== END API RESPONSE DEBUG ===');
+          
           // Deploy contract using appropriate wallet method
           interface WalletDeployResponse {
             txId: string;
@@ -502,13 +791,17 @@ export default function ProfilePage() {
           
           let walletResponse: WalletDeployResponse;
           
-          if (isInternalWallet && currentWallet) {
-            // Use internal wallet signing
+          if (isInternalWallet && (currentWallet || encryptedWallet)) {
+            // Use internal wallet signing (either legacy devnet or encrypted)
             setContractDeploymentStep('Signing with internal wallet...');
+            const walletMnemonic = encryptedWallet?.mnemonic || currentWallet?.mnemonic;
+            if (!walletMnemonic) {
+              throw new Error('No wallet mnemonic available for internal signing');
+            }
             walletResponse = await deployContractWithInternalWallet(
               deploymentConfig.codeBody, 
               deploymentConfig.contractName,
-              currentWallet.mnemonic
+              walletMnemonic
             );
           } else {
             // Use external wallet
@@ -633,6 +926,12 @@ export default function ProfilePage() {
     setContractDeploymentStep('');
     setRetryCount(0);
 
+    // Check for session lock before proceeding
+    if (encryptedWallet && isSessionLocked) {
+      setError('Your wallet session is locked. Please unlock your wallet in the main menu to continue.');
+      return;
+    }
+
     // Validate form
     if (!validateForm()) {
       setError('Please fix the validation errors before proceeding.');
@@ -656,23 +955,34 @@ export default function ProfilePage() {
       formData.append('file', modelFile!);
       if (imageFile) formData.append('imageFile', imageFile);
       
-      // Add metadata
+      // Add metadata - API expects specific field names
+      const locationData = getLocationForJson();
       const metadata = {
         name: name.trim(),
         description: description.trim(),
-        externalUrl,
+        externalUrl: externalUrl,  // API reads this as "externalUrl" and converts to "external_url"
         attributes: JSON.parse(attributes),
-        interoperabilityFormats,
+        interoperabilityFormats: [interoperabilityFormats.trim()],
         customizationData: JSON.parse(customizationData),
         edition,
-        royalties,
+        royalties: royalties.includes('%') ? royalties : `${royalties}%`, // Ensure % symbol
         properties: JSON.parse(properties),
-        location,
         soulbound
       };
       
+      // Add location as JSON string if valid (API will parse it as object)
+      if (locationData) {
+        Object.assign(metadata, { location: JSON.stringify(locationData) });
+      }
+      
+      console.log('Metadata being sent:', metadata);
+      console.log('Location data:', locationData);
+      console.log('FormData entries being sent to API:');
+      
       Object.entries(metadata).forEach(([key, value]) => {
-        formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+        const valueToSend = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        console.log(`  ${key}:`, valueToSend);
+        formData.append(key, valueToSend);
       });
 
       console.log('Starting file upload to IPFS...');
@@ -701,7 +1011,7 @@ export default function ProfilePage() {
         initialCid: sanitizedCid,
         userAddress: effectiveAddress!,
         network: process.env.NEXT_PUBLIC_STACKS_NETWORK || 'testnet',
-        royalties: royalties.trim(), // Pass royalties from form
+        royalties: royalties.includes('%') ? royalties.trim() : `${royalties.trim()}%`, // Ensure % symbol
         edition: edition.trim(), // Pass edition from form
         description: description.trim() // Pass description from form
       };
@@ -740,9 +1050,12 @@ export default function ProfilePage() {
         if (error.message.includes('timeout') || error.message.includes('AbortError')) {
           errorMessage = 'Operation timed out. This may be due to network congestion.';
           errorSuggestion = 'Please try again in a few minutes or check your internet connection.';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('unable to parse node response')) {
           errorMessage = 'Network error occurred while processing your request.';
-          errorSuggestion = 'Please check your internet connection and try again.';
+          errorSuggestion = 'Please check your internet connection and try again. If the issue persists, the Stacks network may be experiencing temporary issues.';
+        } else if (error.message.includes('broadcast') && error.message.includes('failed')) {
+          errorMessage = 'Transaction failed to broadcast to the network.';
+          errorSuggestion = 'This is often due to network congestion or node issues. Please wait a few minutes and try again with a higher fee.';
         } else if (error.message.includes('wallet') || error.message.includes('cancelled')) {
           errorMessage = 'Wallet operation was cancelled or failed.';
           errorSuggestion = 'Please ensure your wallet is unlocked and try again. Check that you have sufficient STX for transaction fees.';
@@ -787,6 +1100,39 @@ export default function ProfilePage() {
     setShowAdvancedOptions((prev) => !prev);
   };
 
+  // Helper functions for location handling
+  const parseLocationString = (lat: string, lng: string) => {
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    if (!isNaN(latNum) && !isNaN(lngNum)) {
+      return { lat: latNum, lng: lngNum };
+    }
+    return null;
+  };
+
+  const getLocationForJson = () => {
+    // Only include location if both lat and lng are provided and valid
+    if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      // Validate coordinates
+      if (!isNaN(lat) && !isNaN(lng) && 
+          lat >= -90 && lat <= 90 && 
+          lng >= -180 && lng <= 180) {
+        return {
+          lat: lat,
+          lon: lng  // Use "lon" to match the expected format
+        };
+      }
+    }
+    return null; // Return null if no valid location
+  };
+
+  const handleOpenLocationModal = () => {
+    setShowLocationModal(true);
+  };
+
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
@@ -794,12 +1140,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     return () => {
-      // Cleanup object URL when component unmounts or modelUrl changes
+      // Cleanup object URLs when component unmounts or URLs change
       if (modelUrl && modelUrl.startsWith('blob:')) {
         URL.revokeObjectURL(modelUrl);
       }
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
     };
-  }, [modelUrl]);
+  }, [modelUrl, imagePreviewUrl]);
 
   const getLoadingText = () => {
     switch (loadingState) {
@@ -829,14 +1178,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen dotted-grid-background">
-      <Card className='border-[#333] shadow-md text-white bg-[#000] w-4/5 py-8 mt-16'>
-        <CardContent className='grid grid-cols-2 space-x-8 w-auto'>
-          <div>
-            <div>
+    <div className="flex items-center justify-center min-h-screen dotted-grid-background py-4">
+      <Card className='border-[#333] shadow-md text-white bg-[#000] w-[95%] max-w-7xl py-8'>
+        <CardContent className='grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 w-auto'>
+          <div className="flex flex-col">
+            <div className="h-[50vh] md:h-[60vh] lg:h-[72vh] min-h-[400px]">
               {!modelFile ? (
-                <div className="flex flex-col h-[72vh] items-center justify-center border-1 border-dashed border-[#333] rounded-lg p-0">
-                 <Label htmlFor="modelFile" className="text-[#777] mb-2">
+                <div className="flex flex-col h-full items-center justify-center border-1 border-dashed border-[#333] rounded-lg p-4">
+                 <Label htmlFor="modelFile" className="text-[#777] mb-2 text-center">
                     Drag and drop model files here or click to upload
                   </Label>
                   <Input
@@ -848,7 +1197,7 @@ export default function ProfilePage() {
                   />
                   <label
                     htmlFor="modelFile"
-                    className="bg-[#fff] text-black px-4 py-2 rounded-md cursor-pointer hover:bg-[#333] hover:text-white hover:border-[#fff] select-none"
+                    className="bg-[#fff] text-black px-4 py-2 rounded-md cursor-pointer hover:bg-[#fff] hover:text-black hover:border-[#fff] select-none"
                   >
                     Browse files
                   </label>
@@ -872,10 +1221,38 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
-          <div className="space-y-4 overflow-y-auto max-h-auto">
+          <div className="flex flex-col h-[50vh] md:h-[60vh] lg:h-[72vh] min-h-[400px]">
+            {/* Fixed header */}
+            <div className="flex-shrink-0 mb-4">
               <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
                 Mint NFT
               </CardTitle>
+            </div>
+            
+            {/* Scrollable content */}
+            <div 
+              className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar" 
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#4B5563 #1F2937'
+              }}
+            >
+              <style jsx>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                  width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                  background: #1F2937;
+                  border-radius: 3px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                  background: #4B5563;
+                  border-radius: 3px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background: #6B7280;
+                }
+              `}</style>
 
             {error && (
               <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
@@ -899,7 +1276,8 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between text-xs mt-1">
                   <span className="text-gray-500">Wallet Type:</span>
                   <span className="text-blue-400">
-                    {isInternalWallet ? `Internal (${currentWallet?.label})` : 
+                    {encryptedWallet ? `Encrypted (${encryptedWallet.label})` :
+                     currentWallet ? `Internal (${currentWallet.label})` :
                      getWalletTypeFromContext(effectiveAddress).charAt(0).toUpperCase() + 
                      getWalletTypeFromContext(effectiveAddress).slice(1) + ' Extension'}
                   </span>
@@ -910,37 +1288,18 @@ export default function ProfilePage() {
                     {getPersistedNetwork()}
                   </span>
                 </div>
+                {isSessionLocked && (
+                  <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
+                    <p className="text-yellow-400 text-xs flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      Session locked. Please unlock your wallet to continue minting.
+                    </p>
+                  </div>
+                )}
                 {stxBalance !== null && stxBalance < 0.1 && (
                   <p className="text-red-400 text-xs mt-1">
                     Low balance! You may need more STX for transaction fees.
                   </p>
-                )}
-                
-                {/* Troubleshooting section for wallet issues */}
-                {!isInternalWallet && (
-                  <div className="mt-3 pt-3 border-t border-[#333]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-xs">Wallet Issues?</span>
-                      <Button
-                        onClick={() => {
-                          console.log('Clearing all wallet sessions...');
-                          forceSessionClear();
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-6 px-2 text-gray-400 border-gray-600 hover:text-white hover:border-gray-400"
-                      >
-                        Clear Sessions
-                      </Button>
-                    </div>
-                    <p className="text-gray-500 text-xs mt-1">
-                      Use if wallet shows wrong network or stale data
-                    </p>
-                    <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-800 rounded">
-                      <p>Detected: {getWalletTypeFromContext(effectiveAddress)}</p>
-                      <p className="text-gray-600">If wrong, try disconnecting and reconnecting your wallet</p>
-                    </div>
-                  </div>
                 )}
               </div>
             )}
@@ -1056,7 +1415,7 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            <div className='grid grid-cols-2 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div className='w-full justify-center flex text-center border-1 py-2 border-[#333] rounded-md select-none'>
                 <Checkbox
                   id="soulbound"
@@ -1073,7 +1432,7 @@ export default function ProfilePage() {
               </Button>
             </div>
             {showAdvancedOptions && (
-              <div>
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor="imageFile" className='mb-2'>Upload Cover Image</Label>
                   <Input
@@ -1083,6 +1442,45 @@ export default function ProfilePage() {
                     onChange={handleImageFileChange}
                     className='border-[#333] cursor-pointer'
                   />
+                  {imagePreviewUrl && (
+                    <div className="mt-3 p-3 bg-[#111] border border-[#333] rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400">Preview:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (imagePreviewUrl) {
+                              URL.revokeObjectURL(imagePreviewUrl);
+                            }
+                            setImageFile(null);
+                            setImagePreviewUrl(null);
+                            // Reset the file input
+                            const fileInput = document.getElementById('imageFile') as HTMLInputElement;
+                            if (fileInput) fileInput.value = '';
+                          }}
+                          className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="relative w-full">
+                        <Image
+                          src={imagePreviewUrl}
+                          alt="Cover image preview"
+                          width={400}
+                          height={300}
+                          className="w-full h-auto max-h-48 object-contain rounded border border-[#555]"
+                          unoptimized={true}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        {imageFile?.name} ({((imageFile?.size || 0) / (1024 * 1024)).toFixed(2)} MB)
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-gray-400 text-xs mt-1">
+                    Supported formats: JPEG, PNG, GIF, WebP. Max size: 10MB
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="externalUrl" className='my-2'>External URL</Label>
@@ -1095,90 +1493,285 @@ export default function ProfilePage() {
                     className='border-[#333] p-6'
                   />
                 </div>
+                
+                {/* Attributes - Key/Value pairs */}
                 <div>
-                  <Label htmlFor="attributes" className='my-2'>Attributes</Label>
-                  <Input
-                    type="text"
-                    id="attributes"
-                    value={attributes}
-                    onChange={(e) => setAttributes(e.target.value)}
-                    placeholder="e.g., style: futuristic, rarity: Rare"
-                    className='border-[#333] p-6'
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className='my-2'>Attributes</Label>
+                    <Button
+                      type="button"
+                      onClick={addAttributeField}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add
+                    </Button>
+                  </div>
+                  {attributesList.map((attr, index) => (
+                    <div key={index} className="flex gap-2 mb-2">
+                      <Input
+                        placeholder="Key (e.g., style)"
+                        value={attr.key}
+                        onChange={(e) => updateAttributeField(index, 'key', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Input
+                        placeholder="Value (e.g., futuristic)"
+                        value={attr.value}
+                        onChange={(e) => updateAttributeField(index, 'value', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => removeAttributeField(index)}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-transparent hover:text-red-400 bg-transparent px-2 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Interoperability Format - Single selection */}
                 <div>
-                  <Label htmlFor="interoperabilityFormats" className='my-2'>Interoperability Formats (comma-separated)</Label>
-                  <Input
-                    type="text"
-                    id="interoperabilityFormats"
+                  <Label className='my-2'>Model Format</Label>
+                  <Select
                     value={interoperabilityFormats}
-                    onChange={(e) => setInteroperabilityFormats(e.target.value)}
-                    placeholder="e.g., glb, fbx"
-                    className='border-[#333] p-6'
-                  />
+                    onValueChange={updateInteroperabilityFormat}
+                  >
+                    <SelectTrigger className="border-[#333]">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFormats.map((format) => (
+                        <SelectItem key={format} value={format}>
+                          {format.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {/* Customization Data - Key/Value pairs */}
                 <div>
-                  <Label htmlFor="customizationData" className='my-2'>Customization Data (JSON)</Label>
-                  <Input
-                    type="text"
-                    id="customizationData"
-                    value={customizationData}
-                    onChange={(e) => setCustomizationData(e.target.value)}
-                    placeholder='e.g., {"color": "blue", "accessory": "hat"}'
-                    className='border-[#333] p-6'
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className='my-2'>Customization Data</Label>
+                    <Button
+                      type="button"
+                      onClick={addCustomizationField}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add
+                    </Button>
+                  </div>
+                  {customizationList.map((custom, index) => (
+                    <div key={index} className="flex gap-2 mb-2">
+                      <Input
+                        placeholder="Key (e.g., color)"
+                        value={custom.key}
+                        onChange={(e) => updateCustomizationField(index, 'key', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Input
+                        placeholder="Value (e.g., blue)"
+                        value={custom.value}
+                        onChange={(e) => updateCustomizationField(index, 'value', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => removeCustomizationField(index)}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-transparent hover:text-red-400 px-2 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
+
                 <div>
                   <Label htmlFor="edition" className='my-2'>Edition</Label>
                   <Input
-                    type="text"
+                    type="number"
                     id="edition"
                     value={edition}
-                    onChange={(e) => setEdition(e.target.value)}
-                    placeholder="e.g., 100"
-                    className='border-[#333] p-6'
+                    onChange={(e) => {
+                      setEdition(e.target.value);
+                      if (validationErrors.edition) {
+                        setValidationErrors(prev => ({ ...prev, edition: '' }));
+                      }
+                    }}
+                    placeholder="100"
+                    min="1"
+                    max="10000"
+                    step="1"
+                    className={`border-[#333] hide-number-spinners ${validationErrors.edition ? 'border-red-500' : ''}`}
                   />
+                  {validationErrors.edition && (
+                    <p className="text-red-400 text-xs mt-1">{validationErrors.edition}</p>
+                  )}
+                  <p className="text-gray-400 text-xs mt-1">
+                    Maximum 10,000 editions to ensure optimal contract performance
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="royalties" className='my-2'>Royalties</Label>
-                  <Input
-                    type="text"
-                    id="royalties"
-                    value={royalties}
-                    onChange={(e) => setRoyalties(e.target.value)}
-                    placeholder="e.g., 10%"
-                    className='border-[#333] p-6'
-                  />
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      id="royalties"
+                      value={royalties.replace('%', '')}
+                      onChange={(e) => setRoyalties(e.target.value)}
+                      placeholder="10"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className='border-[#333] pr-8 hide-number-spinners'
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                      %
+                    </span>
+                  </div>
                 </div>
+
+                {/* Properties - Key/Value pairs with number support */}
                 <div>
-                  <Label htmlFor="properties" className='my-2'>Properties</Label>
-                  <Input
-                    type="text"
-                    id="properties"
-                    value={properties}
-                    onChange={(e) => setProperties(e.target.value)}
-                    placeholder='e.g., {"polygonCount": 5000}'
-                    className='border-[#333] p-6'
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className='my-2'>Properties</Label>
+                    <Button
+                      type="button"
+                      onClick={addPropertyField}
+                      size="sm"
+                      variant="outline"  
+                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add
+                    </Button>
+                  </div>
+                  {propertiesList.map((prop, index) => (
+                    <div key={index} className="flex gap-2 mb-2">
+                      <Input
+                        placeholder="Key (e.g., polygonCount)"
+                        value={prop.key}
+                        onChange={(e) => updatePropertyField(index, 'key', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Input
+                        placeholder="Value (e.g., 5000)"
+                        value={prop.value}
+                        onChange={(e) => updatePropertyField(index, 'value', e.target.value)}
+                        className="border-[#333] flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => removePropertyField(index)}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-transparent hover:text-red-400 bg-transparent px-2 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
+
                 <div>
-                  <Label htmlFor="location" className='my-2'>Location</Label>
-                  <Input
-                    type="text"
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g., lat: -12.72596, lon: -77.89962"
-                    className='border-[#333] p-6'
-                  />
+                  <Label className='my-2'>Location</Label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-sm font-mono">
+                            LAT:
+                          </span>
+                          <Input
+                            type="number"
+                            id="latitude"
+                            value={latitude}
+                            onChange={(e) => {
+                              setLatitude(e.target.value);
+                              if (validationErrors.latitude || validationErrors.location) {
+                                setValidationErrors(prev => ({ 
+                                  ...prev, 
+                                  latitude: '', 
+                                  location: '' 
+                                }));
+                              }
+                            }}
+                            placeholder="e.g., -12.72596"
+                            step="any"
+                            className={`border-[#333] p-6 pl-12 hide-number-spinners ${
+                              validationErrors.latitude ? 'border-red-500' : ''
+                            }`}
+                          />
+                        </div>
+                        {validationErrors.latitude && (
+                          <p className="text-red-400 text-xs mt-1">{validationErrors.latitude}</p>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-sm font-mono">
+                            LON:
+                          </span>
+                          <Input
+                            type="number"
+                            id="longitude"
+                            value={longitude}
+                            onChange={(e) => {
+                              setLongitude(e.target.value);
+                              if (validationErrors.longitude || validationErrors.location) {
+                                setValidationErrors(prev => ({ 
+                                  ...prev, 
+                                  longitude: '', 
+                                  location: '' 
+                                }));
+                              }
+                            }}
+                            placeholder="e.g., -77.89962"
+                            step="any"
+                            className={`border-[#333] p-6 pl-12 hide-number-spinners ${
+                              validationErrors.longitude ? 'border-red-500' : ''
+                            }`}
+                          />
+                        </div>
+                        {validationErrors.longitude && (
+                          <p className="text-red-400 text-xs mt-1">{validationErrors.longitude}</p>
+                        )}
+                      </div>
+                    </div>
+                    {validationErrors.location && (
+                      <p className="text-red-400 text-xs">{validationErrors.location}</p>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={handleOpenLocationModal}
+                      variant="outline"
+                      className="w-full px-4 py-2 border-[#333] text-gray-300 hover:bg-[#fff] cursor-pointer"
+                    >
+                      Select on Map
+                    </Button>
+                    <p className="text-gray-400 text-xs">
+                      Optional: Add location coordinates for your NFT. Leave empty if not needed.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
-            <div className="justify-start space-y-3">
+            
+            {/* Fixed bottom action buttons */}
+            <div className="flex-shrink-0 mt-4 pt-4 border-t border-[#333] space-y-3 bg-[#000]">
               <Button 
                 onClick={handleMint} 
                 disabled={minting || deployingContract || !effectiveAddress || !isAnyWalletConnected} 
-                className='w-full py-6 bg-white text-black hover:bg-[#f1f1f1] hover:text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                className='w-full py-6 bg-white text-black hover:bg-gray-100 border border-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:border-gray-600 disabled:text-white'
               >
                 {!effectiveAddress ? 'Connect Wallet First' :
                  deployingContract ? 'Deploying Contract...' : 
@@ -1198,7 +1791,7 @@ export default function ProfilePage() {
                     toast.error('Minting process cancelled');
                   }}
                   variant="outline"
-                  className='w-full py-3 border-red-500 text-red-400 hover:bg-red-900/20'
+                  className='w-full py-3 bg-red-600 text-white hover:bg-red-700 border border-red-500 cursor-pointer'
                 >
                   Cancel Process
                 </Button>
@@ -1213,9 +1806,37 @@ export default function ProfilePage() {
                 </p>
               </div>
             )}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Location Map Modal */}
+      <LocationMapModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        initialLocation={parseLocationString(latitude, longitude) || undefined}
+        onLocationSelect={(location) => {
+          setLatitude(location.lat.toString());
+          setLongitude(location.lng.toString());
+          // Clear any validation errors
+          if (validationErrors.latitude || validationErrors.longitude || validationErrors.location) {
+            setValidationErrors(prev => ({
+              ...prev,
+              latitude: '',
+              longitude: '',
+              location: ''
+            }));
+          }
+        }}
+      />
     </div>
   );
+}
+
+export interface LocationMapModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialLocation?: { lat: number; lng: number };
+  onLocationSelect?: (location: { lat: number; lng: number }) => void;
 }

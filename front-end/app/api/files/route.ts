@@ -86,7 +86,13 @@ export async function POST(request: NextRequest) {
       try {
         if (!value || value.trim() === '') return [];
         // Try parsing as JSON first
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        // If it's already an array, return it
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => item && item.trim && item.trim().length > 0);
+        }
+        // If it's not an array, wrap it in one
+        return [parsed];
       } catch {
         // If parsing fails, treat it as a comma-separated string
         return value ? value.split(',').map((item) => item.trim()).filter(item => item.length > 0) : [];
@@ -95,24 +101,42 @@ export async function POST(request: NextRequest) {
 
     const parseLocation = (value: string | null) => {
       try {
-        if (!value || value.trim() === '') return {};
-        const match = value.match(/lat:\s*(-?\d+(\.\d+)?),\s*lon:\s*(-?\d+(\.\d+)?)/);
+        if (!value || value.trim() === '') return null;
+        
+        // Try parsing as JSON object first (for direct object format)
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && typeof parsed === 'object' && 'lat' in parsed && 'lon' in parsed) {
+            return {
+              lat: parseFloat(parsed.lat),
+              lon: parseFloat(parsed.lon),
+            };
+          }
+        } catch {
+          // If JSON parsing fails, try string format
+        }
+        
+        // Try parsing string format: "lat: X, lon: Y"
+        const match = value.match(/lat:\s*(-?\d+(\.\d+)?),?\s*lon:\s*(-?\d+(\.\d+)?)/);
         if (match) {
           return {
             lat: parseFloat(match[1]),
             lon: parseFloat(match[3]),
           };
         }
-        console.warn('Location format not recognized, using empty object:', value);
-        return {}; // Return empty object instead of throwing error
+        
+        console.warn('Location format not recognized, skipping location:', value);
+        return null; // Return null to exclude from metadata
       } catch (error) {
-        console.warn('Error parsing location, using empty object:', value, error);
-        return {}; // Return empty object instead of throwing error
+        console.warn('Error parsing location, skipping location:', value, error);
+        return null; // Return null to exclude from metadata
       }
     };
 
     // Generate metadata
     console.log('Generating metadata...');
+    
+    const locationData = parseLocation(data.get("location") as string | null);
     
     const metadata = {
       name: data.get("name") as string,
@@ -120,18 +144,28 @@ export async function POST(request: NextRequest) {
       external_url: data.get("externalUrl") as string,
       attributes: parseJSON(data.get("attributes") as string | null),
       animation_url: modelUrl, // Link to the model file
-      image: imageUrl, // Link to the image file
+      image: imageUrl, // Link to the image file (null if no image)
       interoperabilityFormats: parseJSONOrArray(data.get("interoperabilityFormats") as string | null),
       customizationData: parseJSON(data.get("customizationData") as string | null),
       edition: data.get("edition") as string,
       royalties: data.get("royalties") as string,
       properties: parseJSON(data.get("properties") as string | null),
-      location: parseLocation(data.get("location") as string | null), // Use the custom parser
       soulbound: data.get("soulbound") === "true",
+      ...(locationData && { location: locationData }), // Only include location if valid
     };
 
-    console.log('Parsed location:', metadata.location);
+    console.log('Parsed location:', locationData);
     console.log('Generated Metadata:', JSON.stringify(metadata, null, 2));
+    
+    // Debug: Log form data received
+    console.log('Form data received:');
+    for (const [key, value] of data.entries()) {
+      if (typeof value === 'string') {
+        console.log(`${key}: ${value}`);
+      } else {
+        console.log(`${key}: [File object]`);
+      }
+    }
 
     // Upload metadata JSON to Pinata
     console.log('Uploading metadata to Pinata...');

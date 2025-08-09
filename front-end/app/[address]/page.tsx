@@ -173,15 +173,15 @@ function ProfilePage() {
   }, [address]);
 
   return (
-    <div className='my-24 mx-auto w-full px-8'>
+    <div className='mx-auto w-full px-4 md:px-8 my-12 md:my-24'>
       <div className='text-center items-center justify-center'>
-        <div className='mt-36 mx-auto'>
-          <div className='mx-auto my-8 bg-[#333] rounded-full h-24 w-24'>
-            <User className='mx-auto h-24 text-[#777]'/>
+        <div className='mt-16 md:mt-36 mx-auto'>
+          <div className='mx-auto my-8 bg-[#333] rounded-full h-20 w-20 md:h-24 md:w-24'>
+            <User className='mx-auto h-20 md:h-24 text-[#777]'/>
           </div>
         </div>
-        <h2 className='text-4xl mt-8'>_</h2>
-        <p className='mt-4 mb-8 text-sm text-[#777]'>{address}</p>
+        <h2 className='text-2xl md:text-4xl mt-6 md:mt-8'>_</h2>
+        <p className='mt-3 md:mt-4 mb-6 md:mb-8 text-sm text-[#777]'>{address}</p>
         <Button className="p-2 mb-8 cursor-pointer"><Pen/></Button>
       </div>
       {!address && <p>Please connect your wallet.</p>}
@@ -192,10 +192,10 @@ function ProfilePage() {
         </p>
       )}
       {/* Grid of minted models */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-8 md:mt-12">
         {mintedTokens.map((mint) => (
           <div key={mint.tokenId} className="bg-gray-900 rounded-xl p-4 border border-gray-800 shadow">
-            <div className="font-bold text-lg mb-2">Token #{mint.tokenId}</div>
+            <div className="font-bold text-base md:text-lg mb-2">Token #{mint.tokenId}</div>
             {/* Debug: Show raw tokenUri (CID/hash) */}
             <div className="text-xs text-gray-400 break-all mb-2">
               <b>Raw tokenUri:</b> {mint.tokenUri}
@@ -209,14 +209,22 @@ function ProfilePage() {
             </div>
             {tokenMetadata[mint.tokenId]?.image ? (
               <Image
-                src="default.png"
+                src={(() => {
+                  const img = tokenMetadata[mint.tokenId]?.image as string;
+                  if (!img) return '/4V4-DIY.png';
+                  if (img.startsWith('ipfs://')) {
+                    return `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
+                  }
+                  return img;
+                })()}
                 alt={tokenMetadata[mint.tokenId]?.name || 'NFT Image'}
-                width={220}
-                height={220}
-                className="w-full h-[220px] object-cover rounded-lg"
+                width={600}
+                height={600}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="w-full h-[180px] md:h-[220px] object-cover rounded-lg"
               />
             ) : (
-              <div className="w-full h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
+              <div className="w-full h-[180px] md:h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
                 No image
               </div>
             )}
@@ -265,29 +273,30 @@ function AddressPage({ address }: { address: string }) {
   const following = 8;
 
   return (
-    <div className="my-24 mx-auto w-full px-8">
+    <div className="my-12 md:my-24 mx-auto w-full px-4 md:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col items-center gap-8 my-16" >
+        <div className="flex flex-col items-center gap-6 md:gap-8 my-10 md:my-16" >
           {/* Avatar */}
-          <div className="flex-shrink-0 mt-8">
-            <div className="bg-[#222] rounded-full h-32 w-32 flex items-center justify-center overflow-hidden mx-auto">
+          <div className="flex-shrink-0 mt-6 md:mt-8">
+            <div className="bg-[#222] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
               {/* Replace with user image if available */}
               <Image
-                src="/default.png"
+                src="/delta-logo.png"
                 alt="-"
                 width={128}
                 height={128}
-                className="h-32 w-32 object-cover"
+                sizes="(max-width: 768px) 96px, 128px"
+                className="h-24 w-24 md:h-32 md:w-32 object-cover"
                 priority
               />
             </div>
           </div>
           {/* Name, address, bio, buttons */}
           <div className="flex flex-col items-center">
-            <h1 className="title text-4xl font-bold text-center">{displayName}</h1>
-            <div className="text-[#aaa] mt-1 text-sm text-center">{address}</div>
-            <div className="mt-4 text-[#ccc] max-w-2xl text-center">{bio}</div>
-            <div className="flex gap-2 mt-4 justify-center">
+            <h1 className="title text-3xl md:text-4xl font-bold text-center">{displayName}</h1>
+            <div className="text-[#aaa] mt-1 text-xs md:text-sm text-center break-all max-w-full px-2">{address}</div>
+            <div className="mt-4 text-[#ccc] max-w-2xl text-center px-2">{bio}</div>
+            <div className="flex gap-2 mt-4 justify-center flex-wrap">
               <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit Showcase</button>
               <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit profile</button>
               <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Link wallets</button>
@@ -295,7 +304,7 @@ function AddressPage({ address }: { address: string }) {
           </div>
         </div>
         {/* Stats */}
-        <div className="flex flex-row gap-6 items-center justify-center mt-8">
+        <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-center mt-6 md:mt-8 text-center">
           <div>
             <span className="font-semibold">{floorValue} STX</span>{" "}
             <span className="text-[#aaa]">Floor value</span>
@@ -313,28 +322,28 @@ function AddressPage({ address }: { address: string }) {
           </div>
         </div>
         {/* Tabs */}
-        <div className="flex gap-2 mt-12 mb-8 items-center justify-center">
-          <button className="px-6 py-2 rounded-xl bg-[#ff006a] text-white font-semibold text-base shadow hover:bg-[#e6005c] transition relative">
+        <div className="flex gap-2 mt-10 md:mt-12 mb-8 items-center justify-center flex-wrap">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#ff006a] text-white font-semibold text-sm md:text-base shadow hover:bg-[#e6005c] transition relative">
             Showcase <span className="ml-2 bg-[#222] text-white text-xs px-2 py-0.5 rounded-full">22</span>
           </button>
-          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
             Collected <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">28</span>
           </button>
-          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
             Created <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">1</span>
           </button>
-          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
             Offers received
           </button>
-          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
             Offers made
           </button>
-          <button className="px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-base hover:bg-[#333] transition">
+          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
             Activity
           </button>
         </div>
         {/* Placeholder grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
           {Array.from({ length: 9 }).map((_, i) => (
             <div
               key={i}

@@ -2,27 +2,45 @@ import React, { useContext, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from 'next/link';
 import { HiroWalletContext } from './HiroWalletProvider';
+import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CircleHelp, X } from 'lucide-react';
+import { CircleHelp, X, Shield, Upload } from 'lucide-react';
 import { createStacksAccount } from '@/lib/stacksWallet';
 import { useRouter } from 'next/navigation';
-import { SeedPhraseInput } from '@/components/SeedPhraseInput';
-import { validateAndGenerateWallet } from '@/lib/walletHelpers';
+import { PassphraseInput } from '@/components/PassphraseInput';
+import ImportWalletModal from './ConnectModal';
 
 export default function GetInModal({ onClose }: { onClose?: () => void }) {
   const { authenticate, isWalletConnected } = useContext(HiroWalletContext);
+  const { 
+    isWalletEncrypted, 
+    isAuthenticated: isEncryptedAuthenticated,
+    isSessionLocked,
+    createEncryptedWallet,
+    unlockWallet,
+    authError: encryptedAuthError,
+    isLoading: encryptedLoading,
+    walletInfo
+  } = useEncryptedWallet();
   const router = useRouter();
 
   const [walletError, setWalletError] = useState<string | null>(null);
-  const [showSeedInput, setShowSeedInput] = useState(false);
-  const [seedValue, setSeedValue] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showEncryptedWalletFlow, setShowEncryptedWalletFlow] = useState(false);
+  const [encryptedWalletMode, setEncryptedWalletMode] = useState<'unlock' | 'create'>('unlock');
 
   useEffect(() => {
     if (isWalletConnected && onClose) {
       onClose();
     }
   }, [isWalletConnected, onClose]);
+
+  useEffect(() => {
+    if (isEncryptedAuthenticated && onClose) {
+      onClose();
+    }
+  }, [isEncryptedAuthenticated, onClose]);
 
   const handleAuthenticate = async () => {
     setWalletError(null);
@@ -42,32 +60,70 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
     }
   };
 
-  const handleSendSeed = async () => {
+  const handleEncryptedWalletSubmit = async (passphrase: string, email?: string) => {
     try {
-      const { privateKey, address } = await validateAndGenerateWallet(seedValue.trim());
-      if (!privateKey || !address) throw new Error();
-      if (typeof window !== "undefined") {
-        localStorage.setItem('ezstx_session', JSON.stringify({ stxPrivateKey: privateKey, address, createdAt: Date.now() }));
-        window.dispatchEvent(new Event('ezstx-session-update'));
+      if (encryptedWalletMode === 'create') {
+        // Generate new wallet data for encryption
+        const { mnemonic, stxPrivateKey, address } = await createStacksAccount();
+        const walletData = {
+          mnemonic,
+          privateKey: stxPrivateKey,
+          address,
+          label: 'My Encrypted Wallet'
+        };
+        await createEncryptedWallet(walletData, passphrase);
+        
+        // Save to Supabase if email provided
+        if (email) {
+          try {
+            console.log('Attempting to save account to database...');
+            const response = await fetch('/api/save-account', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email,
+                passkey: stxPrivateKey, // This will be hashed with passphrase on server
+                passphrase,
+                address
+              }),
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+              console.warn('Failed to save account to database:', result);
+              console.warn('Account creation will continue without database save');
+              // Don't throw error - continue with wallet creation even if DB save fails
+            } else {
+              console.log('Account saved to database successfully:', result);
+            }
+          } catch (dbError) {
+            console.warn('Database save error:', dbError);
+            console.warn('Account creation will continue without database save');
+            // Don't throw error - continue with wallet creation even if DB save fails
+          }
+        }
+        
+        router.push(`/${address}`);
+        if (onClose) onClose();
+      } else {
+        await unlockWallet(passphrase);
+        if (walletInfo) {
+          router.push(`/${walletInfo.address}`);
+          if (onClose) onClose();
+        }
       }
-      router.push(`/${address}`);
-      if (onClose) onClose();
-    } catch {
-      alert('Invalid seed phrase.');
+    } catch (error) {
+      // Error will be handled by the PassphraseInput component
+      console.error('Encrypted wallet operation failed:', error);
     }
   };
 
-  const handleCreateAccount = async () => {
-    try {
-      const { mnemonic, stxPrivateKey, address } = await createStacksAccount();
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem('ezstx_new_wallet', JSON.stringify({ mnemonic, stxPrivateKey, address }));
-      }
-      router.push('/account');
-      if (onClose) onClose();
-    } catch {
-      alert('Failed to create account.');
-    }
+  const handleShowEncryptedWallet = () => {
+    setEncryptedWalletMode(isWalletEncrypted ? 'unlock' : 'create');
+    setShowEncryptedWalletFlow(true);
   };
 
   return (
@@ -105,44 +161,98 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
             </button>
           </div>
         </div>
-        {/* Auth Options - 3 rows */}
+        {/* Auth Options - Conditional rendering based on flow */}
         <div className="w-full flex flex-col gap-3 px-6 mb-3">
-          {/* Connect Wallet */}
-          <div>
-            <Button
-              onClick={handleAuthenticate}
-              className="w-full h-12 rounded-[9px] bg-white text-black font-semibold text-base border border-[#eee] cursor-pointer flex items-center px-4 hover:bg-[#f3f3f3]"
-              type="button"
-            >
-              <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="mr-2"/>
-              <span className="text-center flex-1">Connect Wallet</span>
-            </Button>
-            {walletError && (
-              <div className="text-red-500 text-xs mt-2 text-center">{walletError}</div>
-            )}
-          </div>
-          {/* Create Account */}
-          <div>
-            <Button
-              onClick={handleCreateAccount}
-              className="w-full h-12 rounded-[9px] bg-[#2563eb] text-white font-semibold text-base border border-[#2563eb] cursor-pointer flex items-center px-4 hover:bg-[#1d4ed8]"
-              type="button"
-            >
-              <Image src="/add-ico.svg" alt="Seed Phrase" width={18} height={18}/>
-              <span className="text-center flex-1">Create Account</span>
-            </Button>
-          </div>
-          {/* Enter Seed Phrase */}
-          <div>
-            <SeedPhraseInput
-              showSeedInput={showSeedInput}
-              setShowSeedInput={setShowSeedInput}
-              seedValue={seedValue}
-              setSeedValue={setSeedValue}
-              handleSendSeed={handleSendSeed}
-            />
-          </div>
+          {showEncryptedWalletFlow ? (
+            /* Encrypted Wallet Flow */
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {encryptedWalletMode === 'create' ? 'Secure Your Wallet' : 
+                   isSessionLocked ? 'Unlock Your Wallet' : 'Access Your Wallet'}
+                </h3>
+                <p className="text-sm text-gray-400">
+                  {encryptedWalletMode === 'create' 
+                    ? 'Create a passphrase to encrypt your wallet locally'
+                    : 'Enter your passphrase to unlock your encrypted wallet'
+                  }
+                </p>
+              </div>
+              
+              <PassphraseInput
+                mode={encryptedWalletMode}
+                onSubmit={handleEncryptedWalletSubmit}
+                isLoading={encryptedLoading}
+                error={encryptedAuthError}
+                showStrengthIndicator={encryptedWalletMode === 'create'}
+                confirmRequired={encryptedWalletMode === 'create'}
+                onCancel={() => setShowEncryptedWalletFlow(false)}
+              />
+            </div>
+          ) : (
+            /* Main Auth Options */
+            <>
+              {/* Connect Wallet */}
+              <div>
+                <Button
+                  onClick={handleAuthenticate}
+                  className="w-full h-12 rounded-[9px] bg-white text-black font-semibold text-base border border-[#eee] cursor-pointer flex items-center px-4 hover:bg-[#f3f3f3]"
+                  type="button"
+                >
+                  <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="mr-2"/>
+                  <span className="text-center flex-1">Connect Wallet</span>
+                </Button>
+                {walletError && (
+                  <div className="text-red-500 text-xs mt-2 text-center">{walletError}</div>
+                )}
+              </div>
+
+              {/* Encrypted Wallet Option */}
+              <div>
+                <Button
+                  onClick={handleShowEncryptedWallet}
+                  className="w-full h-12 rounded-[9px] bg-[#2563eb] text-white font-semibold text-base border border-[#2563eb] cursor-pointer flex items-center px-4 hover:bg-[#1d4ed8]"
+                  type="button"
+                >
+                  <Shield className="w-[18px] h-[18px] mx-[5px]"/>
+                  <span className="text-center flex-1">
+                    {isWalletEncrypted ? 'Unlock Account' : 'Create Account'}
+                  </span>
+                </Button>
+                {isWalletEncrypted && walletInfo && (
+                  <div className="text-center mt-2">
+                    <p className="text-xs text-gray-400">
+                      Wallet: {walletInfo.label} ({walletInfo.address.slice(0, 8)}...)
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Connect Account */}
+              <div>
+                <Button
+                  onClick={() => setShowImportModal(true)}
+                  className="w-full h-12 rounded-[9px] bg-[#333] text-white font-semibold text-base border border-[#333] cursor-pointer flex items-center px-4 hover:bg-white hover:text-black transition-colors"
+                  type="button"
+                >
+                  <Upload className="w-[18px] h-[18px] mx-[4.5px]"/>
+                  <span className="text-center flex-1">Connect</span>
+                </Button>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Import Wallet Modal */}
+        {showImportModal && (
+          <ImportWalletModal
+            onClose={() => setShowImportModal(false)}
+            onSuccess={() => {
+              setShowImportModal(false);
+              if (onClose) onClose();
+            }}
+          />
+        )}
         {/* Terms */}
         <div className="w-full bg-[#232323] rounded-b-2xl text-center text-xs text-[#aaa] tracking-wider p-6 px-8">
           By Signing In, you agree to our <Link href="/terms" className="hover:text-white">Terms of Service</Link> and <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>

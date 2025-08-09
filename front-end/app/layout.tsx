@@ -1,10 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Chakra_Petch } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { GetInButton } from "@/components/GetIn";
 import { Providers } from '@/components/ui/provider';
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,7 +41,9 @@ export default function RootLayout({
           <>
             <Navbar />
             <GetInButton />
-            {children}
+            <main className="pt-28 md:pt-32">{/* offset fixed navbar + marquee */}
+              {children}
+            </main>
           </>
         </Providers>
         <Toaster />

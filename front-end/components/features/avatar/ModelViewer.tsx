@@ -46,8 +46,8 @@ export default function CenterPanel({
         console.log("CenterPanel modelUrl:", modelUrl);
         if (!mountRef.current || typeof window === 'undefined') return;
 
-        // Create the Babylon.js engine and scene
-        const engine = new BABYLON.Engine(mountRef.current, true);
+        // Create the Babylon.js engine and scene (adapt to device pixel ratio)
+        const engine = new BABYLON.Engine(mountRef.current, true, { adaptToDeviceRatio: true });
         const scene = new BABYLON.Scene(engine);
         sceneRef.current = scene;
 
@@ -155,15 +155,13 @@ export default function CenterPanel({
         // Load initial model
         loadModel(modelUrl || 'default.glb');
 
-        // Animation loop
-        const rotationSpeed = 0.005; // Adjust this value to change rotation speed
+        // Single animation loop (remove duplicate)
+        const rotationSpeed = 0.005;
         engine.runRenderLoop(() => {
             scene?.render();
             updateCameraInfo();
-
             if (cameraRef.current) {
-                cameraRef.current.alpha += rotationSpeed; // Rotate the camera
-                // Ensure the camera continues to target the model
+                cameraRef.current.alpha += rotationSpeed;
                 cameraRef.current.target = new BABYLON.Vector3(0, 0.9, 0);
             }
         });
@@ -224,17 +222,9 @@ export default function CenterPanel({
             cameraRef.current.wheelPrecision = 0; // disables wheel zoom
         }
 
-        // Animation loop
-        engine.runRenderLoop(() => {
-            scene?.render();
-            updateCameraInfo();
-            scene?.render();
-        });
-
         // Resize listener
-        window.addEventListener('resize', () => {
-            engine.resize();
-        });
+        const handleResize = () => engine.resize();
+        window.addEventListener('resize', handleResize);
 
         // Cleanup
         return () => {
@@ -243,11 +233,11 @@ export default function CenterPanel({
                 canvas.removeEventListener('mousemove', handleMouseMove);
                 canvas.removeEventListener('mouseup', handleMouseUp);
                 canvas.removeEventListener('mouseleave', handleMouseLeave);
-                // No wheel event to remove
             }
+            window.removeEventListener('resize', handleResize);
             engine.dispose();
         };
-    }, [background, secondaryColor, modelUrl, lightIntensity]); // Added lightIntensity to dependency array
+    }, [background, secondaryColor, modelUrl, lightIntensity]);
 
     useEffect(() => {
         if (modelRef.current && isDragging) {
@@ -268,7 +258,7 @@ export default function CenterPanel({
 
 
     return (
-        <main className="w-[72vh] h-[72vh] rounded-3xl z-50">
+        <main className="w-full max-w-[520px] md:max-w-[640px] lg:max-w-[720px] xl:max-w-[820px] aspect-square rounded-3xl z-10 mx-auto mt-6 md:mt-10">
             <canvas
                 ref={mountRef}
                 className="w-full h-full cursor-grab active:cursor-grabbing block rounded-2xl outline-none"
@@ -286,7 +276,7 @@ export default function CenterPanel({
                     fontSize: '12px',
                     textAlign: 'right',
                 }}
-                className='flex space-x-4 select-none' 
+                className='hidden md:flex space-x-4 select-none' 
             >
                 <div>{cameraPositionState}</div>
                 <div>{cameraZoomState.toFixed(2)}</div>

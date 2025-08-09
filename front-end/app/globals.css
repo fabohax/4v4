@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -128,6 +129,17 @@ html, body {
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Global text selection styling */
+  ::selection {
+    background-color: white;
+    color: black;
+  }
+  
+  ::-moz-selection {
+    background-color: white;
+    color: black;
+  }
 }
 
 /* Apply Chakra Petch to specific titles */
@@ -162,6 +174,38 @@ html, body {
   }
   .animate-getinmodal {
     animation: getinmodal 0.35s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+
+  /* Hide number input spinners */
+  .hide-number-spinners::-webkit-outer-spin-button,
+  .hide-number-spinners::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+  }
+  
+  .hide-number-spinners {
+    -moz-appearance: textfield;
+  }
+
+  /* Dark theme for Leaflet map */
+  .dark-map .leaflet-tile {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+  }
+  
+  .dark-map .leaflet-control-attribution {
+    background: rgba(0, 0, 0, 0.8);
+    color: #ccc;
+  }
+  
+  .dark-map .leaflet-control-zoom a {
+    background-color: #333;
+    color: #fff;
+    border-color: #555;
+  }
+  
+  .dark-map .leaflet-control-zoom a:hover {
+    background-color: #555;
   }
 }
 

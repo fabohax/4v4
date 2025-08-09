@@ -18,7 +18,7 @@ export const Navbar = () => {
             {/* Logo Section */}
             <div className="flex items-center">
               <Link href="/" className="no-underline">
-                <Button className="text-white bg-transparent py-3 mr-2 cursor-pointer text-2xl">
+                <Button className="text-white bg-transparent py-3 cursor-pointer text-2xl">
                   <Image src="/home.svg" height={27} width={27} alt="delta-logo"></Image>
                 </Button>
               </Link>
@@ -28,7 +28,7 @@ export const Navbar = () => {
                   <Input
                     type="text"
                     placeholder="Search for models, collections, or creators..."
-                    className="w-[360px] bg-gray-900/10 border-gray-700 pl-12 py-3 text-lg rounded-lg"
+                    className="w-[369px] bg-gray-900/10 border-gray-700 pl-12 py-3 text-lg rounded-lg"
                   />
                 </div>  
               </div>

@@ -1,14 +1,19 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink, Download, Share2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ExternalLink, Download, Share2, MapPin } from 'lucide-react';
 import { toast } from "sonner";
 import CenterPanel from '@/components/features/avatar/CenterPanel';
+
+// Dynamic import to avoid SSR issues with Leaflet
+const LocationMapModal = dynamic(() => import('@/components/LocationMapModal'), {
+  ssr: false,
+});
 
 interface NFTMetadata {
   name: string;
@@ -18,11 +23,11 @@ interface NFTMetadata {
   image: string;
   attributes: Record<string, string | number>;
   properties: Record<string, string | number | boolean | null>;
-  customizationData: unknown;
+  customizationData?: Record<string, unknown>;
   interoperabilityFormats: string[];
   edition: string;
   royalties: string;
-  location: unknown;
+  location?: string | Record<string, unknown>; // More specific typing
   soulbound: boolean;
 }
 
@@ -36,6 +41,7 @@ export default function NFTViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [modelUrl, setModelUrl] = useState<string>('');
+  const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -82,6 +88,81 @@ export default function NFTViewerPage() {
     }
   }, [address, contractName]);
 
+  // Type guard for checking if location exists and is truthy
+  const hasLocation = (location?: string | Record<string, unknown>): location is string | Record<string, unknown> => {
+    return Boolean(location);
+  };
+
+  // Helper function to check if customization data is valid
+  const hasValidCustomizationData = (customData?: Record<string, unknown>): customData is Record<string, unknown> => {
+    return Boolean(
+      customData &&
+      typeof customData === 'object' &&
+      customData !== null &&
+      !Array.isArray(customData) &&
+      Object.keys(customData).length > 0
+    );
+  };
+
+  // Helper function to parse location string
+  const parseLocationString = (locationData?: string | Record<string, unknown>) => {
+    if (!locationData) return null;
+    
+    // If it's already an object with lat/lng, return it
+    if (typeof locationData === 'object' && 'lat' in locationData && 'lng' in locationData) {
+      const lat = Number(locationData.lat);
+      const lng = Number(locationData.lng);
+      
+      // Validate coordinates
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        console.warn('Invalid coordinates:', { lat, lng });
+        return null;
+      }
+      
+      return { lat, lng };
+    }
+    
+    // Convert to string if it's not already
+    const locationStr = typeof locationData === 'string' ? locationData : String(locationData);
+    
+    // Try to match the "lat: X, lon: Y" format
+    const match = locationStr.match(/lat:\s*(-?\d+\.?\d*),?\s*lon:\s*(-?\d+\.?\d*)/);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      
+      // Validate coordinates
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        console.warn('Invalid parsed coordinates:', { lat, lng });
+        return null;
+      }
+      
+      return { lat, lng };
+    }
+    
+    // Try to parse if it's a JSON object string
+    try {
+      const parsed = JSON.parse(locationStr);
+      if (parsed && typeof parsed === 'object' && parsed.lat && parsed.lng) {
+        const lat = parseFloat(parsed.lat);
+        const lng = parseFloat(parsed.lng);
+        
+        // Validate coordinates
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          console.warn('Invalid JSON parsed coordinates:', { lat, lng });
+          return null;
+        }
+        
+        return { lat, lng };
+      }
+    } catch (error) {
+      console.warn('Failed to parse location JSON:', error);
+    }
+    
+    console.warn('Unable to parse location data:', locationData);
+    return null;
+  };
+
   const downloadModel = () => {
     if (modelUrl) {
       window.open(modelUrl, '_blank');
@@ -89,9 +170,11 @@ export default function NFTViewerPage() {
   };
 
   const shareNFT = async () => {
+    if (!metadata) return;
+    
     const shareData = {
-      title: metadata?.name || 'Check out this NFT!',
-      text: metadata?.description || 'View this amazing 3D NFT',
+      title: metadata.name || 'Check out this NFT!',
+      text: metadata.description || 'View this amazing 3D NFT',
       url: window.location.href
     };
 
@@ -108,12 +191,13 @@ export default function NFTViewerPage() {
     }
   };
 
+  // Loading component
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen dotted-grid-background">
         <Card className='border-[#333] shadow-lg text-white bg-[#000] p-8'>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
             <p>Loading NFT data...</p>
           </div>
         </Card>
@@ -121,10 +205,11 @@ export default function NFTViewerPage() {
     );
   }
 
+  // Error component
   if (error || !metadata) {
     return (
       <div className="flex items-center justify-center h-screen dotted-grid-background">
-        <Card className='border-[#333] shadow-lg text-white bg-[#000] p-8 max-w-md'>
+        <Card className='border-[#333] shadow-lg text-white bg-[#000] mt-16 p-0 max-w-md'>
           <div className="text-center">
             <div className="text-3xl my-8">🚫</div>
             <h2 className="text-xl font-bold mb-4">NFT Not Found</h2>
@@ -155,31 +240,22 @@ export default function NFTViewerPage() {
 
   return (
     <div className="min-h-screen dotted-grid-background p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.back()}
-            className="mb-4 text-white hover:bg-[#111]"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </div>
+      <div className="max-w-7xl mx-auto py-24">
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 my-16">
+        <div className="grid grid-cols-1 gap-8">
           {/* 3D Model Viewer */}
-          <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
+          <Card className='border-[#333] shadow-lg text-white bg-[#000] p-0'>
             <CardContent className='p-0'>
-              <div className="h-100vh rounded-lg overflow-hidden">
+              <div className="h-[80vh] w-full rounded-lg overflow-hidden flex items-center justify-center">
                 {modelUrl ? (
-                  <CenterPanel
-                    background="#000000"
-                    secondaryColor="#ffffff"
-                    modelUrl={modelUrl}
-                    lightIntensity={11}
-                  />
+                  <div className="w-full h-full">
+                    <CenterPanel
+                      background="#000000"
+                      secondaryColor="#ffffff"
+                      modelUrl={modelUrl}
+                      lightIntensity={11}
+                    />
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full bg-[#111] rounded-lg">
                     <p className="text-gray-400">No 3D model available</p>
@@ -208,11 +284,11 @@ export default function NFTViewerPage() {
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <Button onClick={downloadModel} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={downloadModel} variant="outline" className="bg-transparent hover:bg-white hover:text-black cursor-pointer border-[#333]">
                     <Download className="mr-2 h-4 w-4" />
                     Download Model
                   </Button>
-                  <Button onClick={shareNFT} variant="outline" className="border-[#333]">
+                  <Button onClick={shareNFT} variant="outline" className="border-[#333] cursor-pointer">
                     <Share2 className="mr-2 h-4 w-4" />
                     Share NFT
                   </Button>
@@ -233,7 +309,7 @@ export default function NFTViewerPage() {
                     <Button 
                       onClick={() => window.open(metadata.external_url, '_blank')}
                       variant="outline" 
-                      className="w-full border-[#333]"
+                      className="w-full border-[#333] cursor-pointer"
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Visit External URL
@@ -244,11 +320,11 @@ export default function NFTViewerPage() {
             </Card>
 
             {/* Attributes */}
-            {metadata.attributes && Object.keys(metadata.attributes).length > 0 && (
+            {metadata?.attributes && Object.keys(metadata.attributes).length > 0 && (
               <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
                 <CardContent className='p-6'>
                   <h3 className="text-lg font-semibold mb-4">Attributes</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {Object.entries(metadata.attributes).map(([key, value]) => (
                       <div key={key} className="bg-[#111] p-3 rounded-lg">
                         <p className="text-sm text-gray-400 capitalize">{key}</p>
@@ -260,7 +336,55 @@ export default function NFTViewerPage() {
               </Card>
             )}
 
-            {/* Technical Details */}
+            
+            {/* Customization Data */}
+            {hasValidCustomizationData(metadata?.customizationData) && (
+              <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
+                <CardContent className='p-6'>
+                  <h3 className="text-lg font-semibold mb-4">Customization</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Object.entries(metadata.customizationData).map(([key, value]) => (
+                      <div key={key} className="bg-[#111] p-3 rounded-lg">
+                        <p className="text-sm text-gray-400 capitalize">{key}</p>
+                        <p className="font-medium">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Location */}
+            {metadata.location && (
+              <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
+                <CardContent className='p-6'>
+                  <h3 className="text-lg font-semibold mb-4">Location</h3>
+                  <div className="bg-[#111] p-4 rounded-lg">
+                    <p className="text-sm text-gray-400 mb-2">Coordinates</p>
+                    <p className="font-mono text-sm mb-4">
+                      {typeof metadata.location === 'string' 
+                        ? metadata.location 
+                        : JSON.stringify(metadata.location)
+                      }
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        console.log('Opening location modal with data:', metadata.location);
+                        const parsedLocation = parseLocationString(metadata.location);
+                        console.log('Parsed location:', parsedLocation);
+                        setShowLocationModal(true);
+                      }}
+                      variant="outline" 
+                      className="w-full border-[#333] cursor-pointer"
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      View on Map
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
               <CardContent className='p-6'>
                 <h3 className="text-lg font-semibold mb-4">Technical Details</h3>
@@ -281,7 +405,7 @@ export default function NFTViewerPage() {
 
                   {metadata.interoperabilityFormats && metadata.interoperabilityFormats.length > 0 && (
                     <div>
-                      <p className="text-sm text-gray-400">Supported Formats</p>
+                      <p className="text-sm text-gray-400">Model Format</p>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {metadata.interoperabilityFormats.map((format, index) => (
                           <Badge key={index} variant="outline" className="border-[#333]">
@@ -311,6 +435,15 @@ export default function NFTViewerPage() {
           </div>
         </div>
       </div>
+
+      {/* Location Map Modal */}
+      {hasLocation(metadata?.location) && (
+        <LocationMapModal
+          isOpen={showLocationModal}
+          onClose={() => setShowLocationModal(false)}
+          initialLocation={parseLocationString(metadata.location) || undefined}
+        />
+      )}
     </div>
   );
 }

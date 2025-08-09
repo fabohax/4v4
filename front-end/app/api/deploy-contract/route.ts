@@ -102,22 +102,19 @@ async function prepareContractCode(params: DeployContractParams) {
 }
 
 function generateContractName(modelName: string): string {
-  // Sanitize model name for contract naming - Stacks contracts must follow specific rules
+  // Generate timestamp first (full timestamp for uniqueness)
+  const timestamp = Date.now().toString();
+  
+  // Sanitize model name for contract naming - convert to uppercase
   const sanitized = modelName
-    .toLowerCase() // Contract names should be lowercase
-    .replace(/[^a-z0-9]/g, '-') // Only allow alphanumeric and dashes
+    .toUpperCase() // Contract names in uppercase as requested
+    .replace(/[^A-Z0-9]/g, '-') // Only allow alphanumeric and dashes
     .replace(/-+/g, '-') // Remove consecutive dashes
     .replace(/^-|-$/g, '') // Remove leading/trailing dashes
-    .slice(0, 40); // Stacks contract names have length limits
+    .slice(0, 40); // Limit title length
   
-  // Ensure it starts with a letter (Stacks requirement)
-  const startsWithLetter = /^[a-z]/.test(sanitized);
-  const prefix = startsWithLetter ? '' : 'nft-';
-  
-  // Use shorter timestamp for uniqueness (last 8 digits)
-  const timestamp = Date.now().toString().slice(-8);
-  
-  const contractName = `${prefix}${sanitized}-${timestamp}`;
+  // Format: TIMESTAMP-TITLE (timestamp first as requested)
+  const contractName = `${timestamp}-${sanitized}`;
   
   // Ensure total length doesn't exceed Stacks limits (typically 128 chars)
   return contractName.slice(0, 120);
@@ -264,7 +261,7 @@ export async function POST(request: NextRequest) {
         codeLength: contractCode.length,
         hasNftDefinition: contractCode.includes('define-non-fungible-token'),
         noPlaceholders: !contractCode.match(/{[A-Z_][A-Z0-9_]*}/g), // Only check for template placeholders, not Clarity syntax
-        contractNameValid: /^[a-z][a-z0-9-]*[a-z0-9]$/.test(contractName)
+        contractNameValid: /^[0-9]+[-A-Z0-9-]*$/.test(contractName) // Updated regex for TIMESTAMP-TITLE format
       }
     }, { status: 200 });
 
