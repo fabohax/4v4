@@ -40,18 +40,27 @@ function ProfilePage() {
         // Get all smart_contract transactions
         const txRes = await axios.get(`${apiBase}/address/${address}/transactions?type=smart_contract&limit=50`);
         const txs = txRes.data?.results || [];
+        console.log('Fetched smart_contract txs:', txs);
         // Filter for contract deployments
         type SmartContractTx = {
           tx_type: string;
           contract_call?: unknown;
           contract_id?: string;
         };
-        const contracts = (txs as SmartContractTx[])
-          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && tx.contract_id)
+        txs.forEach((tx, idx) => {
+          console.log(`Tx[${idx}]`, tx);
+          if (tx.tx_type === 'smart_contract') {
+            console.log(`Tx[${idx}] smart_contract:`, tx.smart_contract);
+          }
+        });
+        // Try to extract contract info from smart_contract property
+        const contracts = txs
+          .filter((tx) => tx.tx_type === 'smart_contract' && tx.smart_contract && tx.smart_contract.contract_id)
           .map((tx) => ({
-            contractAddress: tx.contract_id!.split('.')[0],
-            contractName: tx.contract_id!.split('.')[1],
+            contractAddress: tx.smart_contract.contract_id.split('.')[0],
+            contractName: tx.smart_contract.contract_id.split('.')[1],
           }));
+        console.log('Filtered contracts:', contracts);
 
         // 2. For each contract, try to enumerate tokens
         const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
@@ -68,8 +77,17 @@ function ProfilePage() {
               network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
               senderAddress: address,
             });
-            lastTokenId = Number(cvToValue(lastTokenIdCV));
-          } catch {}
+            console.log(`Raw get-last-token-id response for ${contractAddress}.${contractName}:`, lastTokenIdCV);
+            // Hiro API returns { type: 'ok', value: { type: 'uint', value: <number> } }
+            if (lastTokenIdCV && lastTokenIdCV.type === 'ok' && lastTokenIdCV.value && lastTokenIdCV.value.type === 'uint') {
+              lastTokenId = Number(lastTokenIdCV.value.value);
+            } else {
+              lastTokenId = 0;
+            }
+            console.log(`Contract ${contractAddress}.${contractName} lastTokenId:`, lastTokenId);
+          } catch (err) {
+            console.log(`Error fetching lastTokenId for ${contractAddress}.${contractName}:`, err);
+          }
           if (!lastTokenId || isNaN(lastTokenId)) continue;
           for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
             try {
@@ -122,6 +140,7 @@ function ProfilePage() {
             } catch {}
           }
         }
+        console.log('All minted tokens:', allTokens);
         setMintedTokens(allTokens);
         // Fetch metadata for IPFS CIDs (not https links)
         const metadataPromises = allTokens.map(async (token) => {
@@ -146,7 +165,8 @@ function ProfilePage() {
           if (metadata) metaMap[key] = metadata;
         });
         setTokenMetadata(metaMap);
-      } catch {
+      } catch (err) {
+        console.log('Error in fetchMints:', err);
         setMintedTokens([]);
       }
       setLoading(false);
