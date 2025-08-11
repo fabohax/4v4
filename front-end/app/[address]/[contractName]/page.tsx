@@ -107,58 +107,67 @@ export default function NFTViewerPage() {
   // Helper function to parse location string
   const parseLocationString = (locationData?: string | Record<string, unknown>) => {
     if (!locationData) return null;
-    
-    // If it's already an object with lat/lng, return it
-    if (typeof locationData === 'object' && 'lat' in locationData && 'lng' in locationData) {
-      const lat = Number(locationData.lat);
-      const lng = Number(locationData.lng);
-      
-      // Validate coordinates
-      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        console.warn('Invalid coordinates:', { lat, lng });
-        return null;
+    // If it's already an object, try to extract lat/lng or lat/lon
+    if (typeof locationData === 'object') {
+      let lat: number | undefined;
+      let lng: number | undefined;
+      if ('lat' in locationData) {
+        lat = Number(locationData.lat);
+        if ('lng' in locationData) {
+          lng = Number(locationData.lng);
+        } else if ('lon' in locationData) {
+          lng = Number(locationData.lon);
+        } else if ('longitude' in locationData) {
+          lng = Number(locationData.longitude);
+        }
+        if (
+          typeof lat === 'number' && typeof lng === 'number' &&
+          !isNaN(lat) && !isNaN(lng) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+        ) {
+          return { lat, lng };
+        }
       }
-      
-      return { lat, lng };
     }
-    
     // Convert to string if it's not already
     const locationStr = typeof locationData === 'string' ? locationData : String(locationData);
-    
-    // Try to match the "lat: X, lon: Y" format
-    const match = locationStr.match(/lat:\s*(-?\d+\.?\d*),?\s*lon:\s*(-?\d+\.?\d*)/);
+    // Try to match the "lat: X, lon: Y" or "lat: X, lng: Y" format
+    const match = locationStr.match(/lat:\s*(-?\d+\.?\d*),?\s*(lng|lon|longitude):\s*(-?\d+\.?\d*)/);
     if (match) {
       const lat = parseFloat(match[1]);
-      const lng = parseFloat(match[2]);
-      
-      // Validate coordinates
-      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        console.warn('Invalid parsed coordinates:', { lat, lng });
-        return null;
+      const lng = parseFloat(match[3]);
+      if (
+        typeof lat === 'number' && typeof lng === 'number' &&
+        !isNaN(lat) && !isNaN(lng) &&
+        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+      ) {
+        return { lat, lng };
       }
-      
-      return { lat, lng };
     }
-    
     // Try to parse if it's a JSON object string
     try {
       const parsed = JSON.parse(locationStr);
-      if (parsed && typeof parsed === 'object' && parsed.lat && parsed.lng) {
+      if (parsed && typeof parsed === 'object' && 'lat' in parsed) {
         const lat = parseFloat(parsed.lat);
-        const lng = parseFloat(parsed.lng);
-        
-        // Validate coordinates
-        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-          console.warn('Invalid JSON parsed coordinates:', { lat, lng });
-          return null;
+        let lng: number | undefined;
+        if ('lng' in parsed) {
+          lng = parseFloat(parsed.lng);
+        } else if ('lon' in parsed) {
+          lng = parseFloat(parsed.lon);
+        } else if ('longitude' in parsed) {
+          lng = parseFloat(parsed.longitude);
         }
-        
-        return { lat, lng };
+        if (
+          typeof lat === 'number' && typeof lng === 'number' &&
+          !isNaN(lat) && !isNaN(lng) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+        ) {
+          return { lat, lng };
+        }
       }
     } catch (error) {
       console.warn('Failed to parse location JSON:', error);
     }
-    
     console.warn('Unable to parse location data:', locationData);
     return null;
   };
@@ -362,17 +371,25 @@ export default function NFTViewerPage() {
                   <div className="bg-[#111] p-4 rounded-lg">
                     <p className="text-sm text-gray-400 mb-2">Coordinates</p>
                     <p className="font-mono text-sm mb-4">
-                      {typeof metadata.location === 'string' 
-                        ? metadata.location 
-                        : JSON.stringify(metadata.location)
-                      }
+                      {(() => {
+                        const parsed = parseLocationString(metadata.location);
+                        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+                          return `Latitude: ${parsed.lat}, Longitude: ${parsed.lng}`;
+                        }
+                        if (typeof metadata.location === 'string') {
+                          return metadata.location;
+                        }
+                        return JSON.stringify(metadata.location);
+                      })()}
                     </p>
                     <Button 
                       onClick={() => {
-                        console.log('Opening location modal with data:', metadata.location);
                         const parsedLocation = parseLocationString(metadata.location);
-                        console.log('Parsed location:', parsedLocation);
-                        setShowLocationModal(true);
+                        if (parsedLocation && typeof parsedLocation.lat === 'number' && typeof parsedLocation.lng === 'number') {
+                          setShowLocationModal(true);
+                        } else {
+                          toast('Location data is invalid or missing coordinates.');
+                        }
                       }}
                       variant="outline" 
                       className="w-full border-[#333] cursor-pointer"
@@ -388,21 +405,22 @@ export default function NFTViewerPage() {
             <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
               <CardContent className='p-6'>
                 <h3 className="text-lg font-semibold mb-4">Technical Details</h3>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Edition */}
                   {metadata.edition && (
                     <div>
                       <p className="text-sm text-gray-400">Edition</p>
                       <p className="font-medium">{metadata.edition}</p>
                     </div>
                   )}
-                  
+                  {/* Royalties */}
                   {metadata.royalties && (
                     <div>
                       <p className="text-sm text-gray-400">Royalties</p>
                       <p className="font-medium">{metadata.royalties}</p>
                     </div>
                   )}
-
+                  {/* Model Format */}
                   {metadata.interoperabilityFormats && metadata.interoperabilityFormats.length > 0 && (
                     <div>
                       <p className="text-sm text-gray-400">Model Format</p>
@@ -415,7 +433,7 @@ export default function NFTViewerPage() {
                       </div>
                     </div>
                   )}
-
+                  {/* Properties */}
                   {metadata.properties && Object.keys(metadata.properties).length > 0 && (
                     <div>
                       <p className="text-sm text-gray-400">Properties</p>

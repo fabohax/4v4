@@ -41,7 +41,7 @@ export default function RootLayout({
           <>
             <Navbar />
             <GetInButton />
-            <main className="pt-28 md:pt-32">{/* offset fixed navbar + marquee */}
+            <main >
               {children}
             </main>
           </>

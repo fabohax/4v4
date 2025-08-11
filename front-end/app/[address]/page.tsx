@@ -12,10 +12,6 @@ import Image from 'next/image';
 import { User, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Note: This page is for viewing existing NFTs from deprecated contracts
-// For new NFT minting, use the /mint page which deploys contracts dynamically
-const CONTRACT_ADDRESS = 'ST3ZFT624V70VXEYAZ51VPKRHXSEQRT6PA51T2SPS'; // Deprecated testnet address
-const CONTRACT_NAME = 'avatar-minter'; // Deprecated contract name
 
 type TokenMetadata = {
   name?: string;
@@ -27,8 +23,8 @@ type TokenMetadata = {
 // ProfilePage: shows connected wallet's profile and NFTs in a grid
 function ProfilePage() {
   const address = useCurrentAddress();
-  const [mintedTokens, setMintedTokens] = useState<{ tokenId: number, tokenUri: string }[]>([]);
-  const [tokenMetadata, setTokenMetadata] = useState<Record<number, TokenMetadata>>({});
+  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>>([]);
+  const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -36,110 +32,99 @@ function ProfilePage() {
     const fetchMints = async () => {
       setLoading(true);
       try {
+        // 1. Fetch all smart_contract transactions by this address
         const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
-        const network =
-          networkEnv === "mainnet"
-            ? STACKS_MAINNET
-            : STACKS_TESTNET;
-        const lastTokenIdCV = await fetchCallReadOnlyFunction({
-          contractAddress: CONTRACT_ADDRESS,
-          contractName: CONTRACT_NAME,
-          functionName: 'get-last-token-id',
-          functionArgs: [],
-          network,
-          senderAddress: address,
-        });
-        const lastTokenId = Number(cvToValue(lastTokenIdCV));
-        console.log('lastTokenId:', lastTokenId); // <-- Add this line for debugging
+        const apiBase = networkEnv === "mainnet"
+          ? "https://api.hiro.so/extended/v1"
+          : "https://api.testnet.hiro.so/extended/v1";
+        // Get all smart_contract transactions
+        const txRes = await axios.get(`${apiBase}/address/${address}/transactions?type=smart_contract&limit=50`);
+        const txs = txRes.data?.results || [];
+        // Filter for contract deployments
+        type SmartContractTx = {
+          tx_type: string;
+          contract_call?: unknown;
+          contract_id?: string;
+        };
+        const contracts = (txs as SmartContractTx[])
+          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && tx.contract_id)
+          .map((tx) => ({
+            contractAddress: tx.contract_id!.split('.')[0],
+            contractName: tx.contract_id!.split('.')[1],
+          }));
 
-        if (!lastTokenId || isNaN(lastTokenId)) {
-          setMintedTokens([]);
-          setLoading(false);
-          return;
-        }
-        const tokens: { tokenId: number, tokenUri: string }[] = [];
-        for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
-          console.log(`Checking tokenId: ${tokenId}`); // Debug
-          const ownerCV = await fetchCallReadOnlyFunction({
-            contractAddress: CONTRACT_ADDRESS,
-            contractName: CONTRACT_NAME,
-            functionName: 'get-owner',
-            functionArgs: [uintCV(tokenId)],
-            network,
-            senderAddress: address,
-          });
-          console.log(`Token ${tokenId} ownerCV:`, ownerCV); // Debug
-          const ownerJson = cvToJSON(ownerCV);
-          console.log(`Token ${tokenId} ownerJson:`, ownerJson); // Debug
-
-          // Print the full structure for debugging
+        // 2. For each contract, try to enumerate tokens
+        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
+        for (const contract of contracts) {
+          const { contractAddress, contractName } = contract;
+          // Try to get last token id
+          let lastTokenId = 0;
           try {
-            console.log(`Token ${tokenId} ownerJson.value:`, JSON.stringify(ownerJson.value, null, 2));
-          } catch {
-            console.log(`Token ${tokenId} ownerJson.value:`, ownerJson.value);
-          }
-
-          // Defensive: handle possible structure differences
-          let owner: string | undefined;
-          if (
-            ownerJson.value &&
-            ownerJson.value.value &&
-            typeof ownerJson.value.value.value === 'string'
-          ) {
-            owner = ownerJson.value.value.value;
-          } else if (typeof ownerJson.value === 'string') {
-            owner = ownerJson.value;
-          } else if (typeof ownerJson.value?.value === 'string') {
-            owner = ownerJson.value.value;
-          } else {
-            owner = undefined;
-          }
-          console.log(`Token ${tokenId} owner extracted:`, owner, '| expected address:', address);
-
-          let isOwned = false;
-          if (owner && owner === address) {
-            isOwned = true;
-          }
-          if (isOwned) {
-            const uriCV = await fetchCallReadOnlyFunction({
-              contractAddress: CONTRACT_ADDRESS,
-              contractName: CONTRACT_NAME,
-              functionName: 'get-token-uri',
-              functionArgs: [uintCV(tokenId)],
-              network,
+            const lastTokenIdCV = await fetchCallReadOnlyFunction({
+              contractAddress,
+              contractName,
+              functionName: 'get-last-token-id',
+              functionArgs: [],
+              network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
               senderAddress: address,
             });
-            let tokenUri = '';
-            const uriJson = cvToJSON(uriCV);
-            // Print the full structure for debugging
+            lastTokenId = Number(cvToValue(lastTokenIdCV));
+          } catch {}
+          if (!lastTokenId || isNaN(lastTokenId)) continue;
+          for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
             try {
-              console.log(`Token ${tokenId} uriJson.value:`, JSON.stringify(uriJson.value, null, 2));
-            } catch {
-              console.log(`Token ${tokenId} uriJson.value:`, uriJson.value);
-            }
-            // Defensive: handle possible structure differences
-            if (uriJson.value && uriJson.value.value && typeof uriJson.value.value.value === 'string') {
-              tokenUri = uriJson.value.value.value;
-            } else if (typeof uriJson.value === 'string') {
-              tokenUri = uriJson.value;
-            } else if (typeof uriJson.value?.value === 'string') {
-              tokenUri = uriJson.value.value;
-            }
-            console.log(`Token ${tokenId} tokenUri extracted:`, tokenUri);
-            tokens.push({ tokenId, tokenUri });
+              const ownerCV = await fetchCallReadOnlyFunction({
+                contractAddress,
+                contractName,
+                functionName: 'get-owner',
+                functionArgs: [uintCV(tokenId)],
+                network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+                senderAddress: address,
+              });
+              const ownerJson = cvToJSON(ownerCV);
+              let owner: string | undefined;
+              if (
+                ownerJson.value &&
+                ownerJson.value.value &&
+                typeof ownerJson.value.value.value === 'string'
+              ) {
+                owner = ownerJson.value.value.value;
+              } else if (typeof ownerJson.value === 'string') {
+                owner = ownerJson.value;
+              } else if (typeof ownerJson.value?.value === 'string') {
+                owner = ownerJson.value.value;
+              } else {
+                owner = undefined;
+              }
+              if (owner && owner === address) {
+                // Get token URI
+                let tokenUri = '';
+                try {
+                  const uriCV = await fetchCallReadOnlyFunction({
+                    contractAddress,
+                    contractName,
+                    functionName: 'get-token-uri',
+                    functionArgs: [uintCV(tokenId)],
+                    network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+                    senderAddress: address,
+                  });
+                  const uriJson = cvToJSON(uriCV);
+                  if (uriJson.value && uriJson.value.value && typeof uriJson.value.value.value === 'string') {
+                    tokenUri = uriJson.value.value.value;
+                  } else if (typeof uriJson.value === 'string') {
+                    tokenUri = uriJson.value;
+                  } else if (typeof uriJson.value?.value === 'string') {
+                    tokenUri = uriJson.value.value;
+                  }
+                } catch {}
+                allTokens.push({ contractAddress, contractName, tokenId, tokenUri });
+              }
+            } catch {}
           }
         }
-        setMintedTokens(tokens);
-
-        // Log if the current address already had models or not
-        if (tokens.length > 0) {
-          console.log(`Address ${address} has ${tokens.length} minted models.`);
-        } else {
-          console.log(`Address ${address} has no minted models.`);
-        }
-
+        setMintedTokens(allTokens);
         // Fetch metadata for IPFS CIDs (not https links)
-        const metadataPromises = tokens.map(async (token) => {
+        const metadataPromises = allTokens.map(async (token) => {
           if (!token.tokenUri.startsWith('https')) {
             let cid = token.tokenUri;
             if (cid.startsWith('ipfs://')) {
@@ -148,23 +133,20 @@ function ProfilePage() {
             const url = `https://ipfs.io/ipfs/${cid}`;
             try {
               const res = await axios.get<TokenMetadata>(url, { timeout: 5000 });
-              return { tokenId: token.tokenId, metadata: res.data };
+              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: res.data };
             } catch {
-              return { tokenId: token.tokenId, metadata: null };
+              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
             }
           }
-          return { tokenId: token.tokenId, metadata: null };
+          return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
         });
-
         const metadatas = await Promise.all(metadataPromises);
-        const metaMap: Record<number, TokenMetadata> = {};
-        metadatas.forEach(({ tokenId, metadata }) => {
-          if (metadata) metaMap[tokenId] = metadata;
+        const metaMap: Record<string, TokenMetadata> = {};
+        metadatas.forEach(({ key, metadata }) => {
+          if (metadata) metaMap[key] = metadata;
         });
         setTokenMetadata(metaMap);
-
-      } catch (err) {
-        console.error('Error fetching mints:', err);
+      } catch {
         setMintedTokens([]);
       }
       setLoading(false);
@@ -253,24 +235,137 @@ function ProfilePage() {
 
 // AddressPage: shows profile for a given address param
 function AddressPage({ address }: { address: string }) {
-  // Check session for address
-  if (typeof window !== 'undefined' && address) {
-    try {
-      const session = localStorage.getItem('ezstx_session');
-      if (session) {
-        // You can add logic here if you need to use session info
-      }
-    } catch {}
-  }
+  // List minted NFTs for the given address using Hiro API
+  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>>([]);
+  const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
+  const [loading, setLoading] = useState(false);
 
-  // Dummy profile data for demonstration (replace with real data as needed)
-  const displayName = "UNAME";
-  const bio =
-    "BIO DESCRIPTION HERE";
-  const floorValue = 523;
-  const totalBought = 8;
-  const followers = 1;
-  const following = 8;
+  useEffect(() => {
+    if (!address) return;
+    const fetchMints = async () => {
+      setLoading(true);
+      try {
+        // 1. Fetch all smart_contract transactions by this address
+        const networkEnv = process.env.NEXT_PUBLIC_STACKS_NETWORK || "testnet";
+        const apiBase = networkEnv === "mainnet"
+          ? "https://api.hiro.so/extended/v1"
+          : "https://api.testnet.hiro.so/extended/v1";
+        // Get all smart_contract transactions
+        const txRes = await axios.get(`${apiBase}/address/${address}/transactions?type=smart_contract&limit=50`);
+        const txs = txRes.data?.results || [];
+        // Filter for contract deployments
+        type SmartContractTx = {
+          tx_type: string;
+          contract_call?: unknown;
+          contract_id?: string;
+        };
+        const contracts = (txs as SmartContractTx[])
+          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && tx.contract_id)
+          .map((tx) => ({
+            contractAddress: tx.contract_id!.split('.')[0],
+            contractName: tx.contract_id!.split('.')[1],
+          }));
+
+        // 2. For each contract, try to enumerate tokens
+        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
+        for (const contract of contracts) {
+          const { contractAddress, contractName } = contract;
+          // Try to get last token id
+          let lastTokenId = 0;
+          try {
+            const lastTokenIdCV = await fetchCallReadOnlyFunction({
+              contractAddress,
+              contractName,
+              functionName: 'get-last-token-id',
+              functionArgs: [],
+              network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+              senderAddress: address,
+            });
+            lastTokenId = Number(cvToValue(lastTokenIdCV));
+          } catch {}
+          if (!lastTokenId || isNaN(lastTokenId)) continue;
+          for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
+            try {
+              const ownerCV = await fetchCallReadOnlyFunction({
+                contractAddress,
+                contractName,
+                functionName: 'get-owner',
+                functionArgs: [uintCV(tokenId)],
+                network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+                senderAddress: address,
+              });
+              const ownerJson = cvToJSON(ownerCV);
+              let owner: string | undefined;
+              if (
+                ownerJson.value &&
+                ownerJson.value.value &&
+                typeof ownerJson.value.value.value === 'string'
+              ) {
+                owner = ownerJson.value.value.value;
+              } else if (typeof ownerJson.value === 'string') {
+                owner = ownerJson.value;
+              } else if (typeof ownerJson.value?.value === 'string') {
+                owner = ownerJson.value.value;
+              } else {
+                owner = undefined;
+              }
+              if (owner && owner === address) {
+                // Get token URI
+                let tokenUri = '';
+                try {
+                  const uriCV = await fetchCallReadOnlyFunction({
+                    contractAddress,
+                    contractName,
+                    functionName: 'get-token-uri',
+                    functionArgs: [uintCV(tokenId)],
+                    network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
+                    senderAddress: address,
+                  });
+                  const uriJson = cvToJSON(uriCV);
+                  if (uriJson.value && uriJson.value.value && typeof uriJson.value.value.value === 'string') {
+                    tokenUri = uriJson.value.value.value;
+                  } else if (typeof uriJson.value === 'string') {
+                    tokenUri = uriJson.value;
+                  } else if (typeof uriJson.value?.value === 'string') {
+                    tokenUri = uriJson.value.value;
+                  }
+                } catch {}
+                allTokens.push({ contractAddress, contractName, tokenId, tokenUri });
+              }
+            } catch {}
+          }
+        }
+        setMintedTokens(allTokens);
+        // Fetch metadata for IPFS CIDs (not https links)
+        const metadataPromises = allTokens.map(async (token) => {
+          if (!token.tokenUri.startsWith('https')) {
+            let cid = token.tokenUri;
+            if (cid.startsWith('ipfs://')) {
+              cid = cid.replace('ipfs://', '');
+            }
+            const url = `https://ipfs.io/ipfs/${cid}`;
+            try {
+              const res = await axios.get<TokenMetadata>(url, { timeout: 5000 });
+              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: res.data };
+            } catch {
+              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+            }
+          }
+          return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+        });
+        const metadatas = await Promise.all(metadataPromises);
+        const metaMap: Record<string, TokenMetadata> = {};
+        metadatas.forEach(({ key, metadata }) => {
+          if (metadata) metaMap[key] = metadata;
+        });
+        setTokenMetadata(metaMap);
+      } catch {
+        setMintedTokens([]);
+      }
+      setLoading(false);
+    };
+    fetchMints();
+  }, [address]);
 
   return (
     <div className="my-12 md:my-24 mx-auto w-full px-4 md:px-8">
@@ -278,78 +373,72 @@ function AddressPage({ address }: { address: string }) {
         <div className="flex flex-col items-center gap-6 md:gap-8 my-10 md:my-16" >
           {/* Avatar */}
           <div className="flex-shrink-0 mt-6 md:mt-8">
-            <div className="bg-[#222] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
-              {/* Replace with user image if available */}
-              <Image
-                src="/delta-logo.png"
-                alt="-"
-                width={128}
-                height={128}
-                sizes="(max-width: 768px) 96px, 128px"
-                className="h-24 w-24 md:h-32 md:w-32 object-cover"
-                priority
-              />
+            <div className="bg-gradient-to-br from-[#111] to-[#333] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
             </div>
           </div>
-          {/* Name, address, bio, buttons */}
+          {/* Name, address */}
           <div className="flex flex-col items-center">
-            <h1 className="title text-3xl md:text-4xl font-bold text-center">{displayName}</h1>
+            <h1 className="title text-3xl md:text-4xl font-bold text-center">Profile</h1>
             <div className="text-[#aaa] mt-1 text-xs md:text-sm text-center break-all max-w-full px-2">{address}</div>
-            <div className="mt-4 text-[#ccc] max-w-2xl text-center px-2">{bio}</div>
-            <div className="flex gap-2 mt-4 justify-center flex-wrap">
-              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit Showcase</button>
-              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Edit profile</button>
-              <button className="px-4 py-2 rounded-lg bg-[#222] border border-[#333] text-white text-sm hover:bg-[#333] transition">Link wallets</button>
-            </div>
           </div>
         </div>
-        {/* Stats */}
-        <div className="flex flex-row flex-wrap gap-4 md:gap-6 items-center justify-center mt-6 md:mt-8 text-center">
-          <div>
-            <span className="font-semibold">{floorValue} STX</span>{" "}
-            <span className="text-[#aaa]">Floor value</span>
-          </div>
-          <div>
-            <span className="font-semibold">{totalBought} STX</span>{" "}
-            <span className="text-[#aaa]">Total bought</span>
-          </div>
-          <div>
-            <span className="font-semibold">{followers}</span>{" "}
-            <span className="text-[#aaa]">Followers</span>
-            {"  "}
-            <span className="font-semibold ml-4">{following}</span>{" "}
-            <span className="text-[#aaa]">Following</span>
-          </div>
-        </div>
-        {/* Tabs */}
-        <div className="flex gap-2 mt-10 md:mt-12 mb-8 items-center justify-center flex-wrap">
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#ff006a] text-white font-semibold text-sm md:text-base shadow hover:bg-[#e6005c] transition relative">
-            Showcase <span className="ml-2 bg-[#222] text-white text-xs px-2 py-0.5 rounded-full">22</span>
-          </button>
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
-            Collected <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">28</span>
-          </button>
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
-            Created <span className="ml-2 bg-[#111] text-white text-xs px-2 py-0.5 rounded-full">1</span>
-          </button>
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
-            Offers received
-          </button>
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
-            Offers made
-          </button>
-          <button className="px-5 md:px-6 py-2 rounded-xl bg-[#222] text-white font-semibold text-sm md:text-base hover:bg-[#333] transition">
-            Activity
-          </button>
-        </div>
-        {/* Placeholder grid */}
+        {/* NFT grid for this address */}
+        {loading && <p>Loading...</p>}
+        {!loading && mintedTokens.length === 0 && address && (
+          <p className='text-center'>
+            No Minted Models yet. <Link href="/mint" className="text-blue-400 underline">Mint here</Link>
+          </p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-[#111] rounded-xl w-full aspect-square"
-            />
-          ))}
+          {mintedTokens.map((mint) => {
+            const metaKey = `${mint.contractAddress}:${mint.contractName}:${mint.tokenId}`;
+            const meta = tokenMetadata[metaKey];
+            return (
+              <div key={metaKey} className="bg-[#111] rounded-xl w-full aspect-square p-4 border border-gray-800 shadow flex flex-col justify-between">
+                <div>
+                  <div className="font-bold text-base md:text-lg mb-2">Token #{mint.tokenId}</div>
+                  <div className="text-xs text-gray-400 mb-2">Contract: <span className="break-all">{mint.contractName}</span></div>
+                  {meta?.image ? (
+                    <Image
+                      src={(() => {
+                        const img = meta?.image as string;
+                        if (!img) return '/4V4-DIY.png';
+                        if (img.startsWith('ipfs://')) {
+                          return `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
+                        }
+                        return img;
+                      })()}
+                      alt={meta?.name || 'NFT Image'}
+                      width={600}
+                      height={600}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="w-full h-[180px] md:h-[220px] object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-[180px] md:h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
+                      No image
+                    </div>
+                  )}
+                  <div className="mt-4">
+                    <div className="font-semibold">{meta?.name || 'Unnamed NFT'}</div>
+                    <div className="text-xs text-gray-400 mb-2">{meta?.description}</div>
+                    <a
+                      href={
+                        mint.tokenUri.startsWith('https')
+                          ? mint.tokenUri
+                          : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline text-xs"
+                    >
+                      View Metadata
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

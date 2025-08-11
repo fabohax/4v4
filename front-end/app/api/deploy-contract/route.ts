@@ -101,32 +101,42 @@ async function prepareContractCode(params: DeployContractParams) {
   }
 }
 
+// Ensure contract name is valid for Clarity: must start with a letter, contain only [a-z][a-z0-9-], max 128 chars
 function generateContractName(modelName: string): string {
-  // Generate timestamp first (full timestamp for uniqueness)
   const timestamp = Date.now().toString();
-  
-  // Sanitize model name for contract naming - convert to uppercase
-  const sanitized = modelName
-    .toUpperCase() // Contract names in uppercase as requested
-    .replace(/[^A-Z0-9]/g, '-') // Only allow alphanumeric and dashes
-    .replace(/-+/g, '-') // Remove consecutive dashes
-    .replace(/^-|-$/g, '') // Remove leading/trailing dashes
-    .slice(0, 40); // Limit title length
-  
-  // Format: TIMESTAMP-TITLE (timestamp first as requested)
-  const contractName = `${timestamp}-${sanitized}`;
-  
-  // Ensure total length doesn't exceed Stacks limits (typically 128 chars)
-  return contractName.slice(0, 120);
+
+  // Sanitize model name for contract naming - use lowercase per convention
+  const base = (modelName || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-') // Only allow lowercase letters, digits and hyphens
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'nft';
+
+  // Format: title-timestamp (ensures leading letter when possible)
+  let name = `${base}-${timestamp}`;
+
+  // If name does not start with a letter, prefix with 'n-'
+  if (!/^[a-z]/.test(name)) {
+    name = `n-${name}`;
+  }
+
+  // Enforce max length (128 is the general limit for contract names)
+  name = name.slice(0, 128);
+
+  // Final cleanup to avoid trailing hyphen after slicing
+  name = name.replace(/-+$/g, '');
+
+  return name;
 }
 
 export async function POST(request: NextRequest) {
   try {
     console.log('Contract deployment API called');
-    
+
     const body = await request.json();
     console.log('Request body received:', body);
-    
+
     const { 
       modelName, 
       initialCid, 
@@ -249,6 +259,9 @@ export async function POST(request: NextRequest) {
     console.log('> Fee:', deploymentData.fee, 'microSTX');
 
     // Return contract details for client-side deployment via Stacks Connect
+    // Update validation: must start with a letter, allowed chars a-z0-9-, and length <= 128
+    const isValidName = /^(?!.*--)[a-z][a-z0-9-]*[a-z0-9]$/.test(contractName) && contractName.length <= 128;
+
     return NextResponse.json({
       success: true,
       contractName,
@@ -261,7 +274,7 @@ export async function POST(request: NextRequest) {
         codeLength: contractCode.length,
         hasNftDefinition: contractCode.includes('define-non-fungible-token'),
         noPlaceholders: !contractCode.match(/{[A-Z_][A-Z0-9_]*}/g), // Only check for template placeholders, not Clarity syntax
-        contractNameValid: /^[0-9]+[-A-Z0-9-]*$/.test(contractName) // Updated regex for TIMESTAMP-TITLE format
+        contractNameValid: isValidName
       }
     }, { status: 200 });
 
