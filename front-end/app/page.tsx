@@ -30,7 +30,7 @@ export default function Home() {
   return (
     <div className="h-auto bg-gradient-to-b from-black to-gray-900 text-white dotted-grid-background">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden my-16">
 
         <div className="relative grid grid-cols-1 lg:grid-cols-2 items-center gap-8 mx-4 sm:mx-8 lg:mx-36 my-0 md:my-20 lg:my-0 min-h-[calc(72vh-8rem)] md:min-h-[calc(72vh-10rem)]">
           <div className="flex justify-center self-center mt-2 md:mt-6 lg:mt-0">

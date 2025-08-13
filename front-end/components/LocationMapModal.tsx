@@ -8,12 +8,14 @@ interface LocationMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialLocation?: { lat: number; lng: number };
+  onLocationSelect?: (location: { lat: number; lng: number }) => void;
 }
 
 export default function LocationMapModal({
   isOpen,
   onClose,
-  initialLocation
+  initialLocation,
+  onLocationSelect
 }: LocationMapModalProps) {
   const [mapUrl, setMapUrl] = useState<string>('');
   const [mapLoading, setMapLoading] = useState<boolean>(true);
@@ -77,8 +79,57 @@ export default function LocationMapModal({
 
         {/* Map Content */}
         <div className="p-4">
+          {/* Manual coordinate input for selection (only show if onLocationSelect is provided) */}
+          {onLocationSelect && (
+            <div className="mb-4 p-4 bg-[#111] border border-[#333] rounded-lg">
+              <h3 className="text-white font-semibold mb-3">Set Location Coordinates</h3>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    value={currentLat}
+                    onChange={(e) => setCurrentLat(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#222] border border-[#555] rounded text-white text-sm"
+                    placeholder="e.g., -12.72596"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    value={currentLng}
+                    onChange={(e) => setCurrentLng(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#222] border border-[#555] rounded text-white text-sm"
+                    placeholder="e.g., -77.89962"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  const lat = parseFloat(currentLat);
+                  const lng = parseFloat(currentLng);
+                  if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                    onLocationSelect({ lat, lng });
+                    onClose();
+                  }
+                }}
+                disabled={!currentLat || !currentLng || isNaN(parseFloat(currentLat)) || isNaN(parseFloat(currentLng))}
+                className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              >
+                Set Location
+              </Button>
+            </div>
+          )}
+
           {/* Current coordinates display */}
-          {currentLat && currentLng && (
+          {currentLat && currentLng && !onLocationSelect && (
             <div className="mb-4 p-3 bg-[#111] border border-[#333] rounded-lg">
               <p className="text-gray-400 text-sm mb-1">NFT Coordinates:</p>
               <p className="text-white font-mono text-sm">

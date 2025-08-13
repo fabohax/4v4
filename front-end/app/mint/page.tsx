@@ -1833,10 +1833,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-export interface LocationMapModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialLocation?: { lat: number; lng: number };
-  onLocationSelect?: (location: { lat: number; lng: number }) => void;
-}

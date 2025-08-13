@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
-import { fetchCallReadOnlyFunction, uintCV } from '@stacks/transactions';
-import { cvToValue, cvToJSON } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from '@stacks/transactions';
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
@@ -19,6 +18,91 @@ type TokenMetadata = {
   image?: string;
   [key: string]: unknown;
 };
+
+// Helper: extract uint from cvToJSON output that may be wrapped in (ok ...)
+function extractOkUint(input: unknown): number | null {
+  if (typeof input !== 'object' || input === null) return null;
+  const outer = input as { value?: unknown };
+  const v = outer.value;
+  if (typeof v === 'object' && v !== null) {
+    const inner = (v as { value?: unknown }).value;
+    if (typeof inner === 'string' || typeof inner === 'number') {
+      const n = Number(inner);
+      return Number.isNaN(n) ? null : n;
+    }
+  }
+  if (typeof v === 'string' || typeof v === 'number') {
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  }
+  return null;
+}
+
+// MintedTokensGrid: reusable grid for displaying minted tokens
+function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
+  mintedTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>;
+  tokenMetadata: Record<string, TokenMetadata>;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-8 md:mt-12">
+      {mintedTokens.map(mint => {
+        const metaKey = `${mint.contractAddress}:${mint.contractName}:${mint.tokenId}`;
+        const meta = tokenMetadata[metaKey];
+        return (
+          <Link 
+            key={metaKey} 
+            href={`/${mint.contractAddress}/${mint.contractName}/${mint.tokenId}`}
+            className="block transition-transform hover:scale-[1.02]"
+          >
+            <div className="bg-[#111] rounded-xl p-4 border border-[#111] shadow cursor-pointer">
+              {/* Square cover image */}
+              {meta?.image ? (
+                <div className="relative w-full pt-[100%]">
+                  <Image
+                    src={(() => {
+                      const img = meta?.image as string;
+                      if (!img) return '/4V4-DIY.png';
+                      let out = img;
+                      if (img.startsWith('ipfs://')) {
+                        out = `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
+                      }
+                      // Normalize common IPFS gateways to ipfs.io to reduce 500s
+                      out = out.replace('https://gateway.pinata.cloud/ipfs/', 'https://ipfs.io/ipfs/');
+                      out = out.replace('.mypinata.cloud/ipfs/', '://ipfs.io/ipfs/');
+                      return out;
+                    })()}
+                    alt={meta?.name || 'NFT Image'}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="absolute inset-0 object-cover rounded-lg"
+                    unoptimized
+                    onError={(e) => {
+                      const imgEl = e.currentTarget as HTMLImageElement;
+                      if (imgEl && imgEl.src !== window.location.origin + '/4V4-DIY.png') {
+                        imgEl.src = '/4V4-DIY.png';
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="relative w-full pt-[100%]">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#101010] border-[1px] border-[#222] rounded-lg text-gray-500">
+                    No image
+                  </div>
+                </div>
+              )}
+              <div className="mt-4">
+                <div className="font-semibold">{meta?.name || 'Unnamed NFT'}</div>
+                <div className="text-xs text-gray-400 mb-2">{meta?.description}</div>
+                <div className="text-xs text-gray-500">Token #{mint.tokenId}</div>
+              </div>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 // ProfilePage: shows connected wallet's profile and NFTs in a grid
 function ProfilePage() {
@@ -40,27 +124,25 @@ function ProfilePage() {
         // Get all smart_contract transactions
         const txRes = await axios.get(`${apiBase}/address/${address}/transactions?type=smart_contract&limit=50`);
         const txs = txRes.data?.results || [];
-        console.log('Fetched smart_contract txs:', txs);
-        // Filter for contract deployments
+        console.log('Txs length:', txs.length);
         type SmartContractTx = {
           tx_type: string;
+          smart_contract?: { contract_id?: string };
           contract_call?: unknown;
           contract_id?: string;
         };
-        txs.forEach((tx, idx) => {
-          console.log(`Tx[${idx}]`, tx);
-          if (tx.tx_type === 'smart_contract') {
-            console.log(`Tx[${idx}] smart_contract:`, tx.smart_contract);
-          }
+        (txs as SmartContractTx[]).forEach((tx, idx) => {
+          console.log(`TX[${idx}] smart_contract:`, tx.smart_contract);
         });
-        // Try to extract contract info from smart_contract property
-        const contracts = txs
-          .filter((tx) => tx.tx_type === 'smart_contract' && tx.smart_contract && tx.smart_contract.contract_id)
-          .map((tx) => ({
-            contractAddress: tx.smart_contract.contract_id.split('.')[0],
-            contractName: tx.smart_contract.contract_id.split('.')[1],
-          }));
-        console.log('Filtered contracts:', contracts);
+        // Filter for contract deployments (prefer tx.smart_contract.contract_id)
+        const contracts = (txs as SmartContractTx[])
+          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && (tx.smart_contract?.contract_id || tx.contract_id))
+          .map((tx) => {
+            const cid = tx.smart_contract?.contract_id || tx.contract_id!;
+            const [contractAddress, contractName] = cid.split('.');
+            return { contractAddress, contractName };
+          });
+        console.log('Contracts found:', contracts);
 
         // 2. For each contract, try to enumerate tokens
         const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
@@ -77,16 +159,12 @@ function ProfilePage() {
               network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
               senderAddress: address,
             });
-            console.log(`Raw get-last-token-id response for ${contractAddress}.${contractName}:`, lastTokenIdCV);
-            // Hiro API returns { type: 'ok', value: { type: 'uint', value: <number> } }
-            if (lastTokenIdCV && lastTokenIdCV.type === 'ok' && lastTokenIdCV.value && lastTokenIdCV.value.type === 'uint') {
-              lastTokenId = Number(lastTokenIdCV.value.value);
-            } else {
-              lastTokenId = 0;
-            }
+            const lastJson = cvToJSON(lastTokenIdCV);
+            const parsed = extractOkUint(lastJson);
+            lastTokenId = parsed ?? 0;
             console.log(`Contract ${contractAddress}.${contractName} lastTokenId:`, lastTokenId);
           } catch (err) {
-            console.log(`Error fetching lastTokenId for ${contractAddress}.${contractName}:`, err);
+            console.log(`Error getting lastTokenId for ${contractAddress}.${contractName}:`, err);
           }
           if (!lastTokenId || isNaN(lastTokenId)) continue;
           for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
@@ -114,6 +192,7 @@ function ProfilePage() {
               } else {
                 owner = undefined;
               }
+              console.log(`Token ${tokenId} owner for ${contractAddress}.${contractName}:`, owner);
               if (owner && owner === address) {
                 // Get token URI
                 let tokenUri = '';
@@ -134,10 +213,14 @@ function ProfilePage() {
                   } else if (typeof uriJson.value?.value === 'string') {
                     tokenUri = uriJson.value.value;
                   }
-                } catch {}
+                } catch (err) {
+                  console.log(`Error getting tokenUri for token ${tokenId} in ${contractAddress}.${contractName}:`, err);
+                }
                 allTokens.push({ contractAddress, contractName, tokenId, tokenUri });
               }
-            } catch {}
+            } catch (err) {
+              console.log(`Error getting owner for token ${tokenId} in ${contractAddress}.${contractName}:`, err);
+            }
           }
         }
         console.log('All minted tokens:', allTokens);
@@ -178,12 +261,12 @@ function ProfilePage() {
     <div className='mx-auto w-full px-4 md:px-8 my-12 md:my-24'>
       <div className='text-center items-center justify-center'>
         <div className='mt-16 md:mt-36 mx-auto'>
-          <div className='mx-auto my-8 bg-[#333] rounded-full h-20 w-20 md:h-24 md:w-24'>
+          <div className='mx-auto my-8 bg-[#111] rounded-full h-20 w-20 md:h-24 md:w-24'>
             <User className='mx-auto h-20 md:h-24 text-[#777]'/>
           </div>
         </div>
-        <h2 className='text-2xl md:text-4xl mt-6 md:mt-8'>_</h2>
-        <p className='mt-3 md:mt-4 mb-6 md:mb-8 text-sm text-[#777]'>{address}</p>
+        <h2 className='text-2xl md:text-4xl mt-6 md:mt-8 hidden'></h2>
+        <p className='title mt-3 md:mt-4 mb-6 md:mb-8 text-lg text-[#777]'>{address}</p>
         <Button className="p-2 mb-8 cursor-pointer"><Pen/></Button>
       </div>
       {!address && <p>Please connect your wallet.</p>}
@@ -194,61 +277,7 @@ function ProfilePage() {
         </p>
       )}
       {/* Grid of minted models */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-8 md:mt-12">
-        {mintedTokens.map((mint) => (
-          <div key={mint.tokenId} className="bg-gray-900 rounded-xl p-4 border border-gray-800 shadow">
-            <div className="font-bold text-base md:text-lg mb-2">Token #{mint.tokenId}</div>
-            {/* Debug: Show raw tokenUri (CID/hash) */}
-            <div className="text-xs text-gray-400 break-all mb-2">
-              <b>Raw tokenUri:</b> {mint.tokenUri}
-            </div>
-            {/* Debug: Show resolved IPFS URL */}
-            <div className="text-xs text-gray-400 break-all mb-2">
-              <b>IPFS URL:</b>{" "}
-              {mint.tokenUri.startsWith('https')
-                ? mint.tokenUri
-                : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`}
-            </div>
-            {tokenMetadata[mint.tokenId]?.image ? (
-              <Image
-                src={(() => {
-                  const img = tokenMetadata[mint.tokenId]?.image as string;
-                  if (!img) return '/4V4-DIY.png';
-                  if (img.startsWith('ipfs://')) {
-                    return `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
-                  }
-                  return img;
-                })()}
-                alt={tokenMetadata[mint.tokenId]?.name || 'NFT Image'}
-                width={600}
-                height={600}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="w-full h-[180px] md:h-[220px] object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-full h-[180px] md:h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
-                No image
-              </div>
-            )}
-            <div className="mt-4">
-              <div className="font-semibold">{tokenMetadata[mint.tokenId]?.name || 'Unnamed NFT'}</div>
-              <div className="text-xs text-gray-400 mb-2">{tokenMetadata[mint.tokenId]?.description}</div>
-              <a
-                href={
-                  mint.tokenUri.startsWith('https')
-                    ? mint.tokenUri
-                    : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:underline text-xs"
-              >
-                View Metadata
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
+      <MintedTokensGrid mintedTokens={mintedTokens} tokenMetadata={tokenMetadata} />
     </div>
   );
 }
@@ -273,18 +302,24 @@ function AddressPage({ address }: { address: string }) {
         // Get all smart_contract transactions
         const txRes = await axios.get(`${apiBase}/address/${address}/transactions?type=smart_contract&limit=50`);
         const txs = txRes.data?.results || [];
-        // Filter for contract deployments
+        console.log('Txs length:', txs.length);
         type SmartContractTx = {
           tx_type: string;
+          smart_contract?: { contract_id?: string };
           contract_call?: unknown;
           contract_id?: string;
         };
+        (txs as SmartContractTx[]).forEach((tx, idx) => {
+          console.log(`TX[${idx}] smart_contract:`, tx.smart_contract);
+        });
+        // Filter for contract deployments (prefer tx.smart_contract.contract_id)
         const contracts = (txs as SmartContractTx[])
-          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && tx.contract_id)
-          .map((tx) => ({
-            contractAddress: tx.contract_id!.split('.')[0],
-            contractName: tx.contract_id!.split('.')[1],
-          }));
+          .filter((tx) => tx.tx_type === 'smart_contract' && tx.contract_call === undefined && (tx.smart_contract?.contract_id || tx.contract_id))
+          .map((tx) => {
+            const cid = tx.smart_contract?.contract_id || tx.contract_id!;
+            const [contractAddress, contractName] = cid.split('.');
+            return { contractAddress, contractName };
+          });
 
         // 2. For each contract, try to enumerate tokens
         const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
@@ -301,7 +336,9 @@ function AddressPage({ address }: { address: string }) {
               network: networkEnv === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET,
               senderAddress: address,
             });
-            lastTokenId = Number(cvToValue(lastTokenIdCV));
+            const lastJson = cvToJSON(lastTokenIdCV);
+            const parsed = extractOkUint(lastJson);
+            lastTokenId = parsed ?? 0;
           } catch {}
           if (!lastTokenId || isNaN(lastTokenId)) continue;
           for (let tokenId = 1; tokenId <= lastTokenId; tokenId++) {
@@ -399,7 +436,7 @@ function AddressPage({ address }: { address: string }) {
           {/* Name, address */}
           <div className="flex flex-col items-center">
             <h1 className="title text-3xl md:text-4xl font-bold text-center">Profile</h1>
-            <div className="text-[#aaa] mt-1 text-xs md:text-sm text-center break-all max-w-full px-2">{address}</div>
+            <div className="title text-[#fff] mt-1 text-lg md:text-sm text-center break-all max-w-full px-2">{address}</div>
           </div>
         </div>
         {/* NFT grid for this address */}
@@ -409,57 +446,7 @@ function AddressPage({ address }: { address: string }) {
             No Minted Models yet. <Link href="/mint" className="text-blue-400 underline">Mint here</Link>
           </p>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
-          {mintedTokens.map((mint) => {
-            const metaKey = `${mint.contractAddress}:${mint.contractName}:${mint.tokenId}`;
-            const meta = tokenMetadata[metaKey];
-            return (
-              <div key={metaKey} className="bg-[#111] rounded-xl w-full aspect-square p-4 border border-gray-800 shadow flex flex-col justify-between">
-                <div>
-                  <div className="font-bold text-base md:text-lg mb-2">Token #{mint.tokenId}</div>
-                  <div className="text-xs text-gray-400 mb-2">Contract: <span className="break-all">{mint.contractName}</span></div>
-                  {meta?.image ? (
-                    <Image
-                      src={(() => {
-                        const img = meta?.image as string;
-                        if (!img) return '/4V4-DIY.png';
-                        if (img.startsWith('ipfs://')) {
-                          return `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
-                        }
-                        return img;
-                      })()}
-                      alt={meta?.name || 'NFT Image'}
-                      width={600}
-                      height={600}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="w-full h-[180px] md:h-[220px] object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-full h-[180px] md:h-[220px] flex items-center justify-center bg-gray-800 rounded-lg text-gray-500">
-                      No image
-                    </div>
-                  )}
-                  <div className="mt-4">
-                    <div className="font-semibold">{meta?.name || 'Unnamed NFT'}</div>
-                    <div className="text-xs text-gray-400 mb-2">{meta?.description}</div>
-                    <a
-                      href={
-                        mint.tokenUri.startsWith('https')
-                          ? mint.tokenUri
-                          : `https://ipfs.io/ipfs/${mint.tokenUri.replace('ipfs://', '')}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline text-xs"
-                    >
-                      View Metadata
-                    </a>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <MintedTokensGrid mintedTokens={mintedTokens} tokenMetadata={tokenMetadata} />
       </div>
     </div>
   );

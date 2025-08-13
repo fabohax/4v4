@@ -1,5 +1,5 @@
-;; User NFT Contract Template - Deploy with Initial Mint
-;; Replace {NFT_NAME} and {INITIAL_CID} during deployment
+;; 4V4 NFT CONTRACT
+;; {NFT_NAME} 3D NFT
 
 (define-non-fungible-token {NFT_NAME} uint)
 
