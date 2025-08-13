@@ -14,7 +14,7 @@ export default function AccountCreatedPage() {
     if (typeof window !== "undefined") {
       setInitialLoading(true);
       setTimeout(() => {
-        const data = sessionStorage.getItem("ezstx_new_wallet");
+        const data = sessionStorage.getItem("4v4_new_wallet");
         if (data) setWallet(JSON.parse(data));
         setInitialLoading(false);
       }, 600); 
@@ -25,14 +25,14 @@ export default function AccountCreatedPage() {
     if (wallet && typeof window !== "undefined") {
       setLoading(true);
       localStorage.setItem(
-        "ezstx_session",
+        "4v4_session",
         JSON.stringify({
           stxPrivateKey: wallet.stxPrivateKey,
           address: wallet.address,
           createdAt: Date.now(),
         })
       );
-      window.dispatchEvent(new Event("ezstx-session-update"));
+      window.dispatchEvent(new Event("4v4-session-update"));
       router.push(`/${wallet.address}`);
     }
   };
@@ -46,6 +46,7 @@ export default function AccountCreatedPage() {
             alt="Loading..."
             width={75}
             height={37.7}
+            unoptimized
             style={{ minWidth: 75, minHeight: 37.5, width: 75, height: 37.5 }}
           />
         </div>
@@ -84,6 +85,7 @@ export default function AccountCreatedPage() {
                 alt="Loading..."
                 width={75}
                 height={38}
+                unoptimized
                 style={{ minWidth: 75, minHeight: 38, width: 75, height: 38 }}
               />
             </span>

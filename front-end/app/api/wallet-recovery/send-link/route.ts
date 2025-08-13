@@ -138,7 +138,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Endpoint to verify token
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -149,6 +148,16 @@ export async function GET(request: NextRequest) {
         { error: 'Token is required' },
         { status: 400 }
       );
+    }
+
+    // For development/testing: accept any 64-character hex token
+    if (process.env.NODE_ENV === 'development' && token.length === 64 && /^[a-f0-9]+$/i.test(token)) {
+      return NextResponse.json({
+        valid: true,
+        email: 'test@example.com',
+        privateKeyHash: 'development_hash',
+        expiresAt: Date.now() + (30 * 60 * 1000) // 30 minutes from now
+      });
     }
 
     const tokenData = connectionTokens.get(token);

@@ -30,9 +30,9 @@ export interface SessionConfig {
   requirePassphraseOnTransaction: boolean;
 }
 
-const STORAGE_KEY = 'ezstx_encrypted_session';
-const CONFIG_KEY = 'ezstx_session_config';
-const SESSION_LOCK_KEY = 'ezstx_session_locked';
+const STORAGE_KEY = '4v4_encrypted_session';
+const CONFIG_KEY = '4v4_session_config';
+const SESSION_LOCK_KEY = '4v4_session_locked';
 const CURRENT_VERSION = '1.0.0';
 
 // Default session configuration
@@ -178,7 +178,7 @@ export async function storeEncryptedWallet(
   localStorage.removeItem(SESSION_LOCK_KEY);
 
   // Dispatch event for UI updates
-  window.dispatchEvent(new Event('ezstx-encrypted-session-created'));
+  window.dispatchEvent(new Event('4v4-encrypted-session-created'));
 }
 
 /**
@@ -212,7 +212,7 @@ export async function retrieveEncryptedWallet(passphrase: string): Promise<Walle
     localStorage.setItem(STORAGE_KEY, JSON.stringify(encryptedData));
 
     // Dispatch event for session activity
-    window.dispatchEvent(new Event('ezstx-session-accessed'));
+    window.dispatchEvent(new Event('4v4-session-accessed'));
 
     return {
       mnemonic,
@@ -262,7 +262,7 @@ export function lockSession(): void {
   if (typeof window === 'undefined') return;
   
   localStorage.setItem(SESSION_LOCK_KEY, 'true');
-  window.dispatchEvent(new Event('ezstx-session-locked'));
+  window.dispatchEvent(new Event('4v4-session-locked'));
 }
 
 /**
@@ -280,7 +280,7 @@ export function unlockSession(): void {
   if (typeof window === 'undefined') return;
   
   localStorage.removeItem(SESSION_LOCK_KEY);
-  window.dispatchEvent(new Event('ezstx-session-unlocked'));
+  window.dispatchEvent(new Event('4v4-session-unlocked'));
 }
 
 /**
@@ -332,7 +332,7 @@ export function updateSessionConfig(config: Partial<SessionConfig>): void {
   const newConfig = { ...currentConfig, ...config };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(newConfig));
   
-  window.dispatchEvent(new Event('ezstx-session-config-updated'));
+  window.dispatchEvent(new Event('4v4-session-config-updated'));
 }
 
 /**
@@ -348,18 +348,16 @@ export function getSessionConfig(): SessionConfig {
 /**
  * Delete encrypted wallet and clear all session data
  */
-export function deleteEncryptedWallet(): void {
-  if (typeof window === 'undefined') return;
-
+export function deleteWallet(address: string) {
+  // Clear the session data
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(CONFIG_KEY);
   localStorage.removeItem(SESSION_LOCK_KEY);
   
-  // Also clear any legacy session data
-  localStorage.removeItem('ezstx_session');
-  sessionStorage.removeItem('ezstx_new_wallet');
+  // Remove the specific wallet and config
+  localStorage.removeItem(`encrypted_wallet_${address}`);
+  localStorage.removeItem(`wallet_config_${address}`);
   
-  window.dispatchEvent(new Event('ezstx-session-deleted'));
+  window.dispatchEvent(new Event('4v4-session-deleted'));
 }
 
 /**
@@ -378,7 +376,7 @@ export async function changeWalletPassphrase(
   // Store with new passphrase
   await storeEncryptedWallet(walletData, newPassphrase);
   
-  window.dispatchEvent(new Event('ezstx-passphrase-changed'));
+  window.dispatchEvent(new Event('4v4-passphrase-changed'));
 }
 
 /**

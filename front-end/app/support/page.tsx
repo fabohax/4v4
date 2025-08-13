@@ -21,7 +21,7 @@ export default function SupportPage() {
         <h2 className="text-xl font-semibold mb-2">Contact Us</h2>
         <p className="text-gray-300 mb-2">
           For help, questions, or feedback, email us at{" "}
-          <a href="mailto:support@ezstx.app" className="text-blue-400 hover:underline">
+          <a href="mailto:support@4v4.diy" className="text-blue-400 hover:underline">
             support@4v4.diy
           </a>
         </p>
@@ -45,7 +45,7 @@ export default function SupportPage() {
           <li>
             <span className="font-semibold text-white">Where can I find documentation?</span>
             <br />
-            Visit our <a href="https://ezstx.app/docs" className="text-blue-400 hover:underline">documentation page</a>.
+            Visit our <a href="https://4v4.diy/docs" className="text-blue-400 hover:underline">documentation page</a>.
           </li>
         </ul>
       </div>

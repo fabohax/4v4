@@ -26,43 +26,14 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   useEffect(() => {
     const cleanAllSessions = () => {
       if (typeof window !== "undefined") {
-        // Clear encrypted wallet sessions
-        localStorage.removeItem('ezstx_session');
-        localStorage.removeItem('ezstx_session_config');
-        localStorage.removeItem('ezstx_session_locked');
-        localStorage.removeItem('ezstx_encrypted_wallet');
-        
-        // Clear Hiro wallet sessions
+        // Clear all wallet sessions
+        localStorage.removeItem('4v4_session');
+        localStorage.removeItem('4v4_session_config');
+        localStorage.removeItem('4v4_session_locked');
+        localStorage.removeItem('4v4_encrypted_wallet');
         localStorage.removeItem('blockstack-session');
-        localStorage.removeItem('blockstack');
         localStorage.removeItem('connect-session');
-        localStorage.removeItem('stacks-wallet-connect');
-        
-        // Clear other wallet sessions
-        localStorage.removeItem('xverse-stacks');
-        localStorage.removeItem('xverse-session');
-        localStorage.removeItem('leather-stacks');
-        localStorage.removeItem('leather-session');
-        
-        // Clear network-specific keys
-        localStorage.removeItem('stacks-network');
-        localStorage.removeItem('stacks-connect-network');
-        localStorage.removeItem('blockstack-network');
-        localStorage.removeItem('xverse-network');
-        localStorage.removeItem('xverse-stacks-network');
-        localStorage.removeItem('leather-network');
-        
-        // Clear any remaining wallet-related storage
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('wallet') || key.includes('stacks') || key.includes('blockstack') || key.includes('ezstx'))) {
-            localStorage.removeItem(key);
-          }
-        }
-        
-        // Clear session storage
         sessionStorage.clear();
-        
         console.log('All sessions cleared successfully');
       }
     };
@@ -74,7 +45,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
     if (typeof window !== "undefined") {
       const checkSession = () => {
         try {
-          const session = localStorage.getItem('ezstx_session');
+          const session = localStorage.getItem('4v4_session');
           const hasSession = !!session;
           console.log('Session check after cleanup:', hasSession, session); // Debug log
           setIsSessionLoggedIn(hasSession);
@@ -94,12 +65,12 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
       window.addEventListener('visibilitychange', handleVisibility);
 
       // Listen for custom event after login
-      window.addEventListener('ezstx-session-update', checkSession);
+      window.addEventListener('4v4-session-update', checkSession);
 
       return () => {
         window.removeEventListener('storage', checkSession);
         window.removeEventListener('visibilitychange', handleVisibility);
-        window.removeEventListener('ezstx-session-update', checkSession);
+        window.removeEventListener('4v4-session-update', checkSession);
       };
     }
   }, []);
@@ -107,7 +78,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   // Listen for disconnect to update session state
   useEffect(() => {
     if (!isWalletConnected) {
-      const session = localStorage.getItem('ezstx_session');
+      const session = localStorage.getItem('4v4_session');
       if (!session) setIsSessionLoggedIn(false);
     }
   }, [isWalletConnected]);

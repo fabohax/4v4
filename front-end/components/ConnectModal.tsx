@@ -110,8 +110,9 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
       // Clean up temp data
       delete window.tempImportData;
 
-      // Redirect to profile page
-      router.push('/profile');
+      // Redirect to welcome page with email if available
+      const emailParam = email ? `?email=${encodeURIComponent(email)}` : '';
+      router.push(`/welcome${emailParam}`);
       
       if (onSuccess) onSuccess();
       onClose();

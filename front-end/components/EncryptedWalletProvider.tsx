@@ -15,7 +15,7 @@ import {
   unlockSession,
   isSessionLocked as checkSessionLocked,
   autoLockIfExpired,
-  deleteEncryptedWallet,
+  deleteWallet as deleteWalletFromStorage,
   WalletData
 } from '@/lib/encryptedStorage';
 import { DevnetWallet, devnetWallets } from '@/lib/devnet-wallet-context';
@@ -113,46 +113,46 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
     // Listen for storage events
     const handleStorageEvents = (event: Event) => {
       switch (event.type) {
-        case 'ezstx-encrypted-session-created':
+        case '4v4-encrypted-session-created':
           setIsWalletEncrypted(true);
           setWalletInfo(getWalletInfo());
           setIsAuthenticated(true);
           setIsSessionLocked(false);
           break;
-        case 'ezstx-session-locked':
+        case '4v4-session-locked':
           setIsSessionLocked(true);
           setIsAuthenticated(false);
           setCurrentWallet(null);
           break;
-        case 'ezstx-session-unlocked':
+        case '4v4-session-unlocked':
           setIsSessionLocked(false);
           break;
-        case 'ezstx-session-deleted':
+        case '4v4-session-deleted':
           setIsWalletEncrypted(false);
           setWalletInfo(null);
           setIsAuthenticated(false);
           setCurrentWallet(null);
           setIsSessionLocked(false);
           break;
-        case 'ezstx-session-accessed':
+        case '4v4-session-accessed':
           // Session activity detected, could update UI indicators
           break;
       }
     };
 
     // Add event listeners
-    window.addEventListener('ezstx-encrypted-session-created', handleStorageEvents);
-    window.addEventListener('ezstx-session-locked', handleStorageEvents);
-    window.addEventListener('ezstx-session-unlocked', handleStorageEvents);
-    window.addEventListener('ezstx-session-deleted', handleStorageEvents);
-    window.addEventListener('ezstx-session-accessed', handleStorageEvents);
+    window.addEventListener('4v4-encrypted-session-created', handleStorageEvents);
+    window.addEventListener('4v4-session-locked', handleStorageEvents);
+    window.addEventListener('4v4-session-unlocked', handleStorageEvents);
+    window.addEventListener('4v4-session-deleted', handleStorageEvents);
+    window.addEventListener('4v4-session-accessed', handleStorageEvents);
 
     return () => {
-      window.removeEventListener('ezstx-encrypted-session-created', handleStorageEvents);
-      window.removeEventListener('ezstx-session-locked', handleStorageEvents);
-      window.removeEventListener('ezstx-session-unlocked', handleStorageEvents);
-      window.removeEventListener('ezstx-session-deleted', handleStorageEvents);
-      window.removeEventListener('ezstx-session-accessed', handleStorageEvents);
+      window.removeEventListener('4v4-encrypted-session-created', handleStorageEvents);
+      window.removeEventListener('4v4-session-locked', handleStorageEvents);
+      window.removeEventListener('4v4-session-unlocked', handleStorageEvents);
+      window.removeEventListener('4v4-session-deleted', handleStorageEvents);
+      window.removeEventListener('4v4-session-accessed', handleStorageEvents);
     };
   }, []);
 
@@ -186,6 +186,17 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
         label: walletData.label, 
         createdAt: Date.now() 
       });
+
+      // Also save session data for compatibility with other components
+      if (typeof window !== 'undefined') {
+        const sessionData = {
+          address: walletData.address,
+          label: walletData.label,
+          encrypted: true,
+          createdAt: Date.now()
+        };
+        localStorage.setItem('4v4_session', JSON.stringify(sessionData));
+      }
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Failed to create encrypted wallet');
       throw error;
@@ -208,6 +219,17 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
       setIsSessionLocked(false);
       unlockSession();
+
+      // Also save session data for compatibility with other components
+      if (typeof window !== 'undefined') {
+        const sessionData = {
+          address: walletData.address,
+          label: walletData.label,
+          encrypted: true,
+          createdAt: Date.now()
+        };
+        localStorage.setItem('4v4_session', JSON.stringify(sessionData));
+      }
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Failed to unlock wallet');
       throw error;
@@ -225,14 +247,16 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
   }, []);
 
   const deleteWallet = useCallback(() => {
-    deleteEncryptedWallet();
+    if (walletInfo?.address) {
+      deleteWalletFromStorage(walletInfo.address);
+    }
     setCurrentWallet(null);
     setWalletInfo(null);
     setIsWalletEncrypted(false);
     setIsAuthenticated(false);
     setIsSessionLocked(false);
     setAuthError(null);
-  }, []);
+  }, [walletInfo]);
 
   const changePassphrase = useCallback(async (oldPassphrase: string, newPassphrase: string) => {
     setIsLoading(true);

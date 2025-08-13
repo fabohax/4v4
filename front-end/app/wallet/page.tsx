@@ -26,7 +26,7 @@ export default function WalletPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const session = localStorage.getItem('ezstx_session');
+        const session = localStorage.getItem('4v4_session');
         if (session) {
           const parsed = JSON.parse(session);
           if (parsed.address) setSessionAddress(parsed.address);
@@ -109,6 +109,7 @@ export default function WalletPage() {
               alt="Loading..."
               width={32}
               height={16}
+              unoptimized
               style={{ minWidth: 32, minHeight: 16, width: 32, height: 16 }}
               className="title text-xl inline-block align-middle"
             />

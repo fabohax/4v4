@@ -5,8 +5,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Key, AlertCircle, Timer } from 'lucide-react';
+import { Loader, Key, AlertCircle, Timer, Shield } from 'lucide-react';
 import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
+import { generateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
+import { mnemonicToSeed } from '@scure/bip39';
+import { HDKey } from '@scure/bip32';
+import { bytesToHex } from '@stacks/common';
+import { getAddressFromPrivateKey } from '@stacks/transactions';
 
 export default function WalletRecoveryPage() {
   const searchParams = useSearchParams();
@@ -17,12 +23,14 @@ export default function WalletRecoveryPage() {
   const [tokenValid, setTokenValid] = useState(false);
   const [email, setEmail] = useState('');
   const [expiresAt, setExpiresAt] = useState<number>(0);
-  const [passphrase, setPassphrase] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [step, setStep] = useState<'validate' | 'create' | 'passphrase'>('validate');
+  const [passphrase, setPassphrase] = useState('');
+  const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
-  const { unlockWallet, isAuthenticated } = useEncryptedWallet();
+  const { isAuthenticated, createEncryptedWallet } = useEncryptedWallet();
 
   // Validate token on component mount
   useEffect(() => {
@@ -41,6 +49,7 @@ export default function WalletRecoveryPage() {
           setTokenValid(true);
           setEmail(data.email);
           setExpiresAt(data.expiresAt);
+          setStep('create'); // Move to wallet creation step
         } else {
           setError(data.error || 'Invalid or expired recovery link');
         }
@@ -87,31 +96,73 @@ export default function WalletRecoveryPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleUnlockWallet = async () => {
+  const generateWalletFromMnemonic = async (mnemonic: string) => {
+    try {
+      const seed = await mnemonicToSeed(mnemonic);
+      const hdKey = HDKey.fromMasterSeed(seed);
+      
+      // Derive the key using Stacks derivation path: m/44'/5757'/0'/0/0
+      const derivedKey = hdKey.derive("m/44'/5757'/0'/0/0");
+      
+      if (!derivedKey.privateKey) {
+        throw new Error('Failed to derive private key');
+      }
+      
+      const privateKeyHex = bytesToHex(derivedKey.privateKey);
+      const address = getAddressFromPrivateKey(privateKeyHex);
+      
+      return {
+        mnemonic,
+        privateKey: privateKeyHex,
+        address,
+        label: `4V4 Wallet - ${email}`
+      };
+    } catch (error) {
+      console.error('Failed to generate wallet:', error);
+      throw new Error('Failed to generate wallet from mnemonic');
+    }
+  };
+
+  const handleContinueToPassphrase = () => {
+    setStep('passphrase');
+  };
+
+  const handleCreateWallet = async () => {
     if (!passphrase.trim()) {
-      setError('Please enter your passphrase');
+      setError('Please enter a passphrase');
+      return;
+    }
+
+    if (passphrase !== confirmPassphrase) {
+      setError('Passphrases do not match');
+      return;
+    }
+
+    if (passphrase.length < 8) {
+      setError('Passphrase must be at least 8 characters long');
       return;
     }
 
     try {
-      setIsUnlocking(true);
+      setIsCreatingWallet(true);
       setError(null);
 
-      await unlockWallet(passphrase);
+      // Generate new mnemonic
+      const mnemonic = generateMnemonic(wordlist);
       
-      // Redirect to profile page after successful unlock
-      router.push('/profile');
+      // Generate wallet from mnemonic
+      const walletData = await generateWalletFromMnemonic(mnemonic);
+      
+      // Create encrypted wallet
+      await createEncryptedWallet(walletData, passphrase);
+      
+      // Redirect to welcome page
+      router.push(`/welcome?email=${encodeURIComponent(email)}`);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlock wallet');
+      setError(err instanceof Error ? err.message : 'Failed to create wallet');
     } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && passphrase.trim() && !isUnlocking) {
-      handleUnlockWallet();
+      setIsCreatingWallet(false);
     }
   };
 
@@ -156,97 +207,194 @@ export default function WalletRecoveryPage() {
   return (
     <div className="min-h-screen bg-[#111] flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-[#181818] border-gray-700 shadow-2xl">
-        <CardHeader className="text-center pb-6">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Key className="w-8 h-8 text-blue-400" />
-          </div>
-          <CardTitle className="text-2xl text-white mb-2">Wallet Recovery</CardTitle>
-          <p className="text-gray-400 text-sm">
-            Enter your passphrase to unlock your encrypted wallet
-          </p>
-        </CardHeader>
-
-        <CardContent className="space-y-6 px-6 pb-6">
-          {/* Email and Timer Info */}
-          <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-blue-300">
-                <strong>{email}</strong>
-              </span>
-              <div className="flex items-center text-blue-400">
-                <Timer className="w-4 h-4 mr-1" />
-                <span className="font-mono">{timeLeft}</span>
+        {step === 'create' && (
+          <>
+            <CardHeader className="text-center pb-6">
+              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Key className="w-8 h-8 text-blue-400" />
               </div>
-            </div>
-          </div>
+              <CardTitle className="text-2xl text-white mb-2">Create Your Wallet</CardTitle>
+              <p className="text-gray-400 text-sm">
+                Your email has been verified. Let&apos;s create your secure wallet.
+              </p>
+            </CardHeader>
 
-          {/* Passphrase Input */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">
-              Wallet Passphrase
-            </label>
-            <Input
-              type="password"
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Enter your wallet passphrase"
-              className="bg-[#2a2a2a] border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
-              disabled={isUnlocking}
-            />
-            <p className="text-xs text-gray-400">
-              This is the passphrase you created when setting up your encrypted wallet
-            </p>
-          </div>
+            <CardContent className="space-y-6 px-6 pb-6">
+              {/* Email and Timer Info */}
+              <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-blue-300">
+                    <strong>{email}</strong>
+                  </span>
+                  <div className="flex items-center text-blue-400">
+                    <Timer className="w-4 h-4 mr-1" />
+                    <span className="font-mono">{timeLeft}</span>
+                  </div>
+                </div>
+              </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
-              <p className="text-red-300 text-sm">{error}</p>
-            </div>
-          )}
+              {/* Wallet Creation Info */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-medium text-white">Ready to Create Wallet</h3>
+                <p className="text-gray-400 text-sm">
+                  We&apos;ll generate a new secure wallet for you with a 12-word recovery phrase. 
+                  You&apos;ll need to set a passphrase to encrypt and protect your wallet.
+                </p>
+              </div>
 
-          {/* Unlock Button */}
-          <Button
-            onClick={handleUnlockWallet}
-            disabled={!passphrase.trim() || isUnlocking}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600"
-          >
-            {isUnlocking ? (
-              <>
-                <Loader className="w-4 h-4 mr-2 animate-spin" />
-                Unlocking Wallet...
-              </>
-            ) : (
-              <>
+              {/* Security Features */}
+              <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4">
+                <h4 className="text-green-300 font-medium text-sm mb-3 flex items-center">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Security Features
+                </h4>
+                <ul className="text-green-200/80 text-xs space-y-2">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-green-400">•</span>
+                    12-word recovery phrase generated securely
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-green-400">•</span>
+                    Wallet encrypted with your passphrase
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-green-400">•</span>
+                    Private keys never leave your device
+                  </li>
+                </ul>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Continue Button */}
+              <Button
+                onClick={handleContinueToPassphrase}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 cursor-pointer transition-colors"
+              >
                 <Key className="w-4 h-4 mr-2" />
-                Unlock Wallet
-              </>
-            )}
-          </Button>
+                Continue to Set Passphrase
+              </Button>
+            </CardContent>
+          </>
+        )}
 
-          {/* Security Notice */}
-          <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
-            <h4 className="text-yellow-300 font-medium text-sm mb-3 flex items-center">
-              <span className="mr-2">🔒</span>
-              Security Notice
-            </h4>
-            <ul className="text-yellow-200/80 text-xs space-y-2">
-              <li className="flex items-start">
-                <span className="mr-2 text-yellow-400">•</span>
-                This recovery link expires automatically for your security
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-yellow-400">•</span>
-                Your passphrase is never transmitted to our servers
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2 text-yellow-400">•</span>
-                Wallet decryption happens locally in your browser
-              </li>
-            </ul>
-          </div>
-        </CardContent>
+        {step === 'passphrase' && (
+          <>
+            <CardHeader className="text-center pb-6">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-green-400" />
+              </div>
+              <CardTitle className="text-2xl text-white mb-2">Set Wallet Passphrase</CardTitle>
+              <p className="text-gray-400 text-sm">
+                Choose a strong passphrase to encrypt and protect your wallet
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-6 px-6 pb-6">
+              {/* Passphrase Input */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-300">
+                  Wallet Passphrase
+                </label>
+                <Input
+                  type="password"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  placeholder="Enter a strong passphrase"
+                  className="bg-[#2a2a2a] border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                  disabled={isCreatingWallet}
+                />
+              </div>
+
+              {/* Confirm Passphrase Input */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-300">
+                  Confirm Passphrase
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassphrase}
+                  onChange={(e) => setConfirmPassphrase(e.target.value)}
+                  placeholder="Confirm your passphrase"
+                  className="bg-[#2a2a2a] border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20"
+                  disabled={isCreatingWallet}
+                />
+              </div>
+
+              {/* Passphrase Requirements */}
+              <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
+                <h4 className="text-yellow-300 font-medium text-sm mb-3">Passphrase Requirements</h4>
+                <ul className="text-yellow-200/80 text-xs space-y-1">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-yellow-400">•</span>
+                    At least 8 characters long
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-yellow-400">•</span>
+                    Mix of letters, numbers, and symbols recommended
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-yellow-400">•</span>
+                    Choose something memorable but secure
+                  </li>
+                </ul>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Create Wallet Button */}
+              <Button
+                onClick={handleCreateWallet}
+                disabled={!passphrase.trim() || !confirmPassphrase.trim() || isCreatingWallet}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-semibold py-3 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-green-600"
+              >
+                {isCreatingWallet ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Wallet...
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4 mr-2" />
+                    Create Wallet
+                  </>
+                )}
+              </Button>
+
+              {/* Security Notice */}
+              <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4">
+                <h4 className="text-red-300 font-medium text-sm mb-3 flex items-center">
+                  <span className="mr-2">🔒</span>
+                  Important Security Notice
+                </h4>
+                <ul className="text-red-200/80 text-xs space-y-2">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-red-400">•</span>
+                    Your passphrase encrypts your wallet locally
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-red-400">•</span>
+                    We cannot recover your wallet if you forget this passphrase
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-red-400">•</span>
+                    Store your passphrase in a secure location
+                  </li>
+                </ul>
+              </div>
+            </CardContent>
+          </>
+        )}
       </Card>
     </div>
   );

@@ -7,14 +7,13 @@ import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { getPersistedNetwork } from '@/lib/network';
 import { getApiUrl } from '@/lib/stacks-api';
-import { forceSessionClear } from '@/lib/sessionUtils';
 
 interface UserModalProps {
   onClose: () => void;
 }
 
 export default function UserModal({ onClose }: UserModalProps) {
-  const { disconnect, mainnetAddress, testnetAddress } = useContext(HiroWalletContext);
+  const { mainnetAddress, testnetAddress } = useContext(HiroWalletContext);
   const [balance, setBalance] = useState<string | null>(null);
   const [sessionAddress, setSessionAddress] = useState<string | null>(null);
   const router = useRouter();
@@ -23,7 +22,7 @@ export default function UserModal({ onClose }: UserModalProps) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const session = localStorage.getItem('ezstx_session');
+        const session = localStorage.getItem('4v4_session');
         if (session) {
           const parsed = JSON.parse(session);
           if (parsed.address) setSessionAddress(parsed.address);
@@ -71,26 +70,13 @@ export default function UserModal({ onClose }: UserModalProps) {
     return `${str.slice(0, 4)}~${str.slice(-4)}`;
   };
 
-  const handleDisconnect = async () => {
-    // Comprehensive session clearing
-    console.log('Disconnecting and clearing all sessions...');
-    
-    // Remove session user if present
+  const handleSignOut = () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem('ezstx_session');
-      // Trigger GetInButton to update
-      window.dispatchEvent(new Event('ezstx-session-update'));
+      localStorage.removeItem('4v4_session');
+      window.dispatchEvent(new Event("4v4-session-update"));
     }
-    
-    if (disconnect) {
-      await disconnect();
-    }
-    
-    // Force clear all wallet sessions and storage
-    forceSessionClear();
     
     onClose();
-    // Note: forceSessionClear() will reload the page, so we don't need router.replace
   };
 
   return (
@@ -127,6 +113,7 @@ export default function UserModal({ onClose }: UserModalProps) {
                   alt="Loading..."
                   width={48}
                   height={24}
+                  unoptimized
                   style={{ minWidth: 48, minHeight: 24, width: 48, height: 24 }}
                   className="inline-block align-middle"
                 />
@@ -172,7 +159,7 @@ export default function UserModal({ onClose }: UserModalProps) {
           </button>
           <button
             className="flex flex-col items-center justify-center bg-white rounded-xl py-4 text-black text-sm hover:bg-gray-100 cursor-pointer select-none"
-            onClick={handleDisconnect}
+            onClick={handleSignOut}
           >
             <LogOut className="text-black mb-2" size={20} />
             Disconnect

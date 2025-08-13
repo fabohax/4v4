@@ -10,6 +10,7 @@ import { createStacksAccount } from '@/lib/stacksWallet';
 import { useRouter } from 'next/navigation';
 import { PassphraseInput } from '@/components/PassphraseInput';
 import ImportWalletModal from './ConnectModal';
+import { formatStxAddress } from '@/lib/address-utils';
 
 export default function GetInModal({ onClose }: { onClose?: () => void }) {
   const { authenticate, isWalletConnected } = useContext(HiroWalletContext);
@@ -106,11 +107,14 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           }
         }
         
-        router.push(`/${address}`);
+        // Redirect to welcome page with email
+        const emailParam = email ? `?email=${encodeURIComponent(email)}` : '';
+        router.push(`/welcome${emailParam}`);
         if (onClose) onClose();
       } else {
         await unlockWallet(passphrase);
         if (walletInfo) {
+          // For existing wallets, redirect to the address page
           router.push(`/${walletInfo.address}`);
           if (onClose) onClose();
         }
@@ -216,16 +220,11 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
                 >
                   <Shield className="w-[18px] h-[18px] mx-[5px]"/>
                   <span className="text-center flex-1">
-                    {isWalletEncrypted ? 'Unlock Account' : 'Create Account'}
+                    {isWalletEncrypted && walletInfo 
+                      ? `Unlock ${formatStxAddress(walletInfo.address)}` 
+                      : 'Create Account'}
                   </span>
                 </Button>
-                {isWalletEncrypted && walletInfo && (
-                  <div className="text-center mt-2">
-                    <p className="text-xs text-gray-400">
-                      Wallet: {walletInfo.label} ({walletInfo.address.slice(0, 8)}...)
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Connect Account */}

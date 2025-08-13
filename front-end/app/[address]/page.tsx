@@ -430,21 +430,22 @@ function AddressPage({ address }: { address: string }) {
         <div className="flex flex-col items-center gap-6 md:gap-8 my-10 md:my-16" >
           {/* Avatar */}
           <div className="flex-shrink-0 mt-6 md:mt-8">
-            <div className="bg-gradient-to-br from-[#111] to-[#333] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
+            <div className="border-[1px] border-[#222] bg-gradient-to-br from-[#111] to-[#333] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
             </div>
           </div>
           {/* Name, address */}
           <div className="flex flex-col items-center">
-            <h1 className="title text-3xl md:text-4xl font-bold text-center">Profile</h1>
+            <h1 className="title text-3xl md:text-4xl font-bold text-center hidden"></h1>
             <div className="title text-[#fff] mt-1 text-lg md:text-sm text-center break-all max-w-full px-2">{address}</div>
           </div>
         </div>
         {/* NFT grid for this address */}
         {loading && <p>Loading...</p>}
         {!loading && mintedTokens.length === 0 && address && (
-          <p className='text-center'>
-            No Minted Models yet. <Link href="/mint" className="text-blue-400 underline">Mint here</Link>
+          <p className='text-center text-[#555]'>
+            No Minted Models yet. <Link href="/mint" className="border-[1px] border-[#222] p-2 rounded-md text-blue-400">Mint here</Link>
           </p>
+          
         )}
       <MintedTokensGrid mintedTokens={mintedTokens} tokenMetadata={tokenMetadata} />
       </div>

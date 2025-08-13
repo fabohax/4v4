@@ -266,7 +266,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
           <Button
             type="submit"
             disabled={!isFormValid || isLoading}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
               variant="outline"
               onClick={onCancel}
               disabled={isLoading}
-              className="border-[#333] hover:bg-[#333]"
+              className="bg-transparent border-[#333] hover:bg-[#fff] cursor-pointer"
             >
               Cancel
             </Button>
