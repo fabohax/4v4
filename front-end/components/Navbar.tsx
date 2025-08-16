@@ -18,17 +18,23 @@ export const Navbar = () => {
             {/* Logo Section */}
             <div className="flex items-center">
               <Link href="/" className="no-underline">
-                <Button className="text-white bg-transparent py-3 cursor-pointer text-2xl">
-                  <Image src="/home.svg" height={27} width={27} alt="delta-logo"></Image>
+                <Button className="text-foreground bg-transparent py-3 cursor-pointer text-2xl">
+                  <Image 
+                    src="/home.svg" 
+                    height={27} 
+                    width={27} 
+                    alt="4v4-logo"
+                    className="dark:invert-0 invert transition-all duration-200"
+                  />
                 </Button>
               </Link>
               <div className='md:flex hidden'>
                 <div className="relative text-sm">
-                  <Search className="absolute left-3 top-3 text-gray-500 h-[14px]" />
+                  <Search className="absolute left-3 top-3 text-muted-foreground h-[14px]" />
                   <Input
                     type="text"
                     placeholder="Search for models, collections, or creators..."
-                    className="w-[369px] bg-gray-900/10 border-gray-700 pl-12 py-3 text-lg rounded-lg"
+                    className="w-[369px] bg-muted/10 border-border pl-12 py-3 text-lg rounded-lg"
                   />
                 </div>  
               </div>

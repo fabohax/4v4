@@ -86,8 +86,19 @@ export default function CenterPanel({
         // --- Floor Grid ---
         const gridMaterial = new GridMaterial("gridMaterial", scene); // Use the imported GridMaterial
         gridMaterialRef.current = gridMaterial; // Store grid material in ref
-        gridMaterial.lineColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Thin gray lines
-        gridMaterial.mainColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Try using mainColor for bolder lines
+        
+        // Theme-aware grid colors
+        const isLightMode = background === '#f5f5f5';
+        if (isLightMode) {
+            // Light mode: light gray grid on white background
+            gridMaterial.lineColor = new BABYLON.Color3(0.8, 0.8, 0.8); // Light gray lines
+            gridMaterial.mainColor = new BABYLON.Color3(0.9, 0.9, 0.9); // Very light gray for main lines
+        } else {
+            // Dark mode: darker grid on dark background
+            gridMaterial.lineColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Medium gray lines
+            gridMaterial.mainColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Dark gray for main lines
+        }
+        
         gridMaterial.gridRatio = 0.2; // Adjust for more or fewer major lines
         gridMaterial.backFaceCulling = false; // Ensure grid is visible from both sides
 
@@ -269,8 +280,8 @@ export default function CenterPanel({
                     position: 'fixed',
                     bottom: '0px',
                     right: '0px',
-                    backgroundColor: '#212121',
-                    color: 'white',
+                    backgroundColor: background,
+                    color: background === '#f5f5f5' ? '#333' : 'white',
                     padding: '5px',
                     borderRadius: '5px',
                     fontSize: '12px',

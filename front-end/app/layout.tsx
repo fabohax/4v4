@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Chakra_Petch } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { GetInButton } from "@/components/GetIn";
+import Footer from "@/components/Footer";
 import { Providers } from '@/components/ui/provider';
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
@@ -44,6 +45,7 @@ export default function RootLayout({
             <main >
               {children}
             </main>
+            <Footer />
           </>
         </Providers>
         <Toaster />

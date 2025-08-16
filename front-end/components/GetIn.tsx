@@ -86,10 +86,10 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   return (
     <>
       {(isSessionLoggedIn || isWalletConnected || isEncryptedAuthenticated) ? (
-        <div className='fixed top-8 right-8 z-100'>
+        <div className='fixed top-8 right-4 md:right-8 z-100'>
           <button
             type="button"
-            className="w-9 h-9 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full p-4 cursor-pointer select-none"
+            className="w-9 h-9 bg-gradient-to-br from-muted to-muted-foreground/50 rounded-full p-4 cursor-pointer select-none hover:from-primary hover:to-primary/70 transition-all duration-200"
             onClick={() => setShowUserModal(true)}
             aria-label="Profile"
           >
@@ -97,10 +97,10 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
           {showUserModal && <UserModal onClose={() => setShowUserModal(false)} />}
         </div>
       ) : (
-        <div className='fixed top-7 right-6 z-100'>
+        <div className='fixed top-7 right-4 md:right-8 z-100'>
           <Button
             onClick={() => setShowGetInModal(true)}
-            className="title rounded-full px-6 py-4 text-sm bg-[#E9E9E9] hover:bg-black text-black hover:text-white border-2 border-black hover:border-2 hover:border-white cursor-pointer select-none"
+            className="title rounded-full px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm bg-primary text-primary-foreground border-2 border-border hover:border-primary cursor-pointer select-none"
             {...buttonProps}
           >
             {children || 'GET IN'}
