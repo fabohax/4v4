@@ -1282,12 +1282,14 @@ export default function ProfilePage() {
                      getWalletTypeFromContext(effectiveAddress).slice(1) + ' Extension'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-gray-500">Network:</span>
-                  <span className="text-green-400 capitalize">
-                    {getPersistedNetwork()}
-                  </span>
-                </div>
+                {getPersistedNetwork() !== 'mainnet' && (
+                  <div className="flex items-center justify-between text-xs mt-1">
+                    <span className="text-gray-500">Network:</span>
+                    <span className="text-green-400 capitalize">
+                      {getPersistedNetwork()}
+                    </span>
+                  </div>
+                )}
                 {isSessionLocked && (
                   <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
                     <p className="text-yellow-400 text-xs flex items-center gap-1">

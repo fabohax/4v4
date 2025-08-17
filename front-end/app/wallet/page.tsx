@@ -119,19 +119,15 @@ export default function WalletPage() {
         </div>
       </div>
       
-      {/* Network and Address Info */}
-      <div className="mb-6 p-4 bg-[#111] rounded-lg border border-[#333]">
-        <div className="flex items-center justify-between text-sm mb-2">
-          <span className="text-gray-400">Network:</span>
-          <span className="text-blue-400 capitalize">{getPersistedNetwork()}</span>
+      {/* Network and Address Info - Only show if not mainnet */}
+      {getPersistedNetwork() !== 'mainnet' && (
+        <div className="mb-6 p-4 bg-[#111] rounded-lg border border-[#333]">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-400">Network:</span>
+            <span className="text-blue-400 capitalize">{getPersistedNetwork()}</span>
+          </div>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Address:</span>
-          <span className="text-gray-300 font-mono text-xs">
-            {address ? `${address.slice(0, 8)}...${address.slice(-8)}` : '--'}
-          </span>
-        </div>
-      </div>
+      )}
       
       <div className="grid grid-cols-2 gap-4 mb-8">
         <button

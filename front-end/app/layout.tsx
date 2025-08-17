@@ -5,6 +5,7 @@ import { GetInButton } from "@/components/GetIn";
 import Footer from "@/components/Footer";
 import { Providers } from '@/components/ui/provider';
 import { Toaster } from "@/components/ui/sonner"
+import AppLoadingProvider from "@/components/AppLoadingProvider";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -39,14 +40,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${chakraPetch.variable} antialiased`}>
         <Providers>
-          <>
+          <AppLoadingProvider>
             <Navbar />
             <GetInButton />
             <main >
               {children}
             </main>
             <Footer />
-          </>
+          </AppLoadingProvider>
         </Providers>
         <Toaster />
       </body>

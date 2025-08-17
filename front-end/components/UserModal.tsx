@@ -13,7 +13,7 @@ interface UserModalProps {
 }
 
 export default function UserModal({ onClose }: UserModalProps) {
-  const { mainnetAddress, testnetAddress } = useContext(HiroWalletContext);
+  const { mainnetAddress, testnetAddress, disconnect } = useContext(HiroWalletContext);
   const [balance, setBalance] = useState<string | null>(null);
   const [sessionAddress, setSessionAddress] = useState<string | null>(null);
   const router = useRouter();
@@ -71,16 +71,24 @@ export default function UserModal({ onClose }: UserModalProps) {
   };
 
   const handleSignOut = () => {
+    // Clear the 4v4 session
     if (typeof window !== "undefined") {
       localStorage.removeItem('4v4_session');
       window.dispatchEvent(new Event("4v4-session-update"));
     }
     
+    // Disconnect the wallet using the provider's disconnect method
+    disconnect();
+    
+    // Close the modal
     onClose();
+    
+    // Redirect to home page after disconnect
+    router.push('/');
   };
 
   return (
-    <div className="fixed top-10 right-4 z-[200] bg-black/40">
+    <div className="fixed top-10 right-4 z-[200]">
       <div className="relative bg-[#f5f5f5] text-[#000] rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201] opacity-0 translate-y-[-24px] animate-getinmodal">
         <div className="flex items-center w-full mb-6">
           <Link
@@ -131,9 +139,11 @@ export default function UserModal({ onClose }: UserModalProps) {
               Balance
             </button>
           </div>
-          <div className="text-xs text-gray-400 text-center mb-2">
-            Network: {getPersistedNetwork().toUpperCase()}
-          </div>
+          {getPersistedNetwork() !== 'mainnet' && (
+            <div className="text-xs text-gray-400 text-center mb-2">
+              Network: {getPersistedNetwork().toUpperCase()}
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3 w-full mb-2 font-sans text-base">
           <button

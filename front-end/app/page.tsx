@@ -7,12 +7,14 @@ import Link from "next/link"
 import JoinWaitlistForm from "@/components/JoinWaitlistForm"
 import ModelViewer from "@/components/features/avatar/ModelViewer"
 import { useTheme } from "next-themes"
+import { useAppLoading } from "@/components/AppLoadingProvider"
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [showDetails, setShowDetails] = useState(false);
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const { loadPage } = useAppLoading()
 
   const [secondaryColor] = useState<string>('#ffffff');
   const [modelUrl] = useState<string | null>('/models/default.glb');
@@ -27,14 +29,24 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true)
-    setIsLoaded(true)
-  }, [])
+    
+    const initializePage = async () => {
+      // Load page-specific assets in background
+      await loadPage('home');
+      
+      // Small delay for smooth transition
+      setTimeout(() => {
+        setIsLoaded(true);
+      }, 300);
+    };
+
+    initializePage();
+  }, [loadPage])
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   }
-
 
   return (
     <div className="h-auto bg-gradient-to-b from-background to-muted text-foreground dotted-grid-background">
