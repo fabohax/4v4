@@ -30,25 +30,6 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   } = useContext(HiroWalletContext);
   const { isAuthenticated: isEncryptedAuthenticated } = useEncryptedWallet();
 
-  // Clean all existing sessions on component mount
-  useEffect(() => {
-    const cleanAllSessions = () => {
-      if (typeof window !== "undefined") {
-        // Clear all wallet sessions
-        localStorage.removeItem('4v4_session');
-        localStorage.removeItem('4v4_session_config');
-        localStorage.removeItem('4v4_session_locked');
-        localStorage.removeItem('4v4_encrypted_wallet');
-        localStorage.removeItem('blockstack-session');
-        localStorage.removeItem('connect-session');
-        sessionStorage.clear();
-        console.log('All sessions cleared successfully');
-      }
-    };
-    
-    cleanAllSessions();
-  }, []); // Run once on mount
-
   // Get current address from session or wallet
   useEffect(() => {
     let address = null;

@@ -100,7 +100,7 @@ export default function WalletPage() {
 
   return (
     <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white select-none">
-      <h1 className="title text-3xl font-bold mb-8">Wallet</h1>
+      <h1 className="title text-3xl font-bold mb-8 hidden">Wallet</h1>
       <div className="mb-8 flex justify-center">
         <div className="flex items-center gap-3">
           {loading ? (
@@ -247,7 +247,6 @@ export default function WalletPage() {
                   QR
                 </div>
               )}
-            <div className="title bg-[#222] text-lg px-6 py-6 rounded-xl mt-3 break-all select-text">{address}</div>
             </div>
           </div>
         </div>

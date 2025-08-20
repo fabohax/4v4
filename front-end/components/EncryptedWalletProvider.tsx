@@ -19,6 +19,7 @@ import {
   resetSessionConfig,
   isSessionActive,
   tryRestoreSession,
+  extendSession as libExtendSession,
   WalletData
 } from '@/lib/encryptedStorage';
 import { DevnetWallet, devnetWallets } from '@/lib/devnet-wallet-context';
@@ -173,6 +174,14 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
     };
   }, []);
 
+  const extendSessionHandler = useCallback(() => {
+    if (isAuthenticated && currentWallet) {
+      // Update last accessed time by extending session
+      const result = libExtendSession();
+      console.log('Session extension result:', result);
+    }
+  }, [isAuthenticated, currentWallet]);
+
   // Auto-check session expiry periodically
   useEffect(() => {
     if (!isWalletEncrypted || !isAuthenticated) return;
@@ -180,6 +189,7 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
     const interval = setInterval(() => {
       const expired = autoLockIfExpired();
       if (expired) {
+        console.log('Session expired, locking wallet');
         setIsSessionLocked(true);
         setIsAuthenticated(false);
         setCurrentWallet(null);
@@ -188,6 +198,45 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
 
     return () => clearInterval(interval);
   }, [isWalletEncrypted, isAuthenticated]);
+
+  // Add activity tracking to extend session
+  useEffect(() => {
+    if (!isWalletEncrypted || !isAuthenticated) return;
+
+    // Track user activity events
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    let lastActivityTime = Date.now();
+    
+    const handleActivity = () => {
+      const now = Date.now();
+      // Throttle activity updates to every 30 seconds
+      if (now - lastActivityTime > 30000) {
+        lastActivityTime = now;
+        extendSessionHandler();
+      }
+    };
+
+    // Add event listeners for activity
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    // Also extend session on visibility change (tab focus)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        extendSessionHandler();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isWalletEncrypted, isAuthenticated, extendSessionHandler]);
 
   const createEncryptedWallet = useCallback(async (walletData: WalletData, passphrase: string) => {
     setIsLoading(true);
@@ -225,13 +274,20 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
   const unlockWallet = useCallback(async (passphrase: string) => {
     setIsLoading(true);
     setAuthError(null);
-    
+
     try {
+      // Clean up previous session/config before unlocking (robust session logic)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('4v4_encrypted_session');
+        localStorage.removeItem('4v4_session_config');
+        localStorage.removeItem('4v4_session_locked');
+      }
+
       const walletData = await retrieveEncryptedWallet(passphrase);
       if (!walletData) {
         throw new Error('Invalid passphrase');
       }
-      
+
       setCurrentWallet(walletData);
       setIsAuthenticated(true);
       setIsSessionLocked(false);
@@ -299,16 +355,6 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const extendSession = useCallback(() => {
-    if (isAuthenticated && currentWallet) {
-      // Update last accessed time by storing again (this updates lastAccessed)
-      const info = getWalletInfo();
-      if (info) {
-        setWalletInfo({ ...info, createdAt: info.createdAt });
-      }
-    }
-  }, [isAuthenticated, currentWallet]);
-
   const checkSessionExpiry = useCallback(() => {
     if (isWalletEncrypted) {
       const expired = autoLockIfExpired();
@@ -351,7 +397,7 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
     lockWallet,
     deleteWallet,
     changePassphrase,
-    extendSession,
+    extendSession: extendSessionHandler,
     checkSessionExpiry,
     setDevnetWallet: setDevnetWalletHandler,
     devnetWallets,

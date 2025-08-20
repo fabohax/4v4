@@ -108,6 +108,11 @@ export default function UserModal({ onClose }: UserModalProps) {
     
     // Redirect to home page after disconnect
     router.push('/');
+
+    // Refresh the page to update UI state
+    if (typeof window !== "undefined") {
+      setTimeout(() => window.location.reload(), 200);
+    }
   };
 
   return (

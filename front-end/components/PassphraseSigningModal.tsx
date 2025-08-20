@@ -75,40 +75,40 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md mx-4 z-10">
+      <div className="relative bg-white dark:bg-black rounded-lg shadow-xl p-6 w-full max-w-md mx-4 z-10 border border-black/10 dark:border-white/10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <Lock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="h-10 w-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center">
+              <Lock className="h-5 w-5 text-black dark:text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+              <h3 className="text-lg font-semibold text-black dark:text-white">{title}</h3>
             </div>
           </div>
           <button
             type="button"
             onClick={handleClose}
             disabled={isProcessing || isLoading}
-            className="h-8 w-8 p-0 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-8 w-8 p-0 rounded-md hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-black dark:text-white"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-sm text-black/70 dark:text-white/70 mb-6">
           {description}
         </p>
 
         {/* Wallet Info */}
         {walletInfo && (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-3 bg-gray-50 dark:bg-gray-800/50 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="rounded-lg border border-black/20 dark:border-white/20 p-3 bg-black/5 dark:bg-white/5 mb-4">
+            <div className="flex items-center gap-2 text-sm text-black/70 dark:text-white/70">
               <div className="h-2 w-2 rounded-full bg-green-500"></div>
               <span className="font-medium">{walletInfo.label}</span>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
+            <div className="text-xs text-black/50 dark:text-white/50 mt-1 font-mono">
               {walletInfo.address.substring(0, 8)}...{walletInfo.address.substring(walletInfo.address.length - 8)}
             </div>
           </div>
@@ -125,7 +125,7 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="signing-passphrase" className="text-sm font-medium text-gray-900 dark:text-white">
+            <label htmlFor="signing-passphrase" className="text-sm font-medium text-black dark:text-white">
               Wallet Passphrase
             </label>
             <div className="relative">
@@ -136,13 +136,13 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
                 value={passphrase}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassphrase(e.target.value)}
                 disabled={isProcessing || isLoading}
-                className="w-full pr-10 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full pr-10 px-3 py-2 border border-black/20 dark:border-white/20 rounded-md text-black dark:text-white bg-white dark:bg-black placeholder:text-black/50 dark:placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed"
                 autoComplete="new-password"
                 autoFocus
               />
               <button
                 type="button"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-r-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-black dark:text-white"
                 onClick={() => setShowPassphrase(!showPassphrase)}
                 disabled={isProcessing || isLoading}
               >
@@ -161,14 +161,14 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={isProcessing || isLoading}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 border border-black/20 dark:border-white/20 rounded-md text-black dark:text-white bg-white dark:bg-black hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!passphrase.trim() || isProcessing || isLoading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:bg-black/90 dark:hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
             >
               {isProcessing || isLoading ? (
                 <>
@@ -183,7 +183,7 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
         </form>
 
         {/* Security Notice */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+        <div className="text-xs text-black/50 dark:text-white/50 text-center mt-4">
           Your passphrase is used locally and never sent to our servers.
         </div>
       </div>

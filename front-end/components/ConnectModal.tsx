@@ -5,6 +5,23 @@ import { X, Upload, Mail, Key } from 'lucide-react';
 import { validateAndGenerateWallet } from '@/lib/walletHelpers';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { useRouter } from 'next/navigation';
+import { upsertConnectedAccountPasskey, getConnectedAccountByEmail, getConnectedAccountPasskeyByAddress } from '@/lib/connectedAccountsApi';
+// Password verification utility for settings changes
+// Usage: await verifyPassphraseForSettings(address, passphrase, privateKey)
+export async function verifyPassphraseForSettings(address: string, passphrase: string, privateKey: string): Promise<boolean> {
+  try {
+    // Fetch stored passkey hash from Supabase
+    const storedPasskey = await getConnectedAccountPasskeyByAddress(address);
+    if (!storedPasskey) return false;
+    // Compute hash of privateKey + passphrase
+    const inputHash = CryptoJS.SHA256(privateKey + passphrase).toString();
+    // Compare with stored hash
+    return storedPasskey === inputHash;
+  } catch {
+    return false;
+  }
+}
+import CryptoJS from 'crypto-js';
 
 // Extend Window interface for temporary import data
 declare global {
@@ -98,6 +115,24 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
         throw new Error('Import data not found');
       }
 
+      // Check if email is already registered in connected_accounts
+      if (email) {
+        const existingAccount = await getConnectedAccountByEmail(email);
+        if (existingAccount) {
+          // Email already registered: send connection link and show alert
+          setIsLoading(false);
+          setError('Email is already registered. A connection link has been sent to your email.');
+          try {
+            await fetch('/api/wallet-recovery/send-link', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email.trim() }),
+            });
+          } catch {}
+          return;
+        }
+      }
+
       const walletData = {
         mnemonic: tempData.mnemonic,
         privateKey: tempData.privateKey,
@@ -106,6 +141,14 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
       };
 
       await createEncryptedWallet(walletData, passphrase);
+
+      // Update connected_accounts: remove previous passkey and insert new one (hash of privateKey + passphrase)
+      try {
+        const passkeyHash = CryptoJS.SHA256(walletData.privateKey + passphrase).toString();
+        await upsertConnectedAccountPasskey(walletData.address, passkeyHash);
+      } catch (e) {
+        console.warn('Failed to update connected_accounts passkey:', e);
+      }
       
       // Clean up temp data
       delete window.tempImportData;
@@ -161,6 +204,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
     }
   };
 
+  // ...existing code...
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[101] select-none">
       <div className="bg-[#181818] rounded-[21px] w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -189,24 +233,24 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   onClick={() => setConnectMode('email')}
                   className={`flex-1 cursor-pointer transition-colors ${
                     connectMode === 'email' 
-                      ? 'bg-white text-black hover:bg-gray-100 border-white' 
-                      : 'bg-transparent border-transparent hover:bg-white hover:text-black hover:border-white'
+                      ? 'text-white border-[#fff]' 
+                      : 'bg-transparent border-transparent'
                   }`}
                 >
                   <Mail className="w-4 h-4 mr-2" />
-                  Email Connect
+                  Email
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setConnectMode('mnemonic')}
                   className={`flex-1 cursor-pointer transition-colors ${
                     connectMode === 'mnemonic' 
-                      ? 'bg-white text-black hover:bg-gray-100 border-white' 
-                      : 'bg-transparent border-transparent hover:bg-white hover:text-black hover:border-white'
+                      ? 'text-white border-[#fff]' 
+                      : ' border-[1px] border-[#111] text-white'
                   }`}
                 >
                   <Key className="w-4 h-4 mr-2" />
-                  Mnemonic Import
+                  Mnemonic
                 </Button>
               </div>
 

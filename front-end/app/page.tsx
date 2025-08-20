@@ -11,7 +11,6 @@ import { useAppLoading } from "@/components/AppLoadingProvider"
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const [showDetails, setShowDetails] = useState(false);
   const [modelLoading, setModelLoading] = useState(true);
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -116,58 +115,11 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
               <Link href="/mint" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-                  Mint Now
+                  Buy
                 </Button>
               </Link>
-              <Link href="/explore" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto text-base sm:text-lg bg-transparent border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-                  Explore NFTs
-                </Button>
-              </Link>
-              <Button
-                className="w-full sm:w-auto text-sm bg-transparent border-1 border-transparent text-muted-foreground px-6 py-3 sm:px-8 sm:py-4 rounded-md mt-2 sm:mt-6 mb-2 cursor-pointer select-none"
-                style={{ fontFamily: 'Chakra Petch, sans-serif' }}
-                onClick={() => setShowDetails((v) => !v)}
-              >
-                {showDetails ? "Less" : "Details"}
-              </Button>
             </div>
 
-            {showDetails && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
-                <div>
-                  <b>Attributes:</b>
-                  <ul className="list-disc ml-6 text-sm">
-                    <li>style: futuristic</li>
-                    <li>rarity: Rare</li>
-                    <li>class: heavy assault</li>
-                    <li>mobility: bipedal</li>
-                    <li>armament: missile pods</li>
-                  </ul>
-                </div>
-                <div>
-                  <b>Interoperability Formats:</b>
-                  <ul className="list-disc ml-6 text-sm">
-                    <li>glb</li>
-                    <li>fbx</li>
-                  </ul>
-                  <b>Customization Data:</b>
-                  <ul className="list-disc ml-6 text-sm">
-                    <li>color: blue &amp; white</li>
-                    <li>accessory: dual shoulder missile pods</li>
-                    <li>creator: 0x123...</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-            {showDetails && (
-              <div className="my-2 text-sm">
-                <b>Soulbound:</b> true<br />
-                <b>Edition:</b> 100<br />
-                <b>Royalties:</b> 10%<br />
-                <b>Properties:</b> polygonCount: 5000
-              </div>
-            )}
           </div>  
         </div>
 

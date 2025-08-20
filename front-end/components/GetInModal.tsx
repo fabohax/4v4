@@ -192,6 +192,30 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
                 confirmRequired={encryptedWalletMode === 'create'}
                 onCancel={() => setShowEncryptedWalletFlow(false)}
               />
+
+              {encryptedWalletMode === 'unlock' && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <Button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.removeItem('4v4_session');
+                        localStorage.removeItem('4v4_session_config');
+                        localStorage.removeItem('4v4_session_locked');
+                        localStorage.removeItem('4v4_encrypted_session');
+                        localStorage.removeItem('4v4_encrypted_wallet');
+                        localStorage.removeItem('blockstack-session');
+                        localStorage.removeItem('connect-session');
+                        sessionStorage.clear();
+                        window.location.reload();
+                      }
+                    }}
+                    className="w-full h-10 rounded-[7px] bg-transparent text-[#555] text-sm border cursor-pointer flex items-center px-4 hover:bg-transparent hover:text-red-700 mt-2"
+                    type="button"
+                  >
+                    Clear All Sessions
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             /* Main Auth Options */

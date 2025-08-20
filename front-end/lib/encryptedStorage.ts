@@ -37,7 +37,7 @@ const CURRENT_VERSION = '1.0.0';
 
 // Default session configuration
 const DEFAULT_CONFIG: SessionConfig = {
-  sessionTimeout: 30, // 30 minutes
+  sessionTimeout: 60, // 60 minutes (1 hour)
   autoLock: true,
   requirePassphraseOnTransaction: true,
 };
@@ -166,16 +166,15 @@ export async function storeEncryptedWallet(
     version: CURRENT_VERSION,
   };
 
+  // Delete any previous session before creating a new one
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SESSION_LOCK_KEY);
+
   // Store encrypted data
   localStorage.setItem(STORAGE_KEY, JSON.stringify(encryptedWalletData));
-  
-  // Store session config if not exists
-  if (!localStorage.getItem(CONFIG_KEY)) {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(DEFAULT_CONFIG));
-  }
 
-  // Clear session lock
-  localStorage.removeItem(SESSION_LOCK_KEY);
+  // Store session config (always set to default for new session)
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(DEFAULT_CONFIG));
 
   // Dispatch event for UI updates
   window.dispatchEvent(new Event('4v4-encrypted-session-created'));
@@ -284,6 +283,37 @@ export function unlockSession(): void {
 }
 
 /**
+ * Update last accessed time to extend session
+ */
+export function extendSession(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const encryptedDataStr = localStorage.getItem(STORAGE_KEY);
+  if (!encryptedDataStr) return false;
+
+  try {
+    const encryptedData: EncryptedWalletData = JSON.parse(encryptedDataStr);
+    
+    // Update last accessed time
+    encryptedData.lastAccessed = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(encryptedData));
+    
+    console.log('Session extended:', {
+      address: encryptedData.address,
+      newLastAccessed: new Date(encryptedData.lastAccessed).toLocaleString()
+    });
+    
+    // Dispatch event for session activity
+    window.dispatchEvent(new Event('4v4-session-accessed'));
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to extend session:', error);
+    return false;
+  }
+}
+
+/**
  * Check if session has expired based on configuration
  */
 export function isSessionExpired(): boolean {
@@ -291,7 +321,7 @@ export function isSessionExpired(): boolean {
 
   const configStr = localStorage.getItem(CONFIG_KEY);
   const encryptedDataStr = localStorage.getItem(STORAGE_KEY);
-  
+
   if (!configStr || !encryptedDataStr) return true;
 
   try {
@@ -301,13 +331,14 @@ export function isSessionExpired(): boolean {
     if (!config.autoLock) return false;
 
     const now = Date.now();
-    const timeoutMs = config.sessionTimeout * 60 * 1000; // Convert minutes to milliseconds
+    // Always use 60 minutes (1 hour) for expiration regardless of config
+    const timeoutMs = 60 * 60 * 1000;
     const timeDiff = now - encryptedData.lastAccessed;
     const isExpired = timeDiff > timeoutMs;
-    
+
     // Debug logging
     console.log('Session expiry check:', {
-      sessionTimeoutMinutes: config.sessionTimeout,
+      sessionTimeoutMinutes: 60,
       timeoutMs,
       lastAccessed: new Date(encryptedData.lastAccessed).toLocaleString(),
       now: new Date(now).toLocaleString(),
@@ -315,7 +346,7 @@ export function isSessionExpired(): boolean {
       timeDiffMinutes: Math.round(timeDiff / (60 * 1000) * 100) / 100,
       isExpired
     });
-    
+
     return isExpired;
   } catch {
     return true;
@@ -373,11 +404,12 @@ export function deleteWallet(address: string) {
   // Clear the session data
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(SESSION_LOCK_KEY);
-  
+  localStorage.removeItem(CONFIG_KEY);
+
   // Remove the specific wallet and config
   localStorage.removeItem(`encrypted_wallet_${address}`);
   localStorage.removeItem(`wallet_config_${address}`);
-  
+
   window.dispatchEvent(new Event('4v4-session-deleted'));
 }
 

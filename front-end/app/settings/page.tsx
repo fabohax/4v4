@@ -5,8 +5,7 @@ import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { getProfile, upsertProfile, getSkillCategories, Profile } from '@/lib/profileApi';
 import { hasEncryptedWallet } from '@/lib/encryptedStorage';
 import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
-import { signProfileUpdateWithPassphrase } from '@/lib/encryptedWalletSigning';
-import PassphraseSigningModal from '@/components/PassphraseSigningModal';
+import { verifyPassphraseForSettings } from '@/components/ConnectModal';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,8 +80,6 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('');
   
   // Passphrase modal state for encrypted wallets
-  const [showPassphraseModal, setShowPassphraseModal] = useState(false);
-  const [pendingProfileData, setPendingProfileData] = useState<(Partial<Profile> & { address: string }) | null>(null);
 
   useEffect(() => {
     if (!address) return;
@@ -195,10 +192,24 @@ export default function SettingsPage() {
         marketing_emails: marketingEmails,
       };
       
-      // For encrypted wallets, require passphrase signing
+      // For encrypted wallets, require passphrase verification
       if (isWalletEncrypted && currentWallet) {
-        setPendingProfileData(profileData);
-        setShowPassphraseModal(true);
+        const passphrase = prompt('Enter your wallet passphrase to save changes:');
+        if (!passphrase) {
+          setSaving(false);
+          return;
+        }
+        const verified = await verifyPassphraseForSettings(currentWallet.address, passphrase, currentWallet.privateKey);
+        if (!verified) {
+          setError('Incorrect passphrase. Changes not saved.');
+          toast.error('Incorrect passphrase. Changes not saved.');
+          setSaving(false);
+          return;
+        }
+        // Passphrase verified, save profile
+        await upsertProfile(profileData);
+        setSuccess('Profile saved successfully!');
+        toast.success('Profile updated!');
         setSaving(false);
         return;
       }
@@ -215,41 +226,7 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  // Handle passphrase signing for encrypted wallets
-  const handlePassphraseSigning = async (passphrase: string) => {
-    if (!currentWallet || !pendingProfileData) {
-      throw new Error('Missing wallet data or profile data');
-    }
-
-    try {
-      // Create cryptographic signature to prove wallet ownership
-      const signature = await signProfileUpdateWithPassphrase(
-        pendingProfileData,
-        currentWallet,
-        passphrase
-      );
-
-      // Add signature to profile data
-      const signedProfileData = {
-        ...pendingProfileData,
-        signature: signature.signature,
-        signature_timestamp: signature.timestamp,
-      };
-
-      // Save the profile with signature
-      await upsertProfile(signedProfileData);
-      
-      // Clear state and close modal
-      setPendingProfileData(null);
-      setShowPassphraseModal(false);
-      setSaving(false);
-      setSuccess('Profile saved successfully!');
-      toast.success('Profile updated with encrypted wallet signature!');
-    } catch (error) {
-      console.error('Passphrase signing failed:', error);
-      throw error;
-    }
-  };
+  // ...removed passphrase signing logic...
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev => 
@@ -805,20 +782,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Passphrase Signing Modal for Encrypted Wallets */}
-      <PassphraseSigningModal
-        isOpen={showPassphraseModal}
-        onClose={() => {
-          setShowPassphraseModal(false);
-          setPendingProfileData(null);
-          setSaving(false);
-        }}
-        onSign={handlePassphraseSigning}
-        title="Sign Profile Update"
-        description="Enter your wallet passphrase to sign and save your profile changes."
-        actionText="Sign & Save"
-        isLoading={saving}
-      />
+  {/* Passphrase signing modal removed. Passphrase is now verified inline. */}
     </div>
   );
 }

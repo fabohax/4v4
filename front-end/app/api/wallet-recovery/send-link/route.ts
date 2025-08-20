@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 
+    console.log('📧 Email connection request for:', email);
+
     if (!email || typeof email !== 'string') {
+      console.log('❌ Email validation failed: missing or invalid email');
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
@@ -37,9 +40,19 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('❌ Email validation failed: invalid format', email);
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
+      );
+    }
+
+    // Check if Resend API key is available
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY environment variable is not set');
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 500 }
       );
     }
 
@@ -58,13 +71,20 @@ export async function POST(request: NextRequest) {
       expiresAt
     });
 
+    console.log('🔑 Generated connection token for:', email, 'expires in 30min');
+
     // Create connection URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const connectionUrl = `${baseUrl}/wallet-recovery?token=${token}`;
 
+    console.log('🔗 Connection URL created:', connectionUrl);
+
     // Send email using Resend
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    console.log('📬 Attempting to send email from:', fromEmail, 'to:', email);
+    
     const emailData = {
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@4v4.stx',
+      from: fromEmail,
       to: [email],
       subject: '🔐 Account Connection Link - 4V4',
       html: `
@@ -115,22 +135,31 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      await resend.emails.send(emailData);
+      console.log('📤 Sending email via Resend...');
+      const emailResult = await resend.emails.send(emailData);
+      console.log('✅ Email sent successfully:', emailResult);
     } catch (emailError) {
-      console.error('Resend email error:', emailError);
+      console.error('❌ Resend email error:', emailError);
+      
+      // Check if it's a specific Resend error
+      if (emailError && typeof emailError === 'object') {
+        console.error('Email error details:', JSON.stringify(emailError, null, 2));
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to send connection email' },
+        { error: 'Failed to send connection email. Please check the server logs for details.' },
         { status: 500 }
       );
     }
 
+    console.log('🎉 Connection email sent successfully to:', email);
     return NextResponse.json({
       success: true,
       message: 'Connection link sent successfully'
     });
 
   } catch (error) {
-    console.error('Email connection error:', error);
+    console.error('❌ Email connection error:', error);
     return NextResponse.json(
       { error: 'Failed to send connection email' },
       { status: 500 }
