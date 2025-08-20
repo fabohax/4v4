@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Providers } from '@/components/ui/provider';
 import { Toaster } from "@/components/ui/sonner"
 import AppLoadingProvider from "@/components/AppLoadingProvider";
+import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -29,6 +30,12 @@ const chakraPetch = Chakra_Petch({
 export const metadata: Metadata = {
   title: "4V4 - Do It Yourself",
   description: "Find & Buy 3D NFTs on Bitcoin",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({
@@ -39,6 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${chakraPetch.variable} antialiased`}>
+        <GlobalErrorHandler />
         <Providers>
           <AppLoadingProvider>
             <Navbar />

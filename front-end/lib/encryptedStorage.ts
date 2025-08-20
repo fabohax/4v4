@@ -291,7 +291,7 @@ export function isSessionExpired(): boolean {
 
   const configStr = localStorage.getItem(CONFIG_KEY);
   const encryptedDataStr = localStorage.getItem(STORAGE_KEY);
-
+  
   if (!configStr || !encryptedDataStr) return true;
 
   try {
@@ -302,14 +302,25 @@ export function isSessionExpired(): boolean {
 
     const now = Date.now();
     const timeoutMs = config.sessionTimeout * 60 * 1000; // Convert minutes to milliseconds
+    const timeDiff = now - encryptedData.lastAccessed;
+    const isExpired = timeDiff > timeoutMs;
     
-    return (now - encryptedData.lastAccessed) > timeoutMs;
+    // Debug logging
+    console.log('Session expiry check:', {
+      sessionTimeoutMinutes: config.sessionTimeout,
+      timeoutMs,
+      lastAccessed: new Date(encryptedData.lastAccessed).toLocaleString(),
+      now: new Date(now).toLocaleString(),
+      timeDiffMs: timeDiff,
+      timeDiffMinutes: Math.round(timeDiff / (60 * 1000) * 100) / 100,
+      isExpired
+    });
+    
+    return isExpired;
   } catch {
     return true;
   }
-}
-
-/**
+}/**
  * Auto-lock session if expired
  */
 export function autoLockIfExpired(): boolean {
@@ -346,6 +357,16 @@ export function getSessionConfig(): SessionConfig {
 }
 
 /**
+ * Reset session config to default values
+ */
+export function resetSessionConfig(): void {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(DEFAULT_CONFIG));
+  console.log('Session config reset to default:', DEFAULT_CONFIG);
+}
+
+/**
  * Delete encrypted wallet and clear all session data
  */
 export function deleteWallet(address: string) {
@@ -377,6 +398,72 @@ export async function changeWalletPassphrase(
   await storeEncryptedWallet(walletData, newPassphrase);
   
   window.dispatchEvent(new Event('4v4-passphrase-changed'));
+}
+
+/**
+ * Check if session is currently active (unlocked and not expired)
+ */
+export function isSessionActive(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  return hasEncryptedWallet() && !isSessionLocked() && !isSessionExpired();
+}
+
+/**
+ * Attempt to restore session from localStorage
+ * This checks if there's valid session data that can be restored without a passphrase
+ */
+export function tryRestoreSession(): WalletData | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // Check if session is active
+    if (!isSessionActive()) return null;
+    
+    // Try to get session data from localStorage
+    const sessionData = localStorage.getItem('4v4_session');
+    if (!sessionData) return null;
+    
+    const session = JSON.parse(sessionData);
+    if (!session.address || !session.encrypted) return null;
+    
+    // Get wallet info to verify it matches
+    const walletInfo = getWalletInfo();
+    if (!walletInfo || walletInfo.address !== session.address) return null;
+    
+    // Create minimal wallet data for UI (without sensitive data)
+    return {
+      mnemonic: '', // Don't expose sensitive data
+      privateKey: '', // Don't expose sensitive data  
+      address: session.address,
+      label: session.label || 'Encrypted Wallet',
+    };
+  } catch (error) {
+    console.error('Failed to restore session:', error);
+    return null;
+  }
+}
+
+/**
+ * Get session status information
+ */
+export function getSessionStatus(): {
+  hasWallet: boolean;
+  isLocked: boolean;
+  isExpired: boolean;
+  isActive: boolean;
+} {
+  const hasWallet = hasEncryptedWallet();
+  const isLocked = isSessionLocked();
+  const isExpired = isSessionExpired();
+  const isActive = hasWallet && !isLocked && !isExpired;
+  
+  return {
+    hasWallet,
+    isLocked,
+    isExpired,
+    isActive,
+  };
 }
 
 /**

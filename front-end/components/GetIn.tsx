@@ -6,6 +6,10 @@ import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { Button } from '@/components/ui/button';
 import GetInModal from './GetInModal';
 import UserModal from './UserModal';
+import { User } from 'lucide-react';
+import Image from 'next/image';
+import { getProfile, Profile } from '@/lib/profileApi';
+import { getIPFSUrl } from '@/lib/pinataUpload';
 
 interface GetInButtonProps {
   children?: React.ReactNode;
@@ -17,8 +21,12 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showGetInModal, setShowGetInModal] = useState(false);
   const [isSessionLoggedIn, setIsSessionLoggedIn] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const {
     isWalletConnected,
+    mainnetAddress,
+    testnetAddress,
   } = useContext(HiroWalletContext);
   const { isAuthenticated: isEncryptedAuthenticated } = useEncryptedWallet();
 
@@ -40,6 +48,49 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
     
     cleanAllSessions();
   }, []); // Run once on mount
+
+  // Get current address from session or wallet
+  useEffect(() => {
+    let address = null;
+    
+    // Check session address first
+    if (typeof window !== "undefined") {
+      try {
+        const session = localStorage.getItem('4v4_session');
+        if (session) {
+          const parsed = JSON.parse(session);
+          if (parsed.address) address = parsed.address;
+        }
+      } catch {}
+    }
+    
+    // Fallback to wallet addresses
+    if (!address) {
+      address = mainnetAddress || testnetAddress || null;
+    }
+    
+    setCurrentAddress(address);
+  }, [isSessionLoggedIn, mainnetAddress, testnetAddress]);
+
+  // Load profile when address changes
+  useEffect(() => {
+    if (!currentAddress) {
+      setProfile(null);
+      return;
+    }
+    
+    const fetchProfile = async () => {
+      try {
+        const profileData = await getProfile(currentAddress);
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        setProfile(null);
+      }
+    };
+    
+    fetchProfile();
+  }, [currentAddress]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -89,10 +140,38 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
         <div className='fixed top-8 right-4 md:right-8 z-100'>
           <button
             type="button"
-            className="w-9 h-9 bg-gradient-to-br from-muted to-muted-foreground/50 rounded-full p-4 cursor-pointer select-none hover:from-primary hover:to-primary/70 transition-all duration-200"
+            className="w-9 h-9 bg-gradient-to-br from-muted to-muted-foreground/50 rounded-full overflow-hidden cursor-pointer select-none transition-all duration-200 flex items-center justify-center"
             onClick={() => setShowUserModal(true)}
             aria-label="Profile"
           >
+            {profile?.avatar_cid ? (
+              <img
+                src={getIPFSUrl(profile.avatar_cid)}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to User icon if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const fallback = parent.querySelector('.fallback-icon');
+                    if (fallback) fallback.classList.remove('hidden');
+                  }
+                }}
+              />
+            ) : profile?.avatar_url ? (
+              <Image
+                src={profile.avatar_url}
+                alt="Profile"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-4 h-4 text-white/60" />
+            )}
+            {/* Fallback icon for IPFS load errors */}
+            <User className="w-4 h-4 text-white/60 fallback-icon hidden" />
           </button>
           {showUserModal && <UserModal onClose={() => setShowUserModal(false)} />}
         </div>

@@ -19,17 +19,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No model file provided" }, { status: 400 });
     }
 
-    // Validate file size (300MB limit)
-    const maxSize = 300 * 1024 * 1024; // 300MB
-    if (modelFile.size > maxSize) {
+    // Validate file sizes with appropriate limits
+    const maxModelSize = 300 * 1024 * 1024; // 300MB for models
+    const maxImageSize = 10 * 1024 * 1024;  // 10MB for images
+    
+    if (modelFile.size > maxModelSize) {
       return NextResponse.json({ 
         error: `Model file too large. Maximum size is 300MB, received ${Math.round(modelFile.size / 1024 / 1024)}MB` 
       }, { status: 413 });
     }
 
-    if (imageFile && imageFile.size > maxSize) {
+    if (imageFile && imageFile.size > maxImageSize) {
       return NextResponse.json({ 
-        error: `Image file too large. Maximum size is 300MB, received ${Math.round(imageFile.size / 1024 / 1024)}MB` 
+        error: `Image file too large. Maximum size is 10MB, received ${Math.round(imageFile.size / 1024 / 1024)}MB` 
       }, { status: 413 });
     }
 
@@ -41,8 +43,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server configuration error - missing Pinata credentials" }, { status: 500 });
     }
 
-    // Upload the model file to Pinata
-    const modelResult = await pinata.upload.public.file(modelFile);
+    // Upload the model file to Pinata with error handling
+    let modelResult;
+    try {
+      modelResult = await pinata.upload.public.file(modelFile);
+    } catch (error) {
+      console.error('Pinata model upload error:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 413) {
+          return NextResponse.json({ 
+            error: "Model file too large for IPFS upload. Please reduce file size." 
+          }, { status: 413 });
+        }
+        if (error.response?.status === 429) {
+          return NextResponse.json({ 
+            error: "Too many upload requests. Please wait and try again." 
+          }, { status: 429 });
+        }
+      }
+      return NextResponse.json({ 
+        error: "Failed to upload model file to IPFS. Please try again." 
+      }, { status: 500 });
+    }
+    
     if (!modelResult || !modelResult.IpfsHash) {
       throw new Error("Failed to upload model file to Pinata");
     }
@@ -53,10 +76,31 @@ export async function POST(request: NextRequest) {
     let imageCid = null;
     let imageUrl = null;
 
-    // Upload the image file to Pinata (if provided)
+    // Upload the image file to Pinata (if provided) with error handling
     if (imageFile) {
       console.log('Uploading image file to Pinata:', imageFile.name);
-      const imageResult = await pinata.upload.public.file(imageFile);
+      let imageResult;
+      try {
+        imageResult = await pinata.upload.public.file(imageFile);
+      } catch (error) {
+        console.error('Pinata image upload error:', error);
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 413) {
+            return NextResponse.json({ 
+              error: "Image file too large for IPFS upload. Please reduce file size." 
+            }, { status: 413 });
+          }
+          if (error.response?.status === 429) {
+            return NextResponse.json({ 
+              error: "Too many upload requests. Please wait and try again." 
+            }, { status: 429 });
+          }
+        }
+        return NextResponse.json({ 
+          error: "Failed to upload image file to IPFS. Please try again." 
+        }, { status: 500 });
+      }
+      
       if (!imageResult || !imageResult.IpfsHash) {
         throw new Error("Failed to upload image file to Pinata");
       }

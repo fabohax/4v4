@@ -189,34 +189,19 @@ export default function LocationMapModal({
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 mt-4">
             {currentLat && currentLng && !isNaN(parseFloat(currentLat)) && !isNaN(parseFloat(currentLng)) && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const lat = parseFloat(currentLat);
-                    const lng = parseFloat(currentLng);
-                    const osmUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`;
-                    window.open(osmUrl, '_blank');
-                  }}
-                  className="border-[#333] text-white bg-black hover:bg-white hover:text-black cursor-pointer"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open in OpenStreetMap
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const lat = parseFloat(currentLat);
-                    const lng = parseFloat(currentLng);
-                    const googleUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-                    window.open(googleUrl, '_blank');
-                  }}
-                  className="border-[#333] text-white bg-black hover:bg-white hover:text-black cursor-pointer"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Google Maps
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const lat = parseFloat(currentLat);
+                  const lng = parseFloat(currentLng);
+                  const osmUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`;
+                  window.open(osmUrl, '_blank');
+                }}
+                className="border-[#333] text-white bg-black cursor-pointer"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open in OSM
+              </Button>
             )}
           </div>
         </div>

@@ -16,6 +16,9 @@ import {
   isSessionLocked as checkSessionLocked,
   autoLockIfExpired,
   deleteWallet as deleteWalletFromStorage,
+  resetSessionConfig,
+  isSessionActive,
+  tryRestoreSession,
   WalletData
 } from '@/lib/encryptedStorage';
 import { DevnetWallet, devnetWallets } from '@/lib/devnet-wallet-context';
@@ -84,20 +87,34 @@ export const EncryptedWalletProvider: FC<ProviderProps> = ({ children }) => {
   // Initialize on mount
   useEffect(() => {
     const initialize = () => {
+      // Reset session config to ensure we use the latest timeout settings
+      resetSessionConfig();
+      
       const hasWallet = hasEncryptedWallet();
       setIsWalletEncrypted(hasWallet);
       
       if (hasWallet) {
         const info = getWalletInfo();
         setWalletInfo(info);
-        setIsSessionLocked(checkSessionLocked());
         
-        // Check for session expiry
-        const expired = autoLockIfExpired();
-        if (expired) {
-          setIsSessionLocked(true);
-          setIsAuthenticated(false);
-          setCurrentWallet(null);
+        // Try to restore active session without passphrase
+        const restoredWallet = tryRestoreSession();
+        if (restoredWallet && isSessionActive()) {
+          console.log('Restored encrypted wallet session:', { address: restoredWallet.address });
+          setCurrentWallet(restoredWallet);
+          setIsAuthenticated(true);
+          setIsSessionLocked(false);
+        } else {
+          // Check session status
+          setIsSessionLocked(checkSessionLocked());
+          
+          // Check for session expiry
+          const expired = autoLockIfExpired();
+          if (expired) {
+            setIsSessionLocked(true);
+            setIsAuthenticated(false);
+            setCurrentWallet(null);
+          }
         }
       } else {
         // Check for legacy devnet wallets in development

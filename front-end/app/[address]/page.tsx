@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
+import { getProfile, Profile } from '@/lib/profileApi';
 import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from '@stacks/transactions';
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
-import { User, Pen } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
+import { User, MapPin, Calendar, Briefcase, Globe, Pen } from 'lucide-react';
+import { getIPFSUrl } from '@/lib/pinataUpload';
 
 type TokenMetadata = {
   name?: string;
@@ -40,11 +40,11 @@ function extractOkUint(input: unknown): number | null {
 
 // MintedTokensGrid: reusable grid for displaying minted tokens
 function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
-  mintedTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>;
+  mintedTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>;
   tokenMetadata: Record<string, TokenMetadata>;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-8 md:mt-12">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-3 mt-8 md:mt-12">
       {mintedTokens.map(mint => {
         const metaKey = `${mint.contractAddress}:${mint.contractName}:${mint.tokenId}`;
         const meta = tokenMetadata[metaKey];
@@ -54,7 +54,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
             href={`/${mint.contractAddress}/${mint.contractName}/${mint.tokenId}`}
             className="block transition-transform hover:scale-[1.02]"
           >
-            <div className="bg-[#111] rounded-xl p-4 border border-[#111] shadow cursor-pointer">
+            <div className="bg-[#111] p-0 border border-[#111] shadow cursor-pointer">
               {/* Square cover image */}
               {meta?.image ? (
                 <div className="relative w-full pt-[100%]">
@@ -91,11 +91,6 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                   </div>
                 </div>
               )}
-              <div className="mt-4">
-                <div className="font-semibold">{meta?.name || 'Unnamed NFT'}</div>
-                <div className="text-xs text-gray-400 mb-2">{meta?.description}</div>
-                <div className="text-xs text-gray-500">Token #{mint.tokenId}</div>
-              </div>
             </div>
           </Link>
         );
@@ -104,15 +99,292 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
   );
 }
 
+// ProfileDisplay: reusable component for showing profile information
+function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
+  profile: Profile | null;
+  address: string;
+  isOwnProfile: boolean;
+  mintedCount?: number;
+}) {
+  if (!profile) {
+    return (
+      <div className="bg-black rounded-xl p-6 mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center">
+            <User className="w-10 h-10 text-white/60" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">
+              {address.substring(0, 8)}...{address.substring(address.length - 8)}
+            </h2>
+            <p className="text-sm text-white/50 font-mono mb-1">
+              {address.substring(0, 8)}...{address.substring(address.length - 8)}
+            </p>
+            {mintedCount > 0 && (
+              <div className="flex items-center space-x-4 text-sm text-white/60 mb-2">
+                <span>{mintedCount} Models Minted</span>
+              </div>
+            )}
+            {isOwnProfile ? (
+              <Link 
+                href="/settings" 
+                className="inline-block mt-2 px-4 py-2 bg-white text-black rounded-lg text-sm hover:bg-white/90 transition-colors"
+              >
+                Edit Profile
+              </Link>
+            ) : (
+              <p className="text-white/60">No profile information available</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-black rounded-xl mb-8 relative overflow-hidden">
+      {/* Banner Image */}
+      <div className="w-full h-48 bg-gradient-to-r from-white/5 to-white/10 relative">
+        {(profile.banner_cid || profile.banner_url) ? (
+          profile.banner_cid ? (
+            <img
+              src={getIPFSUrl(profile.banner_cid)}
+              alt="Profile Banner"
+              className="w-full h-48 object-cover"
+              onError={(e) => {
+                if (profile.banner_cid) {
+                  console.error('Failed to load IPFS banner image:', getIPFSUrl(profile.banner_cid));
+                }
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <Image
+              src={profile.banner_url!}
+              alt="Profile Banner"
+              fill
+              className="object-cover"
+            />
+          )
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-blue-900/20 to-purple-900/20" />
+        )}
+        
+        {/* Edit button in top right of banner */}
+        {isOwnProfile && (
+          <Link 
+            href="/settings" 
+            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-lg transition-colors"
+            title="Edit Profile"
+          >
+            <Pen className="w-4 h-4 text-white/90" />
+          </Link>
+        )}
+      </div>
+      
+      {/* Profile Content */}
+      <div className="p-6">
+        {/* Centered Profile Layout */}
+        <div className="flex flex-col items-center text-center space-y-4">
+          {/* Avatar - Centered at top, overlapping banner */}
+          <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center overflow-hidden -mt-16 border-4 border-black relative z-10">
+            {(profile.avatar_cid || profile.avatar_url) ? (
+              profile.avatar_cid ? (
+                <img
+                  src={getIPFSUrl(profile.avatar_cid)}
+                  alt={profile.display_name || profile.username || 'Profile'}
+                  className="w-32 h-32 rounded-full object-cover"
+                  onError={(e) => {
+                    if (profile.avatar_cid) {
+                      console.error('Failed to load IPFS image:', getIPFSUrl(profile.avatar_cid));
+                    }
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const icon = parent.querySelector('.fallback-icon');
+                      if (icon) icon.classList.remove('hidden');
+                    }
+                  }}
+                />
+              ) : (
+                <Image
+                  src={profile.avatar_url!}
+                  alt={profile.display_name || profile.username || 'Profile'}
+                  width={128}
+                  height={128}
+                  className="w-32 h-32 rounded-full object-cover"
+                />
+              )
+            ) : (
+              <User className="w-16 h-16 text-white/60" />
+            )}
+            <User className="w-16 h-16 text-white/60 fallback-icon hidden" />
+          </div>
+
+          {/* Profile Info - Centered below avatar */}
+          <div className="space-y-3">
+            <h2 className="text-3xl font-bold text-white">
+              {profile.display_name || profile.username || `${address.substring(0, 8)}...${address.substring(address.length - 8)}`}
+            </h2>
+            
+            {profile.username && profile.display_name && (
+              <p className="text-xl text-white/80">@{profile.username}</p>
+            )}
+            
+            <p className="text-sm text-white/50 font-mono">
+              {address.substring(0, 8)}...{address.substring(address.length - 8)}
+            </p>
+            
+            <div className="flex items-center justify-center space-x-4 text-sm text-white/60">
+              {mintedCount > 0 && <span>{mintedCount} Models</span>}
+            </div>
+          </div>
+
+          {profile.tagline && (
+            <p className="text-lg text-white/90 max-w-md">{profile.tagline}</p>
+          )}
+
+          {profile.biography && (
+            <p className="text-white/80 max-w-lg leading-relaxed">{profile.biography}</p>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-white/60">
+            {profile.location && (
+              <div className="flex items-center space-x-1">
+                <MapPin className="w-4 h-4" />
+                <span>{profile.location}</span>
+              </div>
+            )}
+            {profile.occupation && (
+              <div className="flex items-center space-x-1">
+                <Briefcase className="w-4 h-4" />
+                <span>{profile.occupation}</span>
+                {profile.company && <span> at {profile.company}</span>}
+              </div>
+            )}
+            {profile.years_experience && profile.years_experience > 0 && (
+              <div className="flex items-center space-x-1">
+                <Calendar className="w-4 h-4" />
+                <span>{profile.years_experience} years experience</span>
+              </div>
+            )}
+          </div>
+
+          {profile.skills && profile.skills.length > 0 && (
+            <div className="max-w-2xl">
+              <div className="flex flex-wrap justify-center gap-2">
+                {profile.skills.slice(0, 12).map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1 bg-white/10 text-white/90 rounded-full text-xs"
+                  >
+                    {skill}
+                  </span>
+                ))}
+                {profile.skills.length > 12 && (
+                  <span className="px-3 py-1 bg-white/10 text-white/60 rounded-full text-xs">
+                    +{profile.skills.length - 12} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-4">
+            {profile.website && (
+              <a
+                href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1 text-white/60 hover:text-white transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+              </a>
+            )}
+            {profile.artstation && (
+              <a
+                href={profile.artstation.startsWith('http') ? profile.artstation : `https://${profile.artstation}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white transition-colors text-sm"
+              >
+                ArtStation
+              </a>
+            )}
+            {profile.sketchfab && (
+              <a
+                href={profile.sketchfab.startsWith('http') ? profile.sketchfab : `https://${profile.sketchfab}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white transition-colors text-sm"
+              >
+                Sketchfab
+              </a>
+            )}
+            {profile.behance && (
+              <a
+                href={profile.behance.startsWith('http') ? profile.behance : `https://${profile.behance}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white transition-colors text-sm"
+              >
+                Behance
+              </a>
+            )}
+            {profile.twitter && (
+              <a
+                href={`https://twitter.com/${profile.twitter.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white transition-colors text-sm"
+              >
+                Twitter
+              </a>
+            )}
+            {profile.linkedin && (
+              <a
+                href={profile.linkedin.startsWith('http') ? profile.linkedin : `https://${profile.linkedin}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white transition-colors text-sm"
+              >
+                LinkedIn
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ProfilePage: shows connected wallet's profile and NFTs in a grid
 function ProfilePage() {
   const address = useCurrentAddress();
-  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>>([]);
+  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (!address) return;
+    
+    const fetchProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const profileData = await getProfile(address);
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+    
     const fetchMints = async () => {
       setLoading(true);
       try {
@@ -130,6 +402,7 @@ function ProfilePage() {
           smart_contract?: { contract_id?: string };
           contract_call?: unknown;
           contract_id?: string;
+          tx_id: string;
         };
         (txs as SmartContractTx[]).forEach((tx, idx) => {
           console.log(`TX[${idx}] smart_contract:`, tx.smart_contract);
@@ -140,14 +413,14 @@ function ProfilePage() {
           .map((tx) => {
             const cid = tx.smart_contract?.contract_id || tx.contract_id!;
             const [contractAddress, contractName] = cid.split('.');
-            return { contractAddress, contractName };
+            return { contractAddress, contractName, txId: tx.tx_id };
           });
         console.log('Contracts found:', contracts);
 
         // 2. For each contract, try to enumerate tokens
-        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
+        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }> = [];
         for (const contract of contracts) {
-          const { contractAddress, contractName } = contract;
+          const { contractAddress, contractName, txId } = contract;
           // Try to get last token id
           let lastTokenId = 0;
           try {
@@ -216,7 +489,7 @@ function ProfilePage() {
                 } catch (err) {
                   console.log(`Error getting tokenUri for token ${tokenId} in ${contractAddress}.${contractName}:`, err);
                 }
-                allTokens.push({ contractAddress, contractName, tokenId, tokenUri });
+                allTokens.push({ contractAddress, contractName, tokenId, tokenUri, txId });
               }
             } catch (err) {
               console.log(`Error getting owner for token ${tokenId} in ${contractAddress}.${contractName}:`, err);
@@ -259,18 +532,47 @@ function ProfilePage() {
 
   return (
     <div className='mx-auto w-full px-4 md:px-8 my-12 md:my-24'>
-      <div className='text-center items-center justify-center'>
-        <div className='mt-16 md:mt-36 mx-auto'>
-          <div className='mx-auto my-8 bg-[#111] rounded-full h-20 w-20 md:h-24 md:w-24'>
-            <User className='mx-auto h-20 md:h-24 text-[#777]'/>
-          </div>
+      {/* ProfileDisplay component for own profile */}
+      {!profileLoading && (
+        <div className="max-w-5xl mx-auto mb-8">
+          <ProfileDisplay 
+            profile={profile} 
+            address={address || ''} 
+            isOwnProfile={true} 
+            mintedCount={mintedTokens.length}
+          />
         </div>
-        <h2 className='text-2xl md:text-4xl mt-6 md:mt-8 hidden'></h2>
-        <p className='title mt-3 md:mt-4 mb-6 md:mb-8 text-lg text-[#777]'>{address}</p>
-        <Button className="p-2 mb-8 cursor-pointer"><Pen/></Button>
+      )}
+      
+      <div className='text-center items-center justify-center'>
+        {profileLoading && (
+          <div className="animate-pulse">
+            <div className="bg-black rounded-xl p-6 mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-white/10 rounded-full"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-white/10 rounded w-32"></div>
+                  <div className="h-3 bg-white/10 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {!address && <p>Please connect your wallet.</p>}
-      {loading && <p>Loading...</p>}
+      {loading && (
+        <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+          <Image
+            src="/loader.gif"
+            alt="Loading..."
+            width={120}
+            height={120}
+            priority
+            unoptimized
+            className="rounded-lg"
+          />
+        </div>
+      )}
       {!loading && mintedTokens.length === 0 && address && (
         <p className='text-center'>
           No Minted Models yet. <Link href="/mint" className="text-blue-400 underline">Mint here</Link>
@@ -285,12 +587,30 @@ function ProfilePage() {
 // AddressPage: shows profile for a given address param
 function AddressPage({ address }: { address: string }) {
   // List minted NFTs for the given address using Hiro API
-  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }>>([]);
+  const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (!address) return;
+    
+    const fetchProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const profileData = await getProfile(address);
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+    
     const fetchMints = async () => {
       setLoading(true);
       try {
@@ -308,6 +628,7 @@ function AddressPage({ address }: { address: string }) {
           smart_contract?: { contract_id?: string };
           contract_call?: unknown;
           contract_id?: string;
+          tx_id: string;
         };
         (txs as SmartContractTx[]).forEach((tx, idx) => {
           console.log(`TX[${idx}] smart_contract:`, tx.smart_contract);
@@ -318,13 +639,13 @@ function AddressPage({ address }: { address: string }) {
           .map((tx) => {
             const cid = tx.smart_contract?.contract_id || tx.contract_id!;
             const [contractAddress, contractName] = cid.split('.');
-            return { contractAddress, contractName };
+            return { contractAddress, contractName, txId: tx.tx_id };
           });
 
         // 2. For each contract, try to enumerate tokens
-        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string }> = [];
+        const allTokens: Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }> = [];
         for (const contract of contracts) {
-          const { contractAddress, contractName } = contract;
+          const { contractAddress, contractName, txId } = contract;
           // Try to get last token id
           let lastTokenId = 0;
           try {
@@ -387,7 +708,7 @@ function AddressPage({ address }: { address: string }) {
                     tokenUri = uriJson.value.value;
                   }
                 } catch {}
-                allTokens.push({ contractAddress, contractName, tokenId, tokenUri });
+                allTokens.push({ contractAddress, contractName, tokenId, tokenUri, txId });
               }
             } catch {}
           }
@@ -427,20 +748,46 @@ function AddressPage({ address }: { address: string }) {
   return (
     <div className="my-12 md:my-24 mx-auto w-full px-4 md:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col items-center gap-6 md:gap-8 my-10 md:my-16" >
-          {/* Avatar */}
-          <div className="flex-shrink-0 mt-6 md:mt-8">
-            <div className="border-[1px] border-[#222] bg-gradient-to-br from-[#111] to-[#333] rounded-full h-24 w-24 md:h-32 md:w-32 flex items-center justify-center overflow-hidden mx-auto">
+        {/* ProfileDisplay component for public profile */}
+        {!profileLoading && (
+          <div className="mb-8">
+            <ProfileDisplay 
+              profile={profile} 
+              address={address} 
+              isOwnProfile={false} 
+              mintedCount={mintedTokens.length}
+            />
+          </div>
+        )}
+        
+        {profileLoading && (
+          <div className="animate-pulse">
+            <div className="bg-black border border-white/20 rounded-xl p-6 mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-white/10 rounded-full"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-white/10 rounded w-32"></div>
+                  <div className="h-3 bg-white/10 rounded w-24"></div>
+                </div>
+              </div>
             </div>
           </div>
-          {/* Name, address */}
-          <div className="flex flex-col items-center">
-            <h1 className="title text-3xl md:text-4xl font-bold text-center hidden"></h1>
-            <div className="title text-[#fff] mt-1 text-lg md:text-sm text-center break-all max-w-full px-2">{address}</div>
-          </div>
-        </div>
+        )}
+
         {/* NFT grid for this address */}
-        {loading && <p>Loading...</p>}
+        {loading && (
+          <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+            <Image
+              src="/loader.gif"
+              alt="Loading..."
+              width={120}
+              height={120}
+              priority
+              unoptimized
+              className="rounded-lg"
+            />
+          </div>
+        )}
         {!loading && mintedTokens.length === 0 && address && (
           <p className='text-center text-[#555]'>
             No Minted Models yet. <Link href="/mint" className="border-[1px] border-[#222] p-2 rounded-md text-blue-400">Mint here</Link>

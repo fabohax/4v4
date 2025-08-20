@@ -218,7 +218,23 @@ export const HiroWalletProvider: FC<ProviderProps> = ({ children }) => {
       console.log('Final connection status:', connected);
       setIsWalletConnected(connected);
     } catch (error) {
-      console.error('Connection failed:', error);
+      console.log('Connection process ended');
+      
+      // Handle specific error types silently
+      if (error instanceof Error) {
+        if (error.message.includes('User canceled') || 
+            error.message.includes('user cancelled') ||
+            error.message.includes('JsonRpcError: User canceled the request')) {
+          console.log('User canceled wallet connection - this is normal behavior');
+          setIsWalletOpen(false);
+          setIsWalletConnected(false);
+          return;
+        }
+        console.error('Connection failed with error:', error.message);
+      } else {
+        console.error('Connection failed:', error);
+      }
+      
       setIsWalletOpen(false);
       setIsWalletConnected(false);
     }

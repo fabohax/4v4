@@ -46,6 +46,7 @@ export default function AccountCreatedPage() {
             alt="Loading..."
             width={75}
             height={37.7}
+            priority
             unoptimized
             style={{ minWidth: 75, minHeight: 37.5, width: 75, height: 37.5 }}
           />
@@ -85,6 +86,7 @@ export default function AccountCreatedPage() {
                 alt="Loading..."
                 width={75}
                 height={38}
+                priority
                 unoptimized
                 style={{ minWidth: 75, minHeight: 38, width: 75, height: 38 }}
               />

@@ -31,7 +31,6 @@ export function AppLoadingProvider({
 }: AppLoadingProviderProps) {
   const [isAppLoaded, setIsAppLoaded] = useState(skipInitialLoading);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('Loading application...');
   
   useEffect(() => {
     if (!skipInitialLoading && !isAppLoaded) {
@@ -41,7 +40,6 @@ export function AppLoadingProvider({
 
   const initializeApp = async () => {
     setIsLoading(true);
-    setLoadingMessage('Initializing 4v4...');
     
     const preloader = AssetPreloader.getInstance();
     
@@ -63,16 +61,8 @@ export function AppLoadingProvider({
 
       await preloader.preloadAssets(allAssets, {
         timeout: 8000, // Longer timeout for 3D models
-        onProgress: (loaded, total) => {
-          const progress = Math.round((loaded / total) * 100);
-          setLoadingMessage(`Loading assets... ${progress}%`);
-        },
         onAssetLoaded: (asset) => {
-          if (asset.includes('models/')) {
-            setLoadingMessage('Loading 3D models...');
-          } else if (asset.includes('.svg') || asset.includes('.png')) {
-            setLoadingMessage('Loading interface...');
-          }
+          console.log(`✅ Asset loaded: ${asset}`);
         }
       });
 
@@ -119,11 +109,7 @@ export function AppLoadingProvider({
   return (
     <AppLoadingContext.Provider value={contextValue}>
       {!isAppLoaded && (
-        <AppLoader 
-          isLoading={isLoading || !isAppLoaded}
-          message="Initializing"
-          subMessage={loadingMessage}
-        />
+        <AppLoader isLoading={isLoading || !isAppLoaded} />
       )}
       {isAppLoaded && children}
     </AppLoadingContext.Provider>

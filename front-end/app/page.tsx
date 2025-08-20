@@ -12,6 +12,7 @@ import { useAppLoading } from "@/components/AppLoadingProvider"
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [showDetails, setShowDetails] = useState(false);
+  const [modelLoading, setModelLoading] = useState(true);
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const { loadPage } = useAppLoading()
@@ -26,6 +27,40 @@ export default function Home() {
     const currentTheme = resolvedTheme || theme
     return currentTheme === 'dark' ? '#212121' : '#f5f5f5'
   }
+
+  // Preload the 3D model
+  useEffect(() => {
+    const preloadModel = async () => {
+      if (!modelUrl) {
+        setModelLoading(false);
+        return;
+      }
+
+      try {
+        setModelLoading(true);
+        
+        // Create a simple fetch to check if model exists and trigger browser cache
+        const response = await fetch(modelUrl);
+        if (response.ok) {
+          // Add a small delay to ensure model is processed
+          setTimeout(() => {
+            setModelLoading(false);
+          }, 500);
+        } else {
+          console.warn('Model not found, showing ModelViewer anyway');
+          setModelLoading(false);
+        }
+      } catch (error) {
+        console.warn('Error preloading model:', error);
+        // Show ModelViewer anyway, let it handle the error
+        setModelLoading(false);
+      }
+    };
+
+    if (mounted) {
+      preloadModel();
+    }
+  }, [modelUrl, mounted]);
 
   useEffect(() => {
     setMounted(true)
@@ -55,12 +90,21 @@ export default function Home() {
 
         <div className="relative grid grid-cols-1 lg:grid-cols-2 items-center gap-8 mx-4 sm:mx-8 lg:mx-36 my-0 md:my-20 lg:my-0 min-h-[calc(72vh-8rem)] md:min-h-[calc(72vh-10rem)]">
           <div className="flex justify-center self-center mt-2 md:mt-6 lg:mt-0">
-            <ModelViewer
-              background={getModelBackground()}
-              secondaryColor={secondaryColor}
-              modelUrl={modelUrl}
-              lightIntensity={lightIntensity}
-            />
+            {modelLoading ? (
+              <div className="flex items-center justify-center w-full h-96">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading 3D Model...</p>
+                </div>
+              </div>
+            ) : (
+              <ModelViewer
+                background={getModelBackground()}
+                secondaryColor={secondaryColor}
+                modelUrl={modelUrl}
+                lightIntensity={lightIntensity}
+              />
+            )}
           </div>
           <div className="py-12 md:py-24 lg:py-36 select-none">
             <span className="relative w-auto text-[8px] my-4 bg-muted text-muted-foreground rounded-full px-4 py-2">AVATAR</span>
@@ -73,6 +117,11 @@ export default function Home() {
               <Link href="/mint" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
                   Mint Now
+                </Button>
+              </Link>
+              <Link href="/explore" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto text-base sm:text-lg bg-transparent border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+                  Explore NFTs
                 </Button>
               </Link>
               <Button
@@ -157,12 +206,14 @@ export default function Home() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.6, duration: 0.5 }}
                 >
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
-                  >
-                    Explore
-                  </Button>
+                  <Link href="/explore">
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
+                    >
+                      Explore
+                    </Button>
+                  </Link>
                 </motion.div>
 
                 <motion.div

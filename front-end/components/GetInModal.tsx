@@ -70,7 +70,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           mnemonic,
           privateKey: stxPrivateKey,
           address,
-          label: 'My Encrypted Wallet'
+          label: 'My 4V4 Wallet'
         };
         await createEncryptedWallet(walletData, passphrase);
         
@@ -85,7 +85,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               },
               body: JSON.stringify({
                 email,
-                passkey: stxPrivateKey, // This will be hashed with passphrase on server
+                passkey: stxPrivateKey, 
                 passphrase,
                 address
               }),

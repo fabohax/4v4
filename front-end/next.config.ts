@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'gateway.pinata.cloud' },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '350mb',
+    },
+  },
 };
 
 export default nextConfig;
