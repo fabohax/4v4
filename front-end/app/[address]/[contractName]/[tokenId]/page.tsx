@@ -12,6 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import CenterPanel from '@/components/features/avatar/CenterPanel';
+import { getProfile } from '@/lib/profileApi';
+import { getNftsByCreator } from '@/lib/nftApi';
 
 type TokenMetadata = {
   name?: string;
@@ -50,17 +52,18 @@ export default function NFTDetailPage() {
     nftPriceUsd: number;
   } | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
+  type CreatorProfile = {
+    avatar_url?: string;
+    display_name?: string;
+    username?: string;
+    // Add other fields as needed
+  };
+  
+    const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [creatorNfts, setCreatorNfts] = useState<TokenMetadata[]>([]);
 
   // Utility functions for Satoshi conversion
-  const SATOSHIS_PER_STX = 1000000; // 1 STX = 1,000,000 Satoshis
-  
-  const formatSatoshis = (satoshis: number): string => {
-    if (satoshis >= SATOSHIS_PER_STX) {
-      const stx = satoshis / SATOSHIS_PER_STX;
-      return `${stx.toLocaleString()} STX`;
-    }
-    return `${satoshis.toLocaleString()} sats`;
-  };
+  const SATOSHIS_PER_STX = 1000; // 1 STX = 1,000,000 Satoshis
 
   const fetchStxPrice = async (): Promise<number> => {
     try {
@@ -265,6 +268,23 @@ export default function NFTDetailPage() {
     }
   }, [address, contractName, tokenId, fetchNftPrice]);
 
+  useEffect(() => {
+    const fetchCreatorData = async () => {
+      if (metadata?.creator) {
+        try {
+          const profile = await getProfile(metadata.creator);
+          setCreatorProfile(profile);
+          const nfts = await getNftsByCreator(metadata.creator);
+          setCreatorNfts(nfts.filter(nft => nft.token_id !== tokenId)); // Exclude current NFT
+        } catch {
+          setCreatorProfile(null);
+          setCreatorNfts([]);
+        }
+      }
+    };
+    fetchCreatorData();
+  }, [metadata, tokenId]);
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard!`);
@@ -379,24 +399,11 @@ export default function NFTDetailPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-6">Details</h3>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-sm">🔗</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">Stacks (STX)</span>
-                    </div>
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                         <Eye className="w-4 h-4" />
                       </div>
                       <span className="text-sm text-muted-foreground">View on Explorer</span>
-                      <ExternalLink className="w-4 h-4 ml-auto" />
-                    </div>
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <ExternalLink className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Open original</span>
                       <ExternalLink className="w-4 h-4 ml-auto" />
                     </div>
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer">
@@ -413,17 +420,19 @@ export default function NFTDetailPage() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Royalties <Badge variant="secondary" className="text-xs">10%</Badge></h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Split royalties are automatically deposited into each recipient&apos;s wallet
+                      Split royalties are automatically deposited into the creator&apos;s wallet
                     </p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                        <span className="text-xs">👤</span>
+                    {metadata?.creator && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                          <span className="text-xs">👤</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">Creator</div>
+                        </div>
+                        <div className="text-sm font-medium">100%</div>
                       </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{metadata?.creator ? 'Creator' : 'Bounty Temple'}</div>
-                      </div>
-                      <div className="text-sm font-medium">100%</div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -436,18 +445,13 @@ export default function NFTDetailPage() {
               {/* Title & Creator */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-600 rounded"></div>
-                  <span className="text-sm font-medium">{metadata?.name || `Token #${tokenId}`}</span>
-                  <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">
-                    ⭐
-                  </Badge>
+                  <h1 className="title text-lg font-medium">{metadata?.name || `Token #${tokenId}`}</h1>
+                  {metadata?.attributes && Array.isArray(metadata.attributes) && metadata.attributes.find(attr => attr.trait_type === 'Rarity') && (
+                    <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 ml-2">
+                      {metadata.attributes.find(attr => attr.trait_type === 'Rarity')?.value || 'Epic'}
+                    </Badge>
+                  )}
                 </div>
-                <h1 className="text-3xl font-bold mb-2">
-                  {metadata?.attributes && Array.isArray(metadata.attributes) 
-                    ? metadata.attributes.find(attr => attr.trait_type === 'Rarity')?.value || 'Epic'
-                    : 'Epic'
-                  }
-                </h1>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-sm text-muted-foreground">Royalties</span>
                   <Badge variant="secondary" className="text-xs">10%</Badge>
@@ -458,16 +462,28 @@ export default function NFTDetailPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
-                        <span className="text-xs">👤</span>
+                        {creatorProfile?.avatar_url ? (
+                          <img src={creatorProfile.avatar_url} alt="Creator Avatar" className="w-6 h-6 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-xs">👤</span>
+                        )}
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground">Creator</div>
-                        <div className="text-sm font-medium">{metadata?.creator ? 'Creator' : 'Bounty Temple'}</div>
+                        <div className="text-sm font-medium">
+                          {creatorProfile?.display_name || creatorProfile?.username || (
+                            metadata?.creator ? (
+                              <Link href={`/${metadata.creator}`}>{metadata.creator}</Link>
+                            ) : (
+                              <span>Unknown</span>
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Badge className="bg-green-500/20 text-green-600 border-green-500/30">
-                      ✓
-                    </Badge>
+                    {creatorProfile && (
+                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30">✓</Badge>
+                    )}
                   </div>
                   
                   {owner && (
@@ -479,7 +495,7 @@ export default function NFTDetailPage() {
                         <div>
                           <div className="text-xs text-muted-foreground">Current owner</div>
                           <div className="text-sm font-medium font-mono">
-                            {owner.slice(0, 6)}...{owner.slice(-4)}
+                            <Link href={`/${owner}`}>{owner.slice(0, 6)}...{owner.slice(-4)}</Link>
                           </div>
                         </div>
                       </div>
@@ -490,24 +506,14 @@ export default function NFTDetailPage() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3 mt-6">
-                  <Button variant="ghost" size="sm" className="p-2">
+                  <Button variant="ghost" size="sm" className="p-2 hover:text-white">
                     <Heart className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="hover:text-white">
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </Button>
-                  {modelUrl && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => window.open(modelUrl, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Model
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="hover:text-white">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Refresh
                   </Button>
@@ -516,11 +522,12 @@ export default function NFTDetailPage() {
                     size="sm" 
                     onClick={fetchNftPrice}
                     disabled={priceLoading}
+                    className={`hover:text-white`}
                   >
                     <RefreshCw className={`w-4 h-4 mr-2 ${priceLoading ? 'animate-spin' : ''}`} />
                     {priceLoading ? 'Updating...' : 'Price'}
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2">
+                  <Button variant="ghost" size="sm" className="p-2 hover:text-white">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </div>
@@ -540,13 +547,7 @@ export default function NFTDetailPage() {
                       ) : priceData ? (
                         <>
                           <div className="text-2xl font-bold">
-                            {formatSatoshis(priceData.nftPriceSatoshis)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            ${priceData.nftPriceUsd.toFixed(2)} USD
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {priceData.nftPriceSatoshis.toLocaleString()} satoshis
+                            {priceData.nftPriceSatoshis.toLocaleString()} sats
                           </div>
                         </>
                       ) : (
@@ -556,39 +557,13 @@ export default function NFTDetailPage() {
                         </>
                       )}
                     </div>
-                    
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">STX Price</div>
-                      {priceLoading ? (
-                        <div className="animate-pulse">
-                          <div className="h-6 bg-muted rounded w-24"></div>
-                        </div>
-                      ) : priceData ? (
-                        <div className="text-lg font-semibold">
-                          ${priceData.stxPriceUsd.toFixed(4)} USD
-                        </div>
-                      ) : (
-                        <div className="text-lg font-semibold">$-.---- USD</div>
-                      )}
-                      <div className="text-xs text-muted-foreground font-mono">
-                        1 STX = 1,000,000 sats
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Button 
-                        className="w-full bg-primary hover:bg-primary/90"
+                        className="w-full bg-accent-foreground hover:bg-accent-foreground cursor-pointer"
                         disabled={!priceData}
                       >
-                        {priceData ? `Buy now for ${formatSatoshis(priceData.nftPriceSatoshis)}` : 'Loading price...'}
+                        {priceData ? `Buy now` : 'Loading price...'}
                       </Button>
-                      <Button variant="outline" className="w-full">
-                        Place a bid
-                      </Button>
-                    </div>
-
-                    <div className="text-center text-sm text-muted-foreground">
-                      Sale ends in 68 days
                     </div>
                   </div>
                 </CardContent>
@@ -596,7 +571,7 @@ export default function NFTDetailPage() {
 
               {/* Contract Info */}
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="e-6">
                   <div className="space-y-3">
                     <div>
                       <div className="text-sm text-muted-foreground">Contract</div>
@@ -643,15 +618,24 @@ export default function NFTDetailPage() {
           </div>
         </div>
 
-        {/* More from this collection */}
+        {/* More from this creator */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">More from this collection</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {/* Placeholder items - in real implementation, fetch from same collection */}
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-square bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg"></div>
-            ))}
-          </div>
+          <h2 className="text-2xl font-bold mb-6">More from this creator</h2>
+          {creatorNfts.length === 0 ? (
+            <div className="text-gray-400">No other models from this creator.</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {creatorNfts.map((nft) => (
+                <Link key={String(nft.id ?? nft.token_id)} href={`/${nft.contract_address}/${nft.contract_name}/${nft.token_id}`} className="aspect-square bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center">
+                  {nft.image ? (
+                    <img src={nft.image} alt={nft.name} className="object-cover w-full h-full rounded-lg" />
+                  ) : (
+                    <span className="text-white">{nft.name || 'NFT'}</span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

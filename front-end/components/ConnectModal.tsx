@@ -46,7 +46,8 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
   const [connectMode, setConnectMode] = useState<ConnectMode>('email');
   const [mnemonic, setMnemonic] = useState('');
   const [email, setEmail] = useState('');
-  const [emailStatus, setEmailStatus] = useState('');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailMessage, setEmailMessage] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
   const [walletLabel, setWalletLabel] = useState('Imported Wallet');
@@ -168,19 +169,22 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
 
   const handleEmailConnect = async () => {
     if (!email.trim()) {
-      setEmailStatus('Please enter your email address');
+      setEmailStatus('error');
+      setEmailMessage('Please enter your email address');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setEmailStatus('Please enter a valid email address');
+      setEmailStatus('error');
+      setEmailMessage('Please enter a valid email address');
       return;
     }
 
     try {
       setIsLoading(true);
-      setEmailStatus('');
+      setEmailStatus('sending');
+      setEmailMessage('');
 
       const response = await fetch('/api/wallet-recovery/send-link', {
         method: 'POST',
@@ -196,15 +200,16 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
         throw new Error(data.error || 'Failed to send connection link');
       }
 
-      setEmailStatus('Connection link sent! Please check your email.');
-    } catch {
-      setEmailStatus('Error: Failed to send connection link');
+      setEmailStatus('sent');
+      setEmailMessage('Connection link sent! Please check your email.');
+    } catch (err: unknown) {
+      setEmailStatus('error');
+      setEmailMessage((err as Error).message || 'Failed to send email.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ...existing code...
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[101] select-none">
       <div className="bg-[#181818] rounded-[21px] w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -274,9 +279,9 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   >
                     {isLoading ? 'Sending...' : 'Send Connection Link'}
                   </Button>
-                  {emailStatus && (
-                    <div className={`text-sm ${emailStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}`}>
-                      {emailStatus}
+                  {emailMessage && (
+                    <div style={{ color: emailStatus === 'error' ? 'red' : 'green', marginTop: 8 }} className="text-sm">
+                      {emailMessage}
                     </div>
                   )}
                 </div>

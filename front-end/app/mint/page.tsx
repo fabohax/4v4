@@ -16,6 +16,7 @@ import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import { request } from '@stacks/connect';
 import { validateAndGenerateWallet } from '@/lib/walletHelpers';
 import { getApiUrl } from '@/lib/stacks-api';
+import { renderModelToImage } from '@/lib/renderModelToImage';
 import { getPersistedNetwork } from '@/lib/network';
 
 // Utility to detect wallet type
@@ -43,7 +44,7 @@ const detectWalletType = () => {
     // Alternative Xverse check - BitcoinProvider without LeatherProvider
     if (win.BitcoinProvider && !win.LeatherProvider) {
       return 'xverse';
-    }
+    } 
     
     // Check for Hiro Wallet
     if (win.StacksProvider && !win.XverseProviders && !win.LeatherProvider && !win.BitcoinProvider) {
@@ -121,8 +122,8 @@ export default function ProfilePage() {
     }
   }, [effectiveAddress, isAnyWalletConnected, isInternalWallet]);
 
-  const [name, setName] = useState<string>('Test Model');
-  const [description, setDescription] = useState<string>('This is a test model description for minting.');
+  const [name, setName] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -489,14 +490,14 @@ export default function ProfilePage() {
   const uploadWithProgress = async (formData: FormData) => {
     return new Promise<Response>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      
+
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 100);
           setUploadProgress(progress);
         }
       });
-      
+
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(new Response(xhr.response, {
@@ -509,13 +510,19 @@ export default function ProfilePage() {
             }, {} as Record<string, string>))
           }));
         } else {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
+          // Try to parse error message from response
+          let errorMsg = `Upload failed with status ${xhr.status}`;
+          try {
+            const json = JSON.parse(xhr.responseText);
+            if (json && json.error) errorMsg = json.error;
+          } catch {}
+          reject(new Error(errorMsg));
         }
       });
-      
+
       xhr.addEventListener('error', () => reject(new Error('Upload failed')));
       xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
-      
+
       xhr.open('POST', '/api/files');
       xhr.timeout = 300000; // 5 minutes timeout
       xhr.send(formData);
@@ -953,8 +960,19 @@ export default function ProfilePage() {
       // Step 1: Upload to IPFS with progress
       const formData = new FormData();
       formData.append('file', modelFile!);
-      if (imageFile) formData.append('imageFile', imageFile);
-      
+
+      // If no imageFile, generate a render from the model and use as cover image
+      let coverImageFile = imageFile;
+      if (!coverImageFile && modelUrl) {
+        try {
+          const blob = await renderModelToImage({ modelUrl: modelUrl, size: 512 });
+          coverImageFile = new File([blob], 'cover.png', { type: 'image/png' });
+        } catch (e) {
+          console.warn('Failed to generate cover image from model:', e);
+        }
+      }
+      if (coverImageFile) formData.append('imageFile', coverImageFile);
+
       // Add metadata - API expects specific field names
       const locationData = getLocationForJson();
       const metadata = {
@@ -969,16 +987,16 @@ export default function ProfilePage() {
         properties: JSON.parse(properties),
         soulbound
       };
-      
+
       // Add location as JSON string if valid (API will parse it as object)
       if (locationData) {
         Object.assign(metadata, { location: JSON.stringify(locationData) });
       }
-      
+
       console.log('Metadata being sent:', metadata);
       console.log('Location data:', locationData);
       console.log('FormData entries being sent to API:');
-      
+
       Object.entries(metadata).forEach(([key, value]) => {
         const valueToSend = typeof value === 'object' ? JSON.stringify(value) : String(value);
         console.log(`  ${key}:`, valueToSend);
@@ -986,7 +1004,35 @@ export default function ProfilePage() {
       });
 
       console.log('Starting file upload to IPFS...');
-      const metadataResponse = await uploadWithProgress(formData);
+      let metadataResponse: Response;
+      try {
+        metadataResponse = await uploadWithProgress(formData);
+      } catch (uploadError: unknown) {
+        // Special handling for 413 errors
+        if (
+          typeof uploadError === 'object' &&
+          uploadError !== null &&
+          'message' in uploadError &&
+          typeof (uploadError as { message: string }).message === 'string'
+        ) {
+          const message = (uploadError as { message: string }).message;
+          if (message.includes('413') || message.toLowerCase().includes('too large')) {
+            setError('File upload failed: The file is too large for the server to accept. Please ensure your file is well under 300MB. If this error persists for small files, contact support.');
+            toast.error('File upload failed: The file is too large for the server to accept.');
+          } else {
+            setError(message || 'File upload failed.');
+            toast.error(message || 'File upload failed.');
+          }
+        } else {
+          setError('File upload failed.');
+          toast.error('File upload failed.');
+        }
+        setMinting(false);
+        setDeployingContract(false);
+        setUploadProgress(0);
+        setLoadingState('idle');
+        return;
+      }
 
       if (!metadataResponse.ok) {
         const errorData = await metadataResponse.json().catch(() => ({}));
@@ -1021,14 +1067,14 @@ export default function ProfilePage() {
       // Set txid if available
       if (deployResult.txid) {
         setLastTxId(deployResult.txid);
-        
+
         // Verify transaction in background (optional)
         verifyTransaction(deployResult.txid).catch(error => {
           console.warn('Transaction verification failed:', error);
           // Don't block the flow if verification fails
         });
       }
-      
+
       setLoadingState('minted');
       setContractDeploymentStep('Contract deployed successfully!');
 
@@ -1036,16 +1082,24 @@ export default function ProfilePage() {
 
       // Redirect using contractAddress and contractName
       setTimeout(() => {
-        const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}`;
-        router.push(redirectPath);
-      }, 3000); // Increased delay to allow for verification
+        // If tokenId is returned from the API, route to the NFT detail page
+        const tokenId = responseData.tokenId || responseData.token_id || responseData.id;
+        if (tokenId) {
+          const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}/${tokenId}`;
+          router.push(redirectPath);
+        } else {
+          // fallback: route to contract page
+          const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}`;
+          router.push(redirectPath);
+        }
+      }, 3000);
 
     } catch (error) {
       console.error('Minting error:', error);
-      
+
       let errorMessage = 'An unexpected error occurred. Please try again.';
       let errorSuggestion = '';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('timeout') || error.message.includes('AbortError')) {
           errorMessage = 'Operation timed out. This may be due to network congestion.';
@@ -1076,19 +1130,19 @@ export default function ProfilePage() {
           errorSuggestion = 'If this issue persists, please contact support.';
         }
       }
-      
+
       const fullErrorMessage = errorSuggestion 
         ? `${errorMessage} ${errorSuggestion}` 
         : errorMessage;
-      
+
       setError(fullErrorMessage);
       toast.error(errorMessage);
-      
+
     } finally {
       setMinting(false);
       setDeployingContract(false);
       setUploadProgress(0);
-      
+
       // Reset loading state after delay unless redirecting
       if (loadingState !== 'minted') {
         setTimeout(() => setLoadingState('idle'), 3000);
@@ -1271,15 +1325,6 @@ export default function ProfilePage() {
                   }`}>
                     {checkingBalance ? 'Checking...' : 
                      stxBalance !== null ? `${stxBalance.toFixed(6)} STX` : 'Unable to load'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-gray-500">Wallet Type:</span>
-                  <span className="text-blue-400">
-                    {encryptedWallet ? `Encrypted (${encryptedWallet.label})` :
-                     currentWallet ? `Internal (${currentWallet.label})` :
-                     getWalletTypeFromContext(effectiveAddress).charAt(0).toUpperCase() + 
-                     getWalletTypeFromContext(effectiveAddress).slice(1) + ' Extension'}
                   </span>
                 </div>
                 {getPersistedNetwork() !== 'mainnet' && (
@@ -1778,7 +1823,7 @@ export default function ProfilePage() {
                 {!effectiveAddress ? 'Connect Wallet First' :
                  deployingContract ? 'Deploying Contract...' : 
                  minting ? 'Processing...' : 
-                 'Deploy NFT Contract'}
+                 'Mint'}
               </Button>
               
               {(minting || deployingContract) && loadingState !== 'minted' && (

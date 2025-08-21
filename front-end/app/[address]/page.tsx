@@ -52,7 +52,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
           <Link 
             key={metaKey} 
             href={`/${mint.contractAddress}/${mint.contractName}/${mint.tokenId}`}
-            className="block transition-transform hover:scale-[1.02]"
+            className="block transition-transform"
           >
             <div className="bg-[#111] p-0 border border-[#111] shadow cursor-pointer">
               {/* Square cover image */}

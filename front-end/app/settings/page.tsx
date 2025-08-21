@@ -758,6 +758,21 @@ export default function SettingsPage() {
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
+          <div className="mt-2 flex gap-4">
+            <Link
+              href={address ? `/${address}` : "#"}
+              className="flex-1"
+              tabIndex={address ? 0 : -1}
+            >
+              <Button
+              type="button"
+              className="w-full bg-transparent hover:bg-white hover:text-black text-white border-[1px] border-[#333] py-6 cursor-pointer"
+              disabled={!address}
+              >
+              Go to Profile
+              </Button>
+            </Link>
+          </div>
         </form>
       </Tabs>
 

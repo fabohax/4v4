@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Download, Share2, MapPin } from 'lucide-react';
+import { ExternalLink, Share2, MapPin } from 'lucide-react';
 import { toast } from "sonner";
 import CenterPanel from '@/components/features/avatar/CenterPanel';
 
@@ -172,12 +172,6 @@ export default function NFTViewerPage() {
     return null;
   };
 
-  const downloadModel = () => {
-    if (modelUrl) {
-      window.open(modelUrl, '_blank');
-    }
-  };
-
   const shareNFT = async () => {
     if (!metadata) return;
     
@@ -291,40 +285,28 @@ export default function NFTViewerPage() {
                 
                 <p className="text-gray-300 text-lg mb-6">{metadata.description}</p>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <Button onClick={downloadModel} variant="outline" className="bg-transparent hover:bg-white hover:text-black cursor-pointer border-[#333]">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Model
-                  </Button>
-                  <Button onClick={shareNFT} variant="outline" className="border-[#333] cursor-pointer">
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share NFT
-                  </Button>
-                </div>
-
-                {/* Contract Info */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Contract Details</h3>
-                  <div className="bg-[#111] p-4 rounded-lg">
-                    <p className="text-sm text-gray-400">Contract Name</p>
-                    <code className="text-sm font-mono break-all">{contractName}</code>
-                  </div>
-                </div>
-
-                {/* External URL */}
-                {metadata.external_url && (
-                  <div className="mb-6">
+                {/* Action Buttons Row */}
+                {(metadata.external_url) && (
+                  <div className="grid grid-cols-2 gap-2 mb-4">
                     <Button 
                       onClick={() => window.open(metadata.external_url, '_blank')}
                       variant="outline" 
-                      className="w-full border-[#333] cursor-pointer"
+                      className="w-full border-[#333] cursor-pointer hover:text-white"
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Visit External URL
                     </Button>
+                    <Button 
+                      onClick={shareNFT} 
+                      variant="outline" 
+                      className="w-full border-[#333] cursor-pointer hover:text-white"
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share NFT
+                    </Button>
                   </div>
                 )}
+
               </CardContent>
             </Card>
 

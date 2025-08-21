@@ -322,7 +322,7 @@ export default function ExplorePage() {
             Explore NFTs
           </h1>
           <p className="text-xl text-muted-foreground mb-6">
-            Discover all minted NFTs from 4V4.DIY community members
+            Discover all minted NFTs from 4V4.XYZ community members
           </p>
           <div className="text-sm text-muted-foreground">
             {allNFTs.length} NFTs found from {userCount} users
