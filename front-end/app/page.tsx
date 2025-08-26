@@ -85,6 +85,68 @@ export default function Home() {
   return (
     <div className="h-auto bg-gradient-to-b from-background to-muted text-foreground dotted-grid-background">
       {/* Hero Section */}
+      {/* Background gradient animation */}
+        <div className="inset-0  animate-gradient-x select-none"></div>
+
+        <div className="container mx-auto px-4 h-screen md:py-20 relative z-10 select-none flex items-center">
+          <div className="flex flex-col md:flex-row items-center justify-center text-center gap-8 w-full">
+            <motion.div
+              className="md:w-full"
+              initial="hidden"
+              animate={isLoaded ? "visible" : "hidden"}
+              variants={fadeIn}
+            >
+              <motion.h1
+                className="title text-4xl md:text-6xl font-extralight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-muted-foreground via-foreground to-muted-foreground"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+              >
+                Mint & Collect 3D Models
+              </motion.h1>
+              <motion.p
+                className="text-lg md:text-xl text-muted-foreground mb-8 font-light"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+              >
+                Explore, buy, and showcase high-quality 3D models from talented creators worldwide.
+              </motion.p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center text-center gap-3 sm:gap-4 w-full">
+                <motion.div
+                  className="w-full sm:w-auto"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6, duration: 0.5 }}
+                >
+                  <Link href="/explore">
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
+                    >
+                      Explore
+                    </Button>
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  className="w-full sm:w-auto"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7, duration: 0.5 }}
+                >
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
+                  >
+                    <Link href="/mint">Mint</Link>
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
       <section className="relative overflow-hidden my-16">
 
         <div className="relative grid grid-cols-1 lg:grid-cols-2 items-center gap-8 mx-4 sm:mx-8 lg:mx-36 my-0 md:my-20 lg:my-0 min-h-[calc(72vh-8rem)] md:min-h-[calc(72vh-10rem)]">
@@ -114,7 +176,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
               <Link href="/mint" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+                <Button className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
                   Buy
                 </Button>
               </Link>
@@ -123,69 +185,7 @@ export default function Home() {
           </div>  
         </div>
 
-        {/* Background gradient animation */}
-        <div className="inset-0  animate-gradient-x select-none"></div>
-
-        <div className="container mx-auto px-4 py-12 md:py-20 relative z-10 select-none">
-          <div className="flex flex-col md:flex-row items-center justify-center text-center gap-8">
-            <motion.div
-              className="md:w-full"
-              initial="hidden"
-              animate={isLoaded ? "visible" : "hidden"}
-              variants={fadeIn}
-            >
-              <motion.h1
-                className="title text-4xl md:text-6xl font-extralight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-muted-foreground via-foreground to-muted-foreground"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-              >
-                Mint & Collect 3D NFTs
-              </motion.h1>
-              <motion.p
-                className="text-lg md:text-xl text-muted-foreground mb-8 font-light"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-              >
-                Explore, buy, and showcase high-quality 3D models from talented creators worldwide.
-              </motion.p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center text-center gap-3 sm:gap-4 w-full">
-                <motion.div
-                  className="w-full sm:w-auto"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6, duration: 0.5 }}
-                >
-                  <Link href="/explore">
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
-                    >
-                      Explore
-                    </Button>
-                  </Link>
-                </motion.div>
-
-                <motion.div
-                  className="w-full sm:w-auto"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7, duration: 0.5 }}
-                >
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-border text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
-                  >
-                    <Link href="/mint">Create &amp; Mint</Link>
-                  </Button>
-                </motion.div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        
       </section>
       <div className="container mx-auto px-4 py-12">
         <JoinWaitlistForm />

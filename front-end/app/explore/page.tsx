@@ -319,11 +319,8 @@ export default function ExplorePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-            Explore NFTs
+            Explore Models
           </h1>
-          <p className="text-xl text-muted-foreground mb-6">
-            Discover all minted NFTs from 4V4.XYZ community members
-          </p>
           <div className="text-sm text-muted-foreground">
             {allNFTs.length} NFTs found from {userCount} users
           </div>

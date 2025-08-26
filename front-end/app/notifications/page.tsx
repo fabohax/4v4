@@ -11,13 +11,13 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <div className="max-w-xl mx-auto my-24 p-8 bg-black rounded-2xl border border-[#333] shadow text-white">
+    <div className="max-w-xl mx-auto my-24 p-8 bg-background rounded-2xl border border-[#333] shadow text-foreground">
       <h1 className="text-3xl font-bold mb-8">Notifications</h1>
       <ul className="space-y-4">
         {notifications.map((n) => (
           <li
             key={n.id}
-            className="p-4 rounded-xl border border-[#222] bg-[#000] hover:bg-[#111] transition cursor-pointer select-none"
+            className="p-4 rounded-xl border border-[#222] bg-background hover:bg-background/80 transition cursor-pointer select-none"
           >
             <div className="inline-block font-semibold text-sm mr-3">{n.title}</div>
             <div className="inline-block text-[#bbb] text-sm">{n.message}</div>

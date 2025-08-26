@@ -26,7 +26,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-black text-white inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px] border border-white/20",
+        "bg-accent-background text-accent-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px] border border-white/20",
         className
       )}
       {...props}
@@ -42,7 +42,12 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-white data-[state=active]:text-black text-white inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm hover:bg-white/10",
+        // Base styles
+        "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm hover:bg-white/10",
+        // Inactive state: accent-foreground text
+        "data-[state=inactive]:text-accent-foreground",
+        // Active state: accent-background bg and text (force this last for specificity)
+        "data-[state=active]:bg-accent-background data-[state=active]:text-accent-background !text-accent-background",
         className
       )}
       {...props}

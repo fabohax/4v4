@@ -1,6 +1,6 @@
 /**
- * Passphrase Input Component for Encrypted Wallet Authentication
- * Provides secure passphrase entry with strength validation and user feedback
+ * Password Input Component for Encrypted Wallet Authentication
+ * Provides secure password entry with strength validation and user feedback
  */
 
 'use client';
@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { validatePassphraseStrength } from '@/lib/encryptedStorage';
 
-interface PassphraseInputProps {
-  onSubmit: (passphrase: string, email?: string) => Promise<void>;
+interface PasswordInputProps {
+  onSubmit: (password: string, email?: string) => Promise<void>;
   mode: 'unlock' | 'create' | 'change';
   isLoading?: boolean;
   error?: string | null;
@@ -24,21 +24,21 @@ interface PassphraseInputProps {
   confirmRequired?: boolean;
 }
 
-export const PassphraseInput: React.FC<PassphraseInputProps> = ({
+export const PasswordInput: React.FC<PasswordInputProps> = ({
   onSubmit,
   mode,
   isLoading = false,
   error = null,
-  placeholder = 'Enter your passphrase',
+  placeholder = 'Enter your password',
   showStrengthIndicator = false,
   autoFocus = true,
   onCancel,
   confirmRequired = false,
 }) => {
-  const [passphrase, setPassphrase] = useState('');
-  const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [showPassphrase, setShowPassphrase] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [strengthInfo, setStrengthInfo] = useState<{
     isValid: boolean;
@@ -47,20 +47,20 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
   } | null>(null);
   const [touched, setTouched] = useState(false);
 
-  // Validate passphrase strength in real-time for create/change modes
+  // Validate password strength in real-time for create/change modes
   useEffect(() => {
-    if ((mode === 'create' || mode === 'change') && passphrase && showStrengthIndicator) {
-      const info = validatePassphraseStrength(passphrase);
+    if ((mode === 'create' || mode === 'change') && password && showStrengthIndicator) {
+      const info = validatePassphraseStrength(password);
       setStrengthInfo(info);
     } else {
       setStrengthInfo(null);
     }
-  }, [passphrase, mode, showStrengthIndicator]);
+  }, [password, mode, showStrengthIndicator]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!passphrase.trim()) return;
+    if (!password.trim()) return;
     
     // Validate email for create mode
     if (mode === 'create' && !email.trim()) {
@@ -75,8 +75,8 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
       }
     }
     
-    // Validate passphrase match for create/change modes
-    if (confirmRequired && passphrase !== confirmPassphrase) {
+    // Validate password match for create/change modes
+    if (confirmRequired && password !== confirmPassword) {
       return; // Error will be shown by validation logic below
     }
     
@@ -86,15 +86,15 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
     }
     
     try {
-      await onSubmit(passphrase, mode === 'create' ? email : undefined);
+      await onSubmit(password, mode === 'create' ? email : undefined);
       // Clear form on success
-      setPassphrase('');
-      setConfirmPassphrase('');
+      setPassword('');
+      setConfirmPassword('');
       setEmail('');
       setTouched(false);
     } catch (error) {
       // Error will be displayed via props
-      console.error('Passphrase submission failed:', error);
+      console.error('Password submission failed:', error);
     }
   };
 
@@ -112,11 +112,11 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
     return 'Strong';
   };
 
-  const passphraseMatch = !confirmRequired || passphrase === confirmPassphrase;
+  const passwordMatch = !confirmRequired || password === confirmPassword;
   const emailValid = mode !== 'create' || (email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-  const isFormValid = passphrase.trim() && 
+  const isFormValid = password.trim() && 
     emailValid &&
-    (!confirmRequired || (confirmPassphrase && passphraseMatch)) &&
+    (!confirmRequired || (confirmPassword && passwordMatch)) &&
     (!strengthInfo || strengthInfo.isValid);
 
   return (
@@ -146,20 +146,20 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
           </div>
         )}
 
-        {/* Main Passphrase Input */}
+        {/* Main Password Input */}
         <div className="space-y-2">
-          <Label htmlFor="passphrase" className="flex items-center gap-2 text-sm font-medium">
+          <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
             <Lock className="h-4 w-4" />
-            {mode === 'unlock' ? 'Enter Passphrase' : 
-             mode === 'create' ? 'Create Passphrase' : 'New Passphrase'}
+            {mode === 'unlock' ? 'Enter Password' : 
+             mode === 'create' ? 'Create Password' : 'New Password'}
           </Label>
           <div className="relative">
             <Input
-              id="passphrase"
-              type={showPassphrase ? 'text' : 'password'}
-              value={passphrase}
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
               onChange={(e) => {
-                setPassphrase(e.target.value);
+                setPassword(e.target.value);
                 if (!touched) setTouched(true);
               }}
               placeholder={placeholder}
@@ -170,31 +170,31 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
             />
             <button
               type="button"
-              onClick={() => setShowPassphrase(!showPassphrase)}
+              onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200"
               disabled={isLoading}
             >
-              {showPassphrase ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
-        {/* Confirm Passphrase Input */}
+        {/* Confirm Password Input */}
         {confirmRequired && (
           <div className="space-y-2">
-            <Label htmlFor="confirmPassphrase" className="flex items-center gap-2 text-sm font-medium">
+            <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4" />
-              Confirm Passphrase
+              Confirm Password
             </Label>
             <div className="relative">
               <Input
-                id="confirmPassphrase"
+                id="confirmPassword"
                 type={showConfirm ? 'text' : 'password'}
-                value={confirmPassphrase}
-                onChange={(e) => setConfirmPassphrase(e.target.value)}
-                placeholder="Confirm your passphrase"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
                 className={`pr-12 border-[#333] focus:border-blue-500 ${
-                  confirmPassphrase && !passphraseMatch ? 'border-red-500' : ''
+                  confirmPassword && !passwordMatch ? 'border-red-500' : ''
                 }`}
                 disabled={isLoading}
                 autoComplete="new-password"
@@ -208,10 +208,10 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
                 {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {confirmPassphrase && !passphraseMatch && (
+            {confirmPassword && !passwordMatch && (
               <p className="text-red-400 text-xs flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Passphrases do not match
+                Passwords do not match
               </p>
             )}
           </div>
@@ -221,7 +221,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
         {showStrengthIndicator && strengthInfo && touched && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Passphrase Strength:</span>
+              <span className="text-gray-400">Password Strength:</span>
               <span className={`font-medium ${strengthInfo.isValid ? 'text-green-400' : 'text-red-400'}`}>
                 {getStrengthText(strengthInfo.score)}
               </span>
@@ -245,7 +245,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
             {strengthInfo.isValid && (
               <p className="text-green-400 text-xs flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3" />
-                Passphrase meets security requirements
+                Password meets security requirements
               </p>
             )}
           </div>
@@ -277,7 +277,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
             ) : (
               <>
                 {mode === 'unlock' ? 'Unlock Wallet' : 
-                 mode === 'create' ? 'Create Wallet' : 'Change Passphrase'}
+                 mode === 'create' ? 'Create Wallet' : 'Change Password'}
               </>
             )}
           </Button>
@@ -302,7 +302,7 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
           <p className="text-blue-400 text-xs flex items-start gap-2">
             <Shield className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>
-              Your passphrase encrypts your private keys locally. Make sure to remember it - 
+              Your password encrypts your private keys locally. Make sure to remember it - 
               it cannot be recovered if lost. Consider using a password manager.
             </span>
           </p>
@@ -312,4 +312,4 @@ export const PassphraseInput: React.FC<PassphraseInputProps> = ({
   );
 };
 
-export default PassphraseInput;
+export default PasswordInput;

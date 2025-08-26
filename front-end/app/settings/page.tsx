@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { getProfile, upsertProfile, getSkillCategories, Profile } from '@/lib/profileApi';
 import { hasEncryptedWallet } from '@/lib/encryptedStorage';
-import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
-import { verifyPassphraseForSettings } from '@/components/ConnectModal';
+// import { useEncryptedWallet } from '@/components/EncryptedWalletProvider'; // not used
+// import { verifyPassphraseForSettings } from '@/components/ConnectModal'; // passphrase verification not required for settings
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
 import { BannerImageUpload } from "@/components/BannerImageUpload";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ interface SkillCategory {
 
 export default function SettingsPage() {
   const address = useCurrentAddress();
-  const { currentWallet, isWalletEncrypted } = useEncryptedWallet();
+  // const { currentWallet, isWalletEncrypted } = useEncryptedWallet(); // not needed
   
   // Determine wallet type - if we have an address but no encrypted wallet, it's an extension wallet
   const isExtensionWallet = address && !hasEncryptedWallet();
@@ -79,7 +80,7 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Passphrase modal state for encrypted wallets
+  // Passphrase modal state for encrypted wallets (not used)
 
   useEffect(() => {
     if (!address) return;
@@ -192,27 +193,7 @@ export default function SettingsPage() {
         marketing_emails: marketingEmails,
       };
       
-      // For encrypted wallets, require passphrase verification
-      if (isWalletEncrypted && currentWallet) {
-        const passphrase = prompt('Enter your wallet passphrase to save changes:');
-        if (!passphrase) {
-          setSaving(false);
-          return;
-        }
-        const verified = await verifyPassphraseForSettings(currentWallet.address, passphrase, currentWallet.privateKey);
-        if (!verified) {
-          setError('Incorrect passphrase. Changes not saved.');
-          toast.error('Incorrect passphrase. Changes not saved.');
-          setSaving(false);
-          return;
-        }
-        // Passphrase verified, save profile
-        await upsertProfile(profileData);
-        setSuccess('Profile saved successfully!');
-        toast.success('Profile updated!');
-        setSaving(false);
-        return;
-      }
+  // For encrypted wallets, save profile directly (no passphrase required)
       
       // For extension wallets, save directly
       await upsertProfile(profileData);
@@ -238,34 +219,56 @@ export default function SettingsPage() {
 
   if (!address) {
     return (
-      <div className="max-w-2xl mx-auto my-24 p-8 bg-black rounded-2xl border border-gray-800 text-white text-center">
+  <div className="max-w-2xl mx-auto my-24 p-8 rounded-2xl border text-center bg-accent-background border-gray-200 dark:border-gray-800 text-accent-foreground">
         <h1 className="text-2xl font-bold mb-4">Connect Your Wallet</h1>
-        <p className="text-gray-400">Please connect your wallet to access settings.</p>
+  <p className="text-accent-foreground">Please connect your wallet to access settings.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto my-24 p-8 bg-black rounded-2xl border border-gray-800 text-white">
+  <div className="max-w-4xl mx-auto my-24 p-8 rounded-2xl border bg-accent-background border-gray-200 dark:border-gray-800 text-accent-foreground">
       <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
       
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-black border border-white/20">
-          <TabsTrigger value="profile" className="cursor-pointer">Profile</TabsTrigger>
-          <TabsTrigger value="social" className="cursor-pointer">Social</TabsTrigger>
-          <TabsTrigger value="professional" className="cursor-pointer">Professional</TabsTrigger>
-          <TabsTrigger value="privacy" className="cursor-pointer">Privacy</TabsTrigger>
+        <TabsList
+          className="grid w-full grid-cols-4 bg-accent-background border border-gray-200 dark:border-white/20 rounded-xl overflow-hidden"
+        >
+          <TabsTrigger
+            value="profile"
+            className="cursor-pointer font-medium border-none focus:outline-none focus:ring-1 focus:ring-[#333] data-[state=active]:border data-[state=active]:bg-transparent data-[state=active]:text-accent-background transition-colors"
+          >
+            Profile
+          </TabsTrigger>
+          <TabsTrigger
+            value="social"
+            className="cursor-pointer bg-accent-background text-accent-foreground font-medium border-none focus:outline-none focus:ring-1 focus:ring-[#333] data-[state=active]:bg-transparent data-[state=active]:text-accent-background transition-colors"
+          >
+            Social
+          </TabsTrigger>
+          <TabsTrigger
+            value="professional"
+            className="cursor-pointer bg-accent-background text-accent-foreground font-medium border-none focus:outline-none focus:ring-1 focus:ring-[#333] data-[state=active]:bg-transparent data-[state=active]:text-accent-background transition-colors"
+          >
+            Professional
+          </TabsTrigger>
+          <TabsTrigger
+            value="privacy"
+            className="cursor-pointer bg-accent-background text-accent-foreground font-medium border-none focus:outline-none focus:ring-1 focus:ring-[#333] data-[state=active]:bg-transparent data-[state=active]:text-accent-background transition-colors"
+          >
+            Privacy
+          </TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSave}>
           <TabsContent value="profile" className="space-y-6 mt-6">
-            <Card className="bg-black border-gray-700">
+            <Card className="bg-accent-background border-gray-200 dark:border-gray-700">
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {error && <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">{error}</div>}
-                {success && <div className="text-green-400 text-sm bg-green-900/20 p-3 rounded">{success}</div>}
+                {error && <div className="text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/20 p-3 rounded">{error}</div>}
+                {success && <div className="text-green-600 dark:text-green-400 text-sm bg-green-100 dark:bg-green-900/20 p-3 rounded">{success}</div>}
                 
                 {/* Profile Picture Section */}
                 <div>
@@ -293,7 +296,6 @@ export default function SettingsPage() {
 
                 {/* Banner Image Section */}
                 <div>
-                  <label className="block mb-3 text-sm font-medium">Banner Image</label>
                   {address && (
                     <BannerImageUpload
                       currentBannerUrl={bannerUrl}
@@ -319,7 +321,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Username</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={username}
                       onChange={e => setUsername(e.target.value)}
@@ -332,7 +334,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Email</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -343,7 +345,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Display Name</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={displayName}
                       onChange={e => setDisplayName(e.target.value)}
@@ -355,7 +357,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Location</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={location}
                       onChange={e => setLocation(e.target.value)}
@@ -368,7 +370,7 @@ export default function SettingsPage() {
                 <div>
                   <label className="block mb-2 text-sm font-medium">Tagline</label>
                   <input
-                    className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     type="text"
                     value={tagline}
                     onChange={e => setTagline(e.target.value)}
@@ -381,7 +383,7 @@ export default function SettingsPage() {
                 <div>
                   <label className="block mb-2 text-sm font-medium">Biography</label>
                   <textarea
-                    className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={biography}
                     onChange={e => setBiography(e.target.value)}
                     placeholder="Tell us more about yourself..."
@@ -395,7 +397,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="social" className="space-y-6 mt-6">
-            <Card className="bg-black border-gray-700">
+            <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
                 <CardTitle>Social Links</CardTitle>
               </CardHeader>
@@ -404,7 +406,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Website</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="url"
                       value={website}
                       onChange={e => setWebsite(e.target.value)}
@@ -413,9 +415,9 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Twitter</label>
+                    <label className="block mb-2 text-sm font-medium">X</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={twitter}
                       onChange={e => setTwitter(e.target.value)}
@@ -426,7 +428,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Discord</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={discord}
                       onChange={e => setDiscord(e.target.value)}
@@ -437,7 +439,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Instagram</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={instagram}
                       onChange={e => setInstagram(e.target.value)}
@@ -448,7 +450,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">LinkedIn</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={linkedin}
                       onChange={e => setLinkedin(e.target.value)}
@@ -463,7 +465,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">ArtStation</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={artstation}
                         onChange={e => setArtstation(e.target.value)}
@@ -474,7 +476,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">Sketchfab</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={sketchfab}
                         onChange={e => setSketchfab(e.target.value)}
@@ -485,7 +487,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">Fab (Epic Games)</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={fab}
                         onChange={e => setFab(e.target.value)}
@@ -496,7 +498,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">TurboSquid</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={turbosquid}
                         onChange={e => setTurbosquid(e.target.value)}
@@ -507,7 +509,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">CGTrader</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={cgtrader}
                         onChange={e => setCgtrader(e.target.value)}
@@ -518,7 +520,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="block mb-2 text-sm font-medium">Behance</label>
                       <input
-                        className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         type="text"
                         value={behance}
                         onChange={e => setBehance(e.target.value)}
@@ -532,7 +534,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="professional" className="space-y-6 mt-6">
-            <Card className="bg-black border-gray-700">
+            <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
                 <CardTitle>Professional Information</CardTitle>
               </CardHeader>
@@ -541,7 +543,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Occupation</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={occupation}
                       onChange={e => setOccupation(e.target.value)}
@@ -552,7 +554,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Company</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
                       value={company}
                       onChange={e => setCompany(e.target.value)}
@@ -563,7 +565,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block mb-2 text-sm font-medium">Years of Experience</label>
                     <input
-                      className="w-full px-4 py-2 rounded-lg bg-[#111] border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="number"
                       min="0"
                       max="50"
@@ -579,7 +581,7 @@ export default function SettingsPage() {
                   <div className="space-y-4">
                     {skillCategories.map((category) => (
                       <div key={category.category}>
-                        <h4 className="text-sm font-medium text-gray-300 mb-2">{category.category}</h4>
+                        <h4 className="text-sm font-medium text-accent-foreground mb-2">{category.category}</h4>
                         <div className="flex flex-wrap gap-2">
                           {category.skills.map((skill) => (
                             <Badge
@@ -588,7 +590,7 @@ export default function SettingsPage() {
                               className={`cursor-pointer transition-colors ${
                                 selectedSkills.includes(skill)
                                   ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                  : "bg-[#111] hover:bg-[#333] text-gray-300 border-[#222]"
+                                  : "bg-accent-background hover:bg-[#333] text-accent-foreground border-[#222]"
                               }`}
                               onClick={() => toggleSkill(skill)}
                             >
@@ -601,7 +603,7 @@ export default function SettingsPage() {
                   </div>
                   {selectedSkills.length > 0 && (
                     <div className="mt-4">
-                      <h5 className="text-sm font-medium text-gray-300 mb-2">Selected Skills ({selectedSkills.length})</h5>
+                      <h5 className="text-sm font-medium text-accent-foreground mb-2">Selected Skills ({selectedSkills.length})</h5>
                       <div className="flex flex-wrap gap-2">
                         {selectedSkills.map((skill) => (
                           <Badge
@@ -620,7 +622,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="privacy" className="space-y-6 mt-6">
-            <Card className="bg-black border-gray-700">
+            <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
                 <CardTitle>Privacy Settings</CardTitle>
               </CardHeader>
@@ -632,13 +634,12 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-400">Make your profile visible to everyone</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
+                      <Checkbox
                         checked={profilePublic}
-                        onChange={e => setProfilePublic(e.target.checked)}
+                        onCheckedChange={v => setProfilePublic(!!v)}
+                        aria-label="Public Profile"
+                        className="h-6 w-6 cursor-pointer"
                       />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                   
@@ -648,13 +649,12 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-400">Display your email on your public profile</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
+                      <Checkbox
                         checked={showEmail}
-                        onChange={e => setShowEmail(e.target.checked)}
+                        onCheckedChange={v => setShowEmail(!!v)}
+                        aria-label="Show Email"
+                        className="h-6 w-6 cursor-pointer"
                       />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                   
@@ -664,13 +664,12 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-400">Display your location on your profile</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
+                      <Checkbox
                         checked={showLocation}
-                        onChange={e => setShowLocation(e.target.checked)}
+                        onCheckedChange={v => setShowLocation(!!v)}
+                        aria-label="Show Location"
+                        className="h-6 w-6 cursor-pointer"
                       />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                   
@@ -680,13 +679,12 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-400">Let other users send you direct messages</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
+                      <Checkbox
                         checked={allowDirectMessages}
-                        onChange={e => setAllowDirectMessages(e.target.checked)}
+                        onCheckedChange={v => setAllowDirectMessages(!!v)}
+                        aria-label="Allow Direct Messages"
+                        className="h-6 w-6 cursor-pointer"
                       />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                 </div>
@@ -702,13 +700,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-gray-400">Receive notifications via email</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
+                        <Checkbox
                           checked={emailNotifications}
-                          onChange={e => setEmailNotifications(e.target.checked)}
+                          onCheckedChange={v => setEmailNotifications(!!v)}
+                          aria-label="Email Notifications"
+                          className="h-6 w-6 cursor-pointer"
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                     
@@ -718,13 +715,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-gray-400">Receive push notifications in browser</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
+                        <Checkbox
                           checked={pushNotifications}
-                          onChange={e => setPushNotifications(e.target.checked)}
+                          onCheckedChange={v => setPushNotifications(!!v)}
+                          aria-label="Push Notifications"
+                          className="h-6 w-6 cursor-pointer"
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                     
@@ -734,13 +730,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-gray-400">Receive updates about new features and promotions</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
+                        <Checkbox
                           checked={marketingEmails}
-                          onChange={e => setMarketingEmails(e.target.checked)}
+                          onCheckedChange={v => setMarketingEmails(!!v)}
+                          aria-label="Marketing Emails"
+                          className="h-6 w-6 cursor-pointer"
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                   </div>
@@ -766,7 +761,7 @@ export default function SettingsPage() {
             >
               <Button
               type="button"
-              className="w-full bg-transparent hover:bg-white hover:text-black text-white border-[1px] border-[#333] py-6 cursor-pointer"
+              className="w-full bg-transparent hover:bg-accent-background text-accent-foreground hover:underline py-6 cursor-pointer"
               disabled={!address}
               >
               Go to Profile
@@ -783,14 +778,14 @@ export default function SettingsPage() {
           {!isExtensionWallet && (
             <Link
               href="/settings/password"
-              className="block w-full text-center py-3 px-4 rounded-lg border border-[#222] bg-[#111] hover:bg-[#222]"
+              className="block w-full text-center py-3 px-4 rounded-lg border border-[#222] bg-accent-background text-accent-foreground hover:underline"
             >
               Change Password
             </Link>
           )}
           <Link
             href="/settings/api/delete"
-            className="block w-full text-center text-red-400 py-3 px-4 rounded-lg border border-red-900 bg-red-900/20 hover:bg-red-900/30 transition-colors"
+            className="block w-full text-center text-red-400 py-3 px-4transition-colors"
           >
             Delete Account
           </Link>

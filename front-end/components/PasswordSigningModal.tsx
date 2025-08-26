@@ -1,6 +1,6 @@
 /**
- * Passphrase Signing Modal
- * Allows encrypted wallet users to sign transactions with their passphrase
+ * Password Signing Modal
+ * Allows encrypted wallet users to sign transactions with their password
  */
 
 'use client';
@@ -9,27 +9,27 @@ import React, { useState, useCallback } from 'react';
 import { Eye, EyeOff, Lock, AlertTriangle, X } from 'lucide-react';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 
-interface PassphraseSigningModalProps {
+interface PasswordSigningModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSign: (passphrase: string) => Promise<void>;
+  onSign: (password: string) => Promise<void>;
   title?: string;
   description?: string;
   actionText?: string;
   isLoading?: boolean;
 }
 
-export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
+export const PasswordSigningModal: React.FC<PasswordSigningModalProps> = ({
   isOpen,
   onClose,
   onSign,
   title = "Sign Transaction",
-  description = "Enter your wallet passphrase to sign this transaction.",
+  description = "Enter your wallet password to sign this transaction.",
   actionText = "Sign",
   isLoading = false,
 }) => {
-  const [passphrase, setPassphrase] = useState('');
-  const [showPassphrase, setShowPassphrase] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { walletInfo } = useEncryptedWallet();
@@ -37,8 +37,8 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!passphrase.trim()) {
-      setError('Please enter your passphrase');
+    if (!password.trim()) {
+      setError('Please enter your password');
       return;
     }
 
@@ -46,8 +46,8 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
     setError('');
 
     try {
-      await onSign(passphrase);
-      setPassphrase(''); // Clear passphrase for security
+      await onSign(password);
+      setPassword(''); // Clear password for security
       // Let parent component handle success and modal close
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signing failed';
@@ -55,11 +55,11 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [passphrase, onSign]);
+  }, [password, onSign]);
 
   const handleClose = useCallback(() => {
     if (isProcessing || isLoading) return;
-    setPassphrase('');
+    setPassword('');
     setError('');
     onClose();
   }, [isProcessing, isLoading, onClose]);
@@ -125,16 +125,16 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="signing-passphrase" className="text-sm font-medium text-black dark:text-white">
-              Wallet Passphrase
+            <label htmlFor="signing-password" className="text-sm font-medium text-black dark:text-white">
+              Wallet Password
             </label>
             <div className="relative">
               <input
-                id="signing-passphrase"
-                type={showPassphrase ? 'text' : 'password'}
-                placeholder="Enter your wallet passphrase"
-                value={passphrase}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassphrase(e.target.value)}
+                id="signing-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your wallet password"
+                value={password}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 disabled={isProcessing || isLoading}
                 className="w-full pr-10 px-3 py-2 border border-black/20 dark:border-white/20 rounded-md text-black dark:text-white bg-white dark:bg-black placeholder:text-black/50 dark:placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed"
                 autoComplete="new-password"
@@ -143,10 +143,10 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
               <button
                 type="button"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-black dark:text-white"
-                onClick={() => setShowPassphrase(!showPassphrase)}
+                onClick={() => setShowPassword(!showPassword)}
                 disabled={isProcessing || isLoading}
               >
-                {showPassphrase ? (
+                {showPassword ? (
                   <EyeOff className="h-4 w-4" />
                 ) : (
                   <Eye className="h-4 w-4" />
@@ -167,7 +167,7 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={!passphrase.trim() || isProcessing || isLoading}
+              disabled={!password.trim() || isProcessing || isLoading}
               className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-md hover:bg-black/90 dark:hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
             >
               {isProcessing || isLoading ? (
@@ -184,11 +184,11 @@ export const PassphraseSigningModal: React.FC<PassphraseSigningModalProps> = ({
 
         {/* Security Notice */}
         <div className="text-xs text-black/50 dark:text-white/50 text-center mt-4">
-          Your passphrase is used locally and never sent to our servers.
+          Your password is used locally and never sent to our servers.
         </div>
       </div>
     </div>
   );
 };
 
-export default PassphraseSigningModal;
+export default PasswordSigningModal;

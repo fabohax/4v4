@@ -136,7 +136,7 @@ export function BannerImageUpload({
 
   return (
     <div className="space-y-4">
-      <div className="text-sm font-medium text-white">Banner Image</div>
+      <div className="text-sm font-medium text-accent-foreground">Banner Image</div>
       
       {/* Banner Preview/Display */}
       <div className="relative w-full h-40 bg-white/10 rounded-xl overflow-hidden">
@@ -166,11 +166,11 @@ export function BannerImageUpload({
               <button
                 onClick={handleRemove}
                 disabled={isRemoving}
-                className="absolute top-2 right-2 p-2 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 rounded-lg transition-colors"
+                className="absolute top-2 right-2 p-2 bg-red-600 hover:bg-red-700 text-accent-background disabled:bg-red-600/50 rounded-lg transition-colors"
                 title="Remove banner"
               >
                 {isRemoving ? (
-                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <Loader2 className="w-4 h-4 text-accent-background animate-spin" />
                 ) : (
                   <X className="w-4 h-4 text-white" />
                 )}
@@ -184,16 +184,16 @@ export function BannerImageUpload({
                 className="absolute top-2 right-2 p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
                 title="Cancel"
               >
-                <X className="w-4 h-4 text-white" />
+                <X className="w-4 h-4 text-accent-foreground" />
               </button>
             )}
           </div>
         ) : (
           /* Upload area when no image */
-          <div className="flex flex-col items-center justify-center h-full text-white/60">
+          <div className="flex flex-col items-center justify-center h-full text-accent-foreground/60">
             <ImageIcon className="w-12 h-12 mb-2" />
             <p className="text-sm">No banner image</p>
-            <p className="text-xs text-white/40">Recommended: 1200x400px</p>
+            <p className="text-xs text-accent-foreground/40">Recommended: 1200x400px</p>
           </div>
         )}
       </div>
@@ -201,14 +201,14 @@ export function BannerImageUpload({
       {/* Upload controls */}
       <div className="flex gap-3">
         <label className="flex-1">
-          <input
+          <input  
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileSelect}
             className="hidden"
           />
-          <div className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/20 cursor-pointer transition-colors text-center text-sm">
+          <div className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-accent-foreground rounded-lg border border-white/20 cursor-pointer transition-colors text-center text-sm">
             <Upload className="w-4 h-4 inline mr-2" />
             Choose Banner Image
           </div>
@@ -218,7 +218,7 @@ export function BannerImageUpload({
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg transition-colors text-sm"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-accent-foreground rounded-lg transition-colors text-sm"
           >
             {isUploading ? (
               <>
@@ -239,7 +239,7 @@ export function BannerImageUpload({
         </div>
       )}
 
-      <div className="text-xs text-white/60">
+      <div className="text-xs text-accent-foreground/60">
         Upload a banner image for your profile. Recommended size: 1200x400 pixels. Max file size: 10MB.
       </div>
     </div>

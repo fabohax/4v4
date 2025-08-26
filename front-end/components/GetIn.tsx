@@ -121,7 +121,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
         <div className='fixed top-8 right-4 md:right-8 z-100'>
           <button
             type="button"
-            className="w-9 h-9 bg-gradient-to-br from-muted to-muted-foreground/50 rounded-full overflow-hidden cursor-pointer select-none transition-all duration-200 flex items-center justify-center"
+            className="w-9 h-9 border-1 border-[#555] bg-gradient-to-br from-muted to-muted-foreground/50 rounded-full overflow-hidden cursor-pointer select-none transition-all duration-200 flex items-center justify-center"
             onClick={() => setShowUserModal(true)}
             aria-label="Profile"
           >
@@ -160,7 +160,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
         <div className='fixed top-7 right-4 md:right-8 z-100'>
           <Button
             onClick={() => setShowGetInModal(true)}
-            className="title rounded-full px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm bg-black hover:bg-accent-foreground hover:text-black text-primary-background border-white  border-[1px] cursor-pointer select-none"
+            className="title rounded-full px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm bg-accent-foreground hover:bg-accent-foreground text-primary-foreground cursor-pointer select-none"
             {...buttonProps}
           >
             {children || 'GET IN'}

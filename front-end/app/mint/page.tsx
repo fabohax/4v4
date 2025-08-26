@@ -1081,18 +1081,10 @@ export default function ProfilePage() {
       toast.success('NFT Contract deployed successfully! Redirecting...');
 
       // Redirect using contractAddress and contractName
-      setTimeout(() => {
-        // If tokenId is returned from the API, route to the NFT detail page
-        const tokenId = responseData.tokenId || responseData.token_id || responseData.id;
-        if (tokenId) {
-          const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}/${tokenId}`;
-          router.push(redirectPath);
-        } else {
-          // fallback: route to contract page
-          const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}`;
-          router.push(redirectPath);
-        }
-      }, 3000);
+  // Redirect to NFT detail page, defaulting to tokenId 1 if not present
+  const tokenId = responseData.tokenId || responseData.token_id || responseData.id || 1;
+  const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}/${tokenId}`;
+  router.push(redirectPath);
 
     } catch (error) {
       console.error('Minting error:', error);

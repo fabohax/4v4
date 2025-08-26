@@ -8,7 +8,7 @@ import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/comp
 import { CircleHelp, X, Shield, Upload } from 'lucide-react';
 import { createStacksAccount } from '@/lib/stacksWallet';
 import { useRouter } from 'next/navigation';
-import { PassphraseInput } from '@/components/PassphraseInput';
+import { PasswordInput } from '@/components/PasswordInput';
 import ImportWalletModal from './ConnectModal';
 import { formatStxAddress } from '@/lib/address-utils';
 
@@ -61,7 +61,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
     }
   };
 
-  const handleEncryptedWalletSubmit = async (passphrase: string, email?: string) => {
+  const handleEncryptedWalletSubmit = async (password: string, email?: string) => {
     try {
       if (encryptedWalletMode === 'create') {
         // Generate new wallet data for encryption
@@ -72,7 +72,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           address,
           label: 'My 4V4 Wallet'
         };
-        await createEncryptedWallet(walletData, passphrase);
+        await createEncryptedWallet(walletData, password);
         
         // Save to Supabase if email provided
         if (email) {
@@ -86,7 +86,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               body: JSON.stringify({
                 email,
                 passkey: stxPrivateKey, 
-                passphrase,
+                password,
                 address
               }),
             });
@@ -105,6 +105,23 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
             console.warn('Account creation will continue without database save');
             // Don't throw error - continue with wallet creation even if DB save fails
           }
+
+          // Send confirmation email with address
+          try {
+            const mailRes = await fetch('/api/wallet-connect/account-created', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, address }),
+            });
+            const mailResult = await mailRes.json();
+            if (!mailRes.ok) {
+              console.warn('Failed to send confirmation email:', mailResult);
+            } else {
+              console.log('Confirmation email sent:', mailResult);
+            }
+          } catch (mailError) {
+            console.warn('Error sending confirmation email:', mailError);
+          }
         }
         
         // Redirect to welcome page with email
@@ -112,7 +129,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
         router.push(`/welcome${emailParam}`);
         if (onClose) onClose();
       } else {
-        await unlockWallet(passphrase);
+        await unlockWallet(password);
         if (walletInfo) {
           // For existing wallets, redirect to the address page
           router.push(`/${walletInfo.address}`);
@@ -177,13 +194,13 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
                 </h3>
                 <p className="text-sm text-gray-400">
                   {encryptedWalletMode === 'create' 
-                    ? 'Create a passphrase to encrypt your wallet locally'
-                    : 'Enter your passphrase to unlock your encrypted wallet'
+                    ? 'Create a password to encrypt your wallet locally'
+                    : 'Enter your password to unlock your encrypted wallet'
                   }
                 </p>
               </div>
               
-              <PassphraseInput
+              <PasswordInput
                 mode={encryptedWalletMode}
                 onSubmit={handleEncryptedWalletSubmit}
                 isLoading={encryptedLoading}
