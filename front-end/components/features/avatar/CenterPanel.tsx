@@ -10,12 +10,16 @@ interface CenterPanelProps {
     background: string;
     secondaryColor: string;
     modelUrl?: string | null;
-    lightIntensity: number; 
+    lightIntensity: number;
+    meshGroundColor?: string;
 }
 
 export default function CenterPanel({
-    background, secondaryColor,
-    modelUrl, lightIntensity 
+    background,
+    secondaryColor,
+    modelUrl,
+    lightIntensity,
+    meshGroundColor
 }: CenterPanelProps) {
     const mountRef = useRef<HTMLCanvasElement>(null);
     const sceneRef = useRef<BABYLON.Scene | null>(null) as MutableRefObject<BABYLON.Scene | null>;
@@ -87,7 +91,11 @@ export default function CenterPanel({
         const gridMaterial = new GridMaterial("gridMaterial", scene); // Use the imported GridMaterial
         gridMaterialRef.current = gridMaterial; // Store grid material in ref
         gridMaterial.lineColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Thin gray lines
-        gridMaterial.mainColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Try using mainColor for bolder lines
+        if (meshGroundColor) {
+            gridMaterial.mainColor = BABYLON.Color3.FromHexString(meshGroundColor);
+        } else {
+            gridMaterial.mainColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Default dark
+        }
         gridMaterial.gridRatio = 0.2; // Adjust for more or fewer major lines
         gridMaterial.backFaceCulling = false; // Ensure grid is visible from both sides
 

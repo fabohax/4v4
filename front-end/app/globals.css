@@ -1,3 +1,10 @@
+/* Invert loader.gif in light theme, normal in dark */
+.loader-invert-light {
+  filter: invert(1);
+}
+.dark .loader-invert-light {
+  filter: none;
+}
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "leaflet/dist/leaflet.css";

@@ -1,8 +1,8 @@
 'use client'
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, Settings, HelpCircle, LogOut, User } from 'lucide-react';
-import { HiroWalletContext } from './HiroWalletProvider';
+import { useWallet } from './WalletProvider';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { getPersistedNetwork } from '@/lib/network';
@@ -15,27 +15,11 @@ interface UserModalProps {
 }
 
 export default function UserModal({ onClose }: UserModalProps) {
-  const { mainnetAddress, testnetAddress, disconnect } = useContext(HiroWalletContext);
+  const { address } = useWallet();
   const [balance, setBalance] = useState<string | null>(null);
-  const [sessionAddress, setSessionAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const router = useRouter();
-
-  // Check for session user
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const session = localStorage.getItem('4v4_session');
-        if (session) {
-          const parsed = JSON.parse(session);
-          if (parsed.address) setSessionAddress(parsed.address);
-        }
-      } catch {}
-    }
-  }, []);
-
-  // Use session address if present, else fallback to HiroWalletContext
-  const currentAddress = sessionAddress || mainnetAddress || testnetAddress || null;
+  const currentAddress = address;
 
   // Fetch balance from Hiro API (recommended endpoint)
   useEffect(() => {
@@ -94,22 +78,18 @@ export default function UserModal({ onClose }: UserModalProps) {
   };
 
   const handleSignOut = () => {
-    // Clear the 4v4 session
+    // Clear the 4v4 session and wallet address
     if (typeof window !== "undefined") {
       localStorage.removeItem('4v4_session');
       window.dispatchEvent(new Event("4v4-session-update"));
     }
-    
-    // Disconnect the wallet using the provider's disconnect method
-    disconnect();
-    
-    // Close the modal
+  // Do NOT clear the wallet address here, so extension session remains open
+  // setAddress(null);
     onClose();
-    
-    // Redirect to home page after disconnect
-    router.push('/');
-
-    // Refresh the page to update UI state
+    // Always route to index after disconnect
+    if (router) {
+      router.push('/');
+    }
     if (typeof window !== "undefined") {
       setTimeout(() => window.location.reload(), 200);
     }

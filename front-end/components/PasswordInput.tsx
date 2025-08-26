@@ -298,7 +298,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
       {/* Security Notice */}
       {mode === 'create' && (
-        <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+        <div className="p-3 bg-transparent border border-blue-500/30 rounded-lg">
           <p className="text-blue-400 text-xs flex items-start gap-2">
             <Shield className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>

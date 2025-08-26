@@ -30,7 +30,7 @@ export default function AppLoader({ isLoading }: AppLoaderProps) {
           height={120}
           priority
           unoptimized
-          className="rounded-lg"
+          className="rounded-lg loader-invert-light"
         />
       </motion.div>
     </motion.div>

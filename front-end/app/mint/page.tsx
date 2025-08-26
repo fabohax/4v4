@@ -1,9 +1,9 @@
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { HiroWalletContext } from '@/components/HiroWalletProvider';
+import { useWallet } from '@/components/WalletProvider';
 import { useDevnetWallet } from '@/components/DevnetWalletProvider';
 import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
 import { 
@@ -20,10 +20,10 @@ import { renderModelToImage } from '@/lib/renderModelToImage';
 import { getPersistedNetwork } from '@/lib/network';
 
 // Utility to detect wallet type
-interface WindowWithWallets extends Window {
+interface WindowWithWallets {
   XverseProviders?: { StacksProvider: unknown };
   LeatherProvider?: unknown;
-  BitcoinProvider?: unknown; // Xverse also provides this
+  BitcoinProvider?: unknown; // Use 'any' to match the Window interface type
   StacksProvider?: unknown; // Hiro Wallet
 }
 
@@ -94,8 +94,8 @@ const LocationMapModal = dynamic(() => import('@/components/LocationMapModal'), 
   ssr: false,
 });
 
-export default function ProfilePage() {
-  const { currentAddress, isWalletConnected } = useContext(HiroWalletContext);
+export default function MintPage() {
+  const { address } = useWallet();
   const { currentWallet } = useDevnetWallet();
   const { 
     currentWallet: encryptedWallet, 
@@ -105,10 +105,10 @@ export default function ProfilePage() {
   const router = useRouter();
 
   // Enhanced wallet determination - prioritize encrypted wallet, then external, then devnet
-  const isInternalWallet = !isWalletConnected && (isEncryptedAuthenticated || !!currentWallet);
-  const effectiveAddress = isWalletConnected ? currentAddress : 
+  const isInternalWallet = !address && (isEncryptedAuthenticated || !!currentWallet);
+  const effectiveAddress = address ? address : 
     (isEncryptedAuthenticated ? encryptedWallet?.address : currentWallet?.stxAddress || null);
-  const isAnyWalletConnected = isWalletConnected || isEncryptedAuthenticated || !!currentWallet;
+  const isAnyWalletConnected = !!address || isEncryptedAuthenticated || !!currentWallet;
 
   // Wallet status monitoring (minimal logging)
   useEffect(() => {

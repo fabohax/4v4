@@ -208,7 +208,7 @@ export function BannerImageUpload({
             onChange={handleFileSelect}
             className="hidden"
           />
-          <div className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-accent-foreground rounded-lg border border-white/20 cursor-pointer transition-colors text-center text-sm">
+          <div className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-accent-foreground rounded-lg border border-foreground/20 transition-colors text-center text-sm cursor-pointer">
             <Upload className="w-4 h-4 inline mr-2" />
             Choose Banner Image
           </div>
@@ -218,7 +218,7 @@ export function BannerImageUpload({
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-accent-foreground rounded-lg transition-colors text-sm"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-background rounded-lg transition-colors text-sm cursor-pointer"
           >
             {isUploading ? (
               <>

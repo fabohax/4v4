@@ -49,6 +49,7 @@ export default function AccountCreatedPage() {
             priority
             unoptimized
             style={{ minWidth: 75, minHeight: 37.5, width: 75, height: 37.5 }}
+            className="loader-invert-light"
           />
         </div>
       </div>
@@ -89,6 +90,7 @@ export default function AccountCreatedPage() {
                 priority
                 unoptimized
                 style={{ minWidth: 75, minHeight: 38, width: 75, height: 38 }}
+                className="loader-invert-light"
               />
             </span>
           ) : (

@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { retrieveEncryptedWallet } from "@/lib/encryptedStorage";
+import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 
 // Extend the Window interface to include StacksProvider
 declare global {
@@ -8,9 +9,9 @@ declare global {
     StacksProvider?: unknown;
   }
 }
+
 import { getSigningNetwork } from "@/lib/encryptedWalletSigning";
 import { makeSTXTokenTransfer, broadcastTransaction } from "@stacks/transactions";
-import { HiroWalletContext } from "@/components/HiroWalletProvider";
 import { getApiUrl } from "@/lib/stacks-api";
 import { getPersistedNetwork } from "@/lib/network";
 
@@ -22,8 +23,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { fetchRecentTransactions } from "@/lib/fetchRecentTransactions";
 
 export default function WalletPage() {
-  const { mainnetAddress, testnetAddress } = useContext(HiroWalletContext) || {};
-  const [sessionAddress, setSessionAddress] = useState<string | null>(null);
+  const address = useCurrentAddress() || "";
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,28 +35,14 @@ export default function WalletPage() {
   const [sendPassword, setSendPassword] = useState("");
   const [sendLoading, setSendLoading] = useState(false);
   const [extensionAvailable, setExtensionAvailable] = useState(false);
-  // Detect if Hiro Wallet extension is available and connected
+  // Detect if Hiro Wallet extension is available and connected (optional, can remove if not needed)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.StacksProvider) {
       setExtensionAvailable(true);
     } else {
       setExtensionAvailable(false);
     }
-  }, [mainnetAddress, testnetAddress, showSend]);
-
-  // Get address from session or context
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const session = localStorage.getItem('4v4_session');
-        if (session) {
-          const parsed = JSON.parse(session);
-          if (parsed.address) setSessionAddress(parsed.address);
-        }
-      } catch {}
-    }
-  }, []);
-  const address = sessionAddress || mainnetAddress || testnetAddress || "";
+  }, [showSend]);
 
   // Fetch balance
   useEffect(() => {
@@ -99,26 +85,56 @@ export default function WalletPage() {
     try {
       if (extensionAvailable) {
         try {
-          // Use LeatherProvider if available, else fallback to StacksProvider
-          const provider = (typeof window !== 'undefined' && (window as any).LeatherProvider)
-            ? (window as any).LeatherProvider
-            : (typeof window !== 'undefined' && (window as any).StacksProvider)
-              ? (window as any).StacksProvider
-              : null;
+          const win = typeof window !== 'undefined' ? window : undefined;
+          let provider: {
+            request?: (method: string, params?: unknown) => Promise<unknown>;
+          } | null = null;
+          if (win && 'LeatherProvider' in win) {
+            provider = (win.LeatherProvider ?? null) as { request?: (method: string, params?: unknown) => Promise<unknown> };
+          } else if (
+            win &&
+            'XverseProviders' in win &&
+            typeof (win as { XverseProviders?: { StacksProvider?: unknown } }).XverseProviders !== 'undefined' &&
+            (win as { XverseProviders: { StacksProvider?: unknown } }).XverseProviders.StacksProvider
+          ) {
+            provider = ((win as { XverseProviders: { StacksProvider?: unknown } }).XverseProviders.StacksProvider ?? null) as { request?: (method: string, params?: unknown) => Promise<unknown> };
+          } else if (win && 'StacksProvider' in win) {
+            provider = (win.StacksProvider ?? null) as { request?: (method: string, params?: unknown) => Promise<unknown> };
+          }
           if (!provider) {
             toast.error('No compatible wallet extension found.');
             setSendLoading(false);
             return;
           }
-          // Use the correct LeatherProvider method for STX transfer
-          await provider.request(
-            "stx_transferStx",
-            {
-              recipient: sendTo,
-              amount: String(Math.round(Number(sendAmount) * 1e6)), // microSTX as string
-              memo: '',
+          // Leather: use "stx_transferStx"; Xverse: use "stx_transferStx"; fallback: try "stx_requestTransfer"
+          try {
+            await provider.request?.(
+              "stx_transferStx",
+              {
+                recipient: sendTo,
+                amount: String(Math.round(Number(sendAmount) * 1e6)), // microSTX as string
+                memo: '',
+              }
+            );
+          } catch (err) {
+            // Try fallback method for older providers
+            if (provider.request && typeof provider.request === 'function') {
+              try {
+                await provider.request?.(
+                  "stx_requestTransfer",
+                  {
+                    recipient: sendTo,
+                    amount: String(Math.round(Number(sendAmount) * 1e6)),
+                    memo: '',
+                  }
+                );
+              } catch (fallbackErr) {
+                throw fallbackErr;
+              }
+            } else {
+              throw err;
             }
-          );
+          }
           toast.success('Transaction sent via extension!');
           setShowSend(false);
           setSendTo("");
@@ -126,18 +142,17 @@ export default function WalletPage() {
           setSendPassword("");
         } catch (err: unknown) {
           // Log the error object for debugging
-          // eslint-disable-next-line no-console
           console.error('Extension transaction error:', err);
           let errorMsg = 'Extension transaction failed';
           let isUserCancel = false;
-          if (err && typeof err === 'object') {
-            if ('message' in err && typeof (err as any).message === 'string') {
-              errorMsg = (err as any).message;
+          if (err && typeof err === 'object' && err !== null) {
+            if ('message' in err && typeof (err as Record<string, unknown>).message === 'string') {
+              errorMsg = (err as { message: string }).message;
               if (errorMsg.includes('User canceled the request')) {
                 isUserCancel = true;
               }
-            } else if ('error' in err && typeof (err as any).error === 'string') {
-              errorMsg = (err as any).error;
+            } else if ('error' in err && typeof (err as Record<string, unknown>).error === 'string') {
+              errorMsg = (err as { error: string }).error;
               if (errorMsg.includes('User canceled the request')) {
                 isUserCancel = true;
               }
@@ -151,8 +166,8 @@ export default function WalletPage() {
             toast.error(errorMsg);
           }
         }
-        setSendLoading(false);
-        return;
+  setSendLoading(false);
+  return;
       }
       // 1. Decrypt wallet with password
       const wallet = await retrieveEncryptedWallet(sendPassword);
@@ -190,7 +205,19 @@ export default function WalletPage() {
   };
 
   // Recent transactions state
-  const [transactions, setTransactions] = useState<any[]>([]);
+  // Define a minimal transaction type for recent transactions
+  type RecentTransaction = {
+    tx_id: string;
+    tx_type: string;
+    sender_address: string;
+    token_transfer?: {
+      recipient_address: string;
+      amount: string;
+    };
+    burn_block_time_iso?: string;
+    [key: string]: unknown;
+  };
+  const [transactions, setTransactions] = useState<RecentTransaction[]>([]);
   const [txLoading, setTxLoading] = useState(false);
 
   // Fetch recent transactions
@@ -208,12 +235,12 @@ export default function WalletPage() {
   }, [address, showSend]);
 
 
-  // If no session user and no Hiro wallet, ask to connect wallet
-  if (!sessionAddress && !mainnetAddress && !testnetAddress) {
+  // If no wallet address, ask to connect wallet
+  if (!address) {
     return (
-  <div className="max-w-xl mx-auto my-24 p-8 rounded-2xl border-[1px] shadow flex flex-col items-center justify-center select-none bg-white dark:bg-black border-gray-200 dark:border-[#333] text-gray-900 dark:text-white">
-  <h1 className="text-3xl font-bold mb-6">Wallet</h1>
-  <p className="mb-8 text-lg text-gray-600 dark:text-gray-300 text-center">
+      <div className="max-w-xl mx-auto my-24 p-8 rounded-2xl border-[1px] shadow flex flex-col items-center justify-center select-none bg-white dark:bg-black border-gray-200 dark:border-[#333] text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold mb-6">Wallet</h1>
+        <p className="mb-8 text-lg text-gray-600 dark:text-gray-300 text-center">
           Please connect your wallet to manage your funds.
         </p>
         <Link
@@ -400,7 +427,7 @@ export default function WalletPage() {
       {/* Recent Transactions */}
       <div className="mt-10">
         <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
-        <div className="bg-background border border-foreground rounded-xl p-4 max-h-96 overflow-y-auto">
+        <div className="bg-background rounded-xl py-4 max-h-96 overflow-y-auto">
           {txLoading ? (
             <div className="flex justify-center items-center py-8">
               <Image src="/loaderb.gif" alt="Loading..." width={32} height={16} unoptimized />
@@ -414,7 +441,7 @@ export default function WalletPage() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-xs text-gray-700 dark:text-gray-300 break-all">
-                        <a href={`https://explorer.stacks.co/txid/${tx.tx_id}?chain=${getPersistedNetwork()}`}
+                        <a href={`https://explorer.hiro.so/txid/${tx.tx_id}?chain=${getPersistedNetwork()}`}
                           target="_blank" rel="noopener noreferrer"
                           className="hover:underline text-blue-600 dark:text-blue-400">
                           {tx.tx_id.slice(0, 10)}...{tx.tx_id.slice(-8)}
@@ -425,11 +452,11 @@ export default function WalletPage() {
                           <>
                             <span className="font-semibold">{tx.sender_address === address ? 'Sent' : 'Received'}</span>
                             {tx.sender_address === address ? (
-                              <> to <span className="font-mono">{tx.token_transfer.recipient_address.slice(0, 8)}...{tx.token_transfer.recipient_address.slice(-6)}</span></>
+                              <> to <span className="font-mono">{tx.token_transfer?.recipient_address?.slice(0, 8)}...{tx.token_transfer?.recipient_address?.slice(-6)}</span></>
                             ) : (
                               <> from <span className="font-mono">{tx.sender_address.slice(0, 8)}...{tx.sender_address.slice(-6)}</span></>
                             )}
-                            <span className="ml-2">{Number(tx.token_transfer.amount) / 1e6} STX</span>
+                            <span className="ml-2">{tx.token_transfer?.amount ? Number(tx.token_transfer.amount) / 1e6 : ''} STX</span>
                           </>
                         ) : (
                           <span className="text-gray-500">{tx.tx_type.replace(/_/g, ' ')}</span>

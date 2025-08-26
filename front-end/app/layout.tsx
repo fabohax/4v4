@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { GetInButton } from "@/components/GetIn";
 import Footer from "@/components/Footer";
 import { Providers } from '@/components/ui/provider';
+import { WalletProvider } from '@/components/WalletProvider';
 import { Toaster } from "@/components/ui/sonner"
 import AppLoadingProvider from "@/components/AppLoadingProvider";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
@@ -47,16 +48,18 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${chakraPetch.variable} antialiased`}>
         <GlobalErrorHandler />
-        <Providers>
-          <AppLoadingProvider>
-            <Navbar />
-            <GetInButton />
-            <main >
-              {children}
-            </main>
-            <Footer />
-          </AppLoadingProvider>
-        </Providers>
+        <WalletProvider>
+          <Providers>
+            <AppLoadingProvider>
+              <Navbar />
+              <GetInButton />
+              <main >
+                {children}
+              </main>
+              <Footer />
+            </AppLoadingProvider>
+          </Providers>
+        </WalletProvider>
         <Toaster />
       </body>
     </html>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
-import { HiroWalletContext } from './HiroWalletProvider';
+import { useState, useEffect } from 'react';
+import { useCurrentAddress } from '@/hooks/useCurrentAddress';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { Button } from '@/components/ui/button';
 import GetInModal from './GetInModal';
@@ -22,36 +22,13 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
   const [showGetInModal, setShowGetInModal] = useState(false);
   const [isSessionLoggedIn, setIsSessionLoggedIn] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
-  const {
-    isWalletConnected,
-    mainnetAddress,
-    testnetAddress,
-  } = useContext(HiroWalletContext);
+  const currentAddress = useCurrentAddress();
+  // isWalletConnected is true if a wallet address is present
+  const isWalletConnected = !!currentAddress;
   const { isAuthenticated: isEncryptedAuthenticated } = useEncryptedWallet();
 
   // Get current address from session or wallet
-  useEffect(() => {
-    let address = null;
-    
-    // Check session address first
-    if (typeof window !== "undefined") {
-      try {
-        const session = localStorage.getItem('4v4_session');
-        if (session) {
-          const parsed = JSON.parse(session);
-          if (parsed.address) address = parsed.address;
-        }
-      } catch {}
-    }
-    
-    // Fallback to wallet addresses
-    if (!address) {
-      address = mainnetAddress || testnetAddress || null;
-    }
-    
-    setCurrentAddress(address);
-  }, [isSessionLoggedIn, mainnetAddress, testnetAddress]);
+  // currentAddress is now always up-to-date from useCurrentAddress
 
   // Load profile when address changes
   useEffect(() => {
@@ -117,7 +94,7 @@ export const GetInButton = (buttonProps: GetInButtonProps) => {
 
   return (
     <>
-      {(isSessionLoggedIn || isWalletConnected || isEncryptedAuthenticated) ? (
+  {(isSessionLoggedIn || isWalletConnected || isEncryptedAuthenticated) ? (
         <div className='fixed top-8 right-4 md:right-8 z-100'>
           <button
             type="button"

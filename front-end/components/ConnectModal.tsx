@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
+import { request as satsRequest } from 'sats-connect';
+import { useWallet } from './WalletProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Upload, Mail, Key } from 'lucide-react';
+import { X, Wallet, Mail, Key } from 'lucide-react';
 import { validateAndGenerateWallet } from '@/lib/walletHelpers';
+import { detectWalletExtensions } from '@/lib/detectWalletExtensions';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { useRouter } from 'next/navigation';
 import { upsertConnectedAccountPasskey, getConnectedAccountByEmail, getConnectedAccountPasskeyByAddress } from '@/lib/connectedAccountsApi';
@@ -23,7 +27,6 @@ export async function verifyPassphraseForSettings(address: string, passphrase: s
 }
 import CryptoJS from 'crypto-js';
 
-// Extend Window interface for temporary import data
 declare global {
   interface Window {
     tempImportData?: {
@@ -32,25 +35,33 @@ declare global {
       address: string;
       label: string;
     };
+    LeatherProvider?: unknown;
   }
 }
 
 interface ConnectModalProps {
   onClose: () => void;
   onSuccess?: () => void;
+  onError?: (err: string) => void;
 }
 
-type ConnectMode = 'email' | 'mnemonic';
+type ConnectMode = 'wallets' | 'email' | 'mnemonic';
 
-export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) {
-  const [connectMode, setConnectMode] = useState<ConnectMode>('email');
+// Destructure props at the top of your component
+export default function ConnectModal({ onClose, onSuccess, onError }: ConnectModalProps) {
+  const [connectMode, setConnectMode] = useState<ConnectMode>('wallets');
+  const [wallets, setWallets] = useState<Array<{id: string, name: string, url: string, installed: boolean}>>([]);
+  React.useEffect(() => {
+    setWallets(detectWalletExtensions());
+  }, []);
   const [mnemonic, setMnemonic] = useState('');
   const [email, setEmail] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailMessage, setEmailMessage] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
-  const [walletLabel, setWalletLabel] = useState('Imported Wallet');
+  const [walletLabel, setWalletLabel] = useState('');
+  const { setAddress } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'import' | 'encrypt'>('import');
@@ -61,6 +72,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
   const handleMnemonicImport = async () => {
     if (!mnemonic.trim()) {
       setError('Please enter your mnemonic phrase');
+      onError?.('Please enter your mnemonic phrase');
       return;
     }
 
@@ -72,7 +84,10 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
       const { privateKey, address } = await validateAndGenerateWallet(mnemonic.trim());
       
       if (!privateKey || !address) {
-        throw new Error('Invalid mnemonic phrase');
+        setError('Invalid mnemonic phrase');
+        onError?.('Invalid mnemonic phrase');
+        setIsLoading(false);
+        return;
       }
 
       // Store temporary data for encryption step
@@ -85,7 +100,9 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
 
       setStep('encrypt');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid mnemonic phrase');
+      const msg = err instanceof Error ? err.message : 'Invalid mnemonic phrase';
+      setError(msg);
+      onError?.(msg);
     } finally {
       setIsLoading(false);
     }
@@ -171,6 +188,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
     if (!email.trim()) {
       setEmailStatus('error');
       setEmailMessage('Please enter your email address');
+      onError?.('Please enter your email address');
       return;
     }
 
@@ -178,6 +196,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
     if (!emailRegex.test(email)) {
       setEmailStatus('error');
       setEmailMessage('Please enter a valid email address');
+      onError?.('Please enter a valid email address');
       return;
     }
 
@@ -197,31 +216,37 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send connection link');
+        setEmailStatus('error');
+        setEmailMessage(data.error || 'Failed to send connection link');
+        onError?.(data.error || 'Failed to send connection link');
+        setIsLoading(false);
+        return;
       }
 
       setEmailStatus('sent');
       setEmailMessage('Connection link sent! Please check your email.');
     } catch (err: unknown) {
       setEmailStatus('error');
-      setEmailMessage((err as Error).message || 'Failed to send email.');
+      const msg = (err as Error).message || 'Failed to send email.';
+      setEmailMessage(msg);
+      onError?.(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-[101] select-none">
-      <div className="bg-background rounded-[21px] w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[101] select-none">
+      <div className="bg-white rounded-2xl w-[400px] max-w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-foreground flex items-center">
-            <Upload className="w-5 h-5 mr-2" />
-            Connect Account
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <Wallet className="w-5 h-5 mr-2" />
+            Connect a wallet
           </h2>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-foreground transition-colors"
+            className="text-gray-400 hover:text-gray-900 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-6 h-6" />
@@ -229,154 +254,274 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
         </div>
 
         <div className="p-6 space-y-6">
-          {step === 'import' ? (
+          {connectMode === 'wallets' && (
             <>
-              {/* Connect Mode Selection */}
-              <div className="flex gap-2 mb-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setConnectMode('email')}
-                  className={`flex-1 cursor-pointer transition-colors ${
-                    connectMode === 'email' 
-                      ? 'text-foreground border-foreground' 
-                      : 'bg-transparent border-transparent'
-                  }`}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setConnectMode('mnemonic')}
-                  className={`flex-1 cursor-pointer transition-colors ${
-                    connectMode === 'mnemonic' 
-                      ? 'text-foreground border-foreground' 
-                      : ' border-[1px] border-background text-foreground'
-                  }`}
-                >
-                  <Key className="w-4 h-4 mr-2" />
-                  Mnemonic
-                </Button>
+              <div className="mb-2 text-gray-700 text-sm">
+                You don&apos;t have unknown wallets in your browser that support this app. You need to install a wallet to proceed.
               </div>
-
-              {connectMode === 'email' ? (
-                <div className="space-y-4">
-                  <div>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      className="cursor-pointer"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button 
-                    onClick={handleEmailConnect} 
-                    disabled={!email || isLoading} 
-                    className="w-full cursor-pointer bg-foreground text-black hover:bg-foreground hover:text-black transition-colors"
-                  >
-                    {isLoading ? 'Sending...' : 'Send Connection Link'}
-                  </Button>
-                  {emailMessage && (
-                    <div style={{ color: emailStatus === 'error' ? 'red' : 'green', marginTop: 8 }} className="text-sm">
-                      {emailMessage}
+              <div className="space-y-3">
+                {wallets.map(w => (
+                  <div key={w.id} className="flex items-center justify-between rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src={w.id === 'leather' ? '/leather.svg' : w.id === 'xverse' ? '/xverse.svg' : ''}
+                        alt={w.name}
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 rounded"
+                        unoptimized
+                      />
+                      <div>
+                        <div className="font-semibold text-gray-900">{w.name}</div>
+                        <div className="text-xs text-gray-500">{w.url.replace('https://', '')}</div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Wallet Label
-                    </label>
-                    <Input
-                      value={walletLabel}
-                      onChange={(e) => setWalletLabel(e.target.value)}
-                      placeholder="My Imported Wallet"
-                      className="bg-background border-gray-600 text-foreground"
-                    />
+                    {w.installed ? (
+                      <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-lg text-sm font-semibold cursor-pointer"
+                        onClick={async () => {
+                          console.log('Connect button clicked:', w);
+                          try {
+                            if (w.id === 'leather' && window.LeatherProvider) {
+                              console.log('LeatherProvider found:', window.LeatherProvider);
+                              const provider = window.LeatherProvider;
+                              if (
+                                provider &&
+                                typeof provider === 'object' &&
+                                'request' in provider &&
+                                typeof (provider as { request?: unknown }).request === 'function'
+                              ) {
+                                // Use the latest Leather API: getAddresses
+                                const response = await (provider as { request: (method: string, params?: unknown) => Promise<unknown> }).request('getAddresses');
+                                console.log('Leather getAddresses response:', response);
+                                const stxAddress = Array.isArray((response as { result?: { addresses?: { symbol: string; address: string }[] } })?.result?.addresses)
+                                  ? ((response as { result: { addresses: { symbol: string; address: string }[] } }).result.addresses.find(addr => addr.symbol === 'STX')?.address)
+                                  : undefined;
+                                if (stxAddress) {
+                                  console.log('Leather connect success, STX address:', stxAddress);
+                                  setAddress(stxAddress);
+                                  onSuccess?.();
+                                  onClose();
+                                  router.push(`/${stxAddress}`);
+                                } else {
+                                  setError('No Stacks address found in Leather.');
+                                  onError?.('No Stacks address found in Leather.');
+                                  console.warn('No Stacks address found in Leather.');
+                                }
+                              } else {
+                                setError('Leather provider does not support request.');
+                                onError?.('Leather provider does not support request.');
+                                console.warn('Leather provider does not support request.');
+                              }
+                            } else if (w.id === 'xverse') {
+                              // Use Sats Connect API for Xverse
+                              try {
+                                const response = await satsRequest('wallet_connect', null);
+                                if (response.status === 'success') {
+                                  const stacksAddressItem = Array.isArray(response.result.addresses)
+                                    ? (response.result.addresses as { purpose: string; address: string }[]).find(address => address.purpose === 'stacks')
+                                    : undefined;
+                                  const stxAddress = stacksAddressItem?.address;
+                                  if (stxAddress) {
+                                    setAddress(stxAddress);
+                                    onSuccess?.();
+                                    onClose();
+                                    router.push(`/${stxAddress}`);
+                                  } else {
+                                    setError('No Stacks address found in Xverse.');
+                                    onError?.('No Stacks address found in Xverse.');
+                                    console.warn('No Stacks address found in Xverse.');
+                                  }
+                                } else {
+                                  setError(response.error?.message || 'Failed to connect to Xverse.');
+                                  onError?.(response.error?.message || 'Failed to connect to Xverse.');
+                                  console.warn('Xverse connect error:', response.error);
+                                }
+                              } catch (err: unknown) {
+                                let errorMsg = 'Failed to connect to Xverse.';
+                                if (
+                                  typeof err === 'object' &&
+                                  err !== null &&
+                                  'error' in err &&
+                                  typeof (err as { error?: { message?: string } }).error === 'object' &&
+                                  (err as { error?: { message?: string } }).error &&
+                                  typeof (err as { error?: { message?: string } }).error!.message === 'string'
+                                ) {
+                                  errorMsg = (err as { error: { message: string } }).error.message;
+                                }
+                                setError(errorMsg);
+                                onError?.(errorMsg);
+                                console.error('Xverse connect error:', err);
+                              }
+                            } else {
+                              setError('Wallet provider not found.');
+                              onError?.('Wallet provider not found.');
+                              console.warn('Wallet provider not found for:', w.id);
+                            }
+                          } catch (err: unknown) {
+                            let msg = 'Failed to connect wallet.';
+                            if (err && typeof err === 'object') {
+                              // Handle JSON-RPC error shape
+                              if ('error' in err && typeof (err as { error?: { message?: string; code?: number } }).error === 'object') {
+                                const rpcError = (err as { error?: { message?: string; code?: number } }).error;
+                                if (typeof rpcError?.message === 'string') {
+                                  msg = rpcError.message;
+                                } else if (typeof rpcError?.code === 'number') {
+                                  msg = `Wallet error code: ${rpcError.code}`;
+                                }
+                              } else if ('message' in err && typeof (err as { message?: string }).message === 'string') {
+                                msg = (err as { message?: string }).message!;
+                              }
+                            }
+                            setError(msg);
+                            onError?.(msg);
+                            console.error('Wallet connect error:', err);
+                          }
+                        }}
+                      >
+                        Connect
+                      </Button>
+                    ) : (
+                      <a
+                        href={w.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-700 px-4 py-1 rounded-lg text-sm font-semibold hover:bg-gray-100 cursor-pointer"
+                      >
+                        Install →
+                      </a>
+                    )}
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Mnemonic Phrase (12-24 words)
-                    </label>
-                    <textarea
-                      value={mnemonic}
-                      onChange={(e) => setMnemonic(e.target.value)}
-                      placeholder="Enter your 12 or 24 word mnemonic phrase..."
-                      className="w-full h-32 p-3 bg-background border border-gray-600 rounded-md text-foreground placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Separate words with spaces. Your mnemonic will be encrypted and stored securely.
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-md">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleMnemonicImport}
-                    disabled={isLoading || !mnemonic.trim()}
-                    className="w-full cursor-pointer bg-foreground text-black hover:bg-foreground hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-foreground"
-                  >
-                    {isLoading ? 'Validating...' : 'Import Wallet'}
-                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="mx-2 text-xs text-gray-400">or</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </div>
+              <Button
+                onClick={() => setConnectMode('email')}
+                className="w-full h-12 rounded-lg mb-2 bg-white text-gray-900 border border-gray-300 font-semibold text-base flex items-center px-4 hover:bg-gray-50 cursor-pointer"
+                type="button"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Sign In with Email
+              </Button>
+              <Button
+                onClick={() => setConnectMode('mnemonic')}
+                className="w-full h-12 rounded-lg bg-white text-gray-900 border border-gray-300 font-semibold text-base flex items-center px-4 hover:bg-gray-50 cursor-pointer"
+                type="button"
+              >
+                <Key className="w-5 h-5 mr-2" />
+                Import with Mnemonic
+              </Button>
+            </>
+          )}
+          {connectMode === 'email' && (
+            <div className="space-y-4">
+              <div>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className="bg-white border border-gray-300 text-gray-900 cursor-pointer"
+                  />
+              </div>
+              <Button 
+                onClick={handleEmailConnect} 
+                disabled={!email || isLoading} 
+                className="w-full cursor-pointer bg-foreground text-background hover:bg-foreground hover:text-black transition-colors border border-[#555]"
+              >
+                {isLoading ? 'Sending...' : 'Send Connection Link'}
+              </Button>
+              {emailMessage && (
+                <div style={{ color: emailStatus === 'error' ? 'red' : 'green', marginTop: 8 }} className="text-sm">
+                  {emailMessage}
                 </div>
               )}
-            </>
-          ) : (
-            /* Encryption Step */
+            </div>
+          )}
+          {connectMode === 'mnemonic' && step === 'import' && (
             <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">Secure Your Wallet</h3>
-                <p className="text-foreground text-sm">
-                  Create a passphrase to encrypt your wallet. This will be required to access your wallet.
+              <div>
+                  <Input
+                    value={walletLabel}
+                    onChange={(e) => setWalletLabel(e.target.value)}
+                    placeholder="Wallet Label"
+                    className="bg-white border border-gray-300 text-gray-900"
+                  />
+              </div>
+              <div>
+                <textarea
+                  value={mnemonic}
+                  onChange={(e) => setMnemonic(e.target.value)}
+                  placeholder="Enter your 12 or 24 word mnemonic phrase..."
+                  className="w-full h-32 p-3 bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Separate words with spaces. Your mnemonic will be encrypted and stored securely.
                 </p>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Passphrase
-                </label>
-                <Input
-                  type="password"
-                  value={passphrase}
-                  onChange={(e) => setPassphrase(e.target.value)}
-                  placeholder="Enter a secure passphrase"
-                  className="bg-background border-gray-600 text-foreground"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Confirm Passphrase
-                </label>
-                <Input
-                  type="password"
-                  value={confirmPassphrase}
-                  onChange={(e) => setConfirmPassphrase(e.target.value)}
-                  placeholder="Confirm your passphrase"
-                  className="bg-background border-gray-600 text-foreground"
-                />
-              </div>
-
               {error && (
                 <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-md">
                   {error}
                 </div>
               )}
-
+              <Button
+                onClick={handleMnemonicImport}
+                disabled={isLoading || !mnemonic.trim()}
+                className="w-full cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Validating...' : 'Import Wallet'}
+              </Button>
+            </div>
+          )}
+          
+          {/* Encryption Step (unchanged) */}
+          {step === 'encrypt' && (
+            <div className="space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Secure Your Wallet</h3>
+                <p className="text-gray-700 text-sm">
+                  Create a passphrase to encrypt your wallet. This will be required to access your wallet.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Passphrase
+                </label>
+                  <Input
+                    type="password"
+                    value={passphrase}
+                    onChange={(e) => setPassphrase(e.target.value)}
+                    placeholder="Enter a secure passphrase"
+                    className="bg-white border border-gray-300 text-gray-900"
+                  />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Passphrase
+                </label>
+                  <Input
+                    type="password"
+                    value={confirmPassphrase}
+                    onChange={(e) => setConfirmPassphrase(e.target.value)}
+                    placeholder="Confirm your passphrase"
+                    className="bg-white border border-gray-300 text-gray-900"
+                  />
+              </div>
+              {error && (
+                <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setStep('import')}
-                  className="flex-1 cursor-pointer hover:bg-foreground hover:text-black transition-colors"
+                  className="flex-1 cursor-pointer hover:bg-gray-100 hover:text-gray-900 transition-colors"
                   disabled={isLoading}
                 >
                   Back
@@ -384,7 +529,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                 <Button
                   onClick={handleCreateEncryptedWallet}
                   disabled={isLoading || !passphrase || !confirmPassphrase}
-                  className="flex-1 cursor-pointer hover:bg-foreground hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-foreground"
+                  className="flex-1 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Creating...' : 'Create Wallet'}
                 </Button>

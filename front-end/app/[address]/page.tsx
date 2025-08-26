@@ -54,7 +54,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
             href={`/${mint.contractAddress}/${mint.contractName}/${mint.tokenId}`}
             className="block transition-transform"
           >
-            <div className="bg-[#111] p-0 border border-[#111] shadow cursor-pointer">
+            <div className="bg-background p-0 shadow cursor-pointer">
               {/* Square cover image */}
               {meta?.image ? (
                 <div className="relative w-full pt-[100%]">
@@ -86,7 +86,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                 </div>
               ) : (
                 <div className="relative w-full pt-[100%]">
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#101010] border-[1px] border-[#222] rounded-lg text-gray-500">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background rounded-lg text-gray-500">
                     No image
                   </div>
                 </div>
@@ -108,20 +108,20 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
 }) {
   if (!profile) {
     return (
-      <div className="bg-black rounded-xl p-6 mb-8">
+      <div className="bg-background text-foreground rounded-xl p-6 mb-8">
         <div className="flex items-center space-x-4">
           <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center">
-            <User className="w-10 h-10 text-white/60" />
+            <User className="w-10 h-10 text-foreground/60" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-foreground">
               {address.substring(0, 8)}...{address.substring(address.length - 8)}
             </h2>
-            <p className="text-sm text-white/50 font-mono mb-1">
+            <p className="text-sm text-foreground/50 font-mono mb-1">
               {address.substring(0, 8)}...{address.substring(address.length - 8)}
             </p>
             {mintedCount > 0 && (
-              <div className="flex items-center space-x-4 text-sm text-white/60 mb-2">
+              <div className="flex items-center space-x-4 text-sm text-foreground/60 mb-2">
                 <span>{mintedCount} Models Minted</span>
               </div>
             )}
@@ -133,7 +133,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 Edit Profile
               </Link>
             ) : (
-              <p className="text-white/60">No profile information available</p>
+              <p className="text-foreground/60">No profile information available</p>
             )}
           </div>
         </div>
@@ -142,7 +142,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
   }
 
   return (
-    <div className="bg-black rounded-xl mb-8 relative overflow-hidden">
+    <div className="bg-background rounded-xl mb-8 relative overflow-hidden">
       {/* Banner Image */}
       <div className="w-full h-48 bg-gradient-to-r from-white/5 to-white/10 relative">
         {(profile.banner_cid || profile.banner_url) ? (
@@ -174,10 +174,10 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
         {isOwnProfile && (
           <Link 
             href="/settings" 
-            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-lg transition-colors"
+            className="absolute top-4 right-4 p-2 bg-background/50 hover:bg-background/70 backdrop-blur-sm rounded-lg transition-colors"
             title="Edit Profile"
           >
-            <Pen className="w-4 h-4 text-white/90" />
+            <Pen className="w-4 h-4 text-foreground/90" />
           </Link>
         )}
       </div>
@@ -216,39 +216,39 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 />
               )
             ) : (
-              <User className="w-16 h-16 text-white/60" />
+              <User className="w-16 h-16 text-foreground/60" />
             )}
-            <User className="w-16 h-16 text-white/60 fallback-icon hidden" />
+            <User className="w-16 h-16 text-foreground/60 fallback-icon hidden" />
           </div>
 
           {/* Profile Info - Centered below avatar */}
           <div className="space-y-3">
-            <h2 className="text-3xl font-bold text-white">
+            <h2 className="text-3xl font-bold text-foreground">
               {profile.display_name || profile.username || `${address.substring(0, 8)}...${address.substring(address.length - 8)}`}
             </h2>
             
             {profile.username && profile.display_name && (
-              <p className="text-xl text-white/80">@{profile.username}</p>
+              <p className="text-xl text-foreground/80">@{profile.username}</p>
             )}
             
-            <p className="text-sm text-white/50 font-mono">
+            <p className="text-sm text-foreground/50 font-mono">
               {address.substring(0, 8)}...{address.substring(address.length - 8)}
             </p>
             
-            <div className="flex items-center justify-center space-x-4 text-sm text-white/60">
+            <div className="flex items-center justify-center space-x-4 text-sm text-foreground/60">
               {mintedCount > 0 && <span>{mintedCount} Models</span>}
             </div>
           </div>
 
           {profile.tagline && (
-            <p className="text-lg text-white/90 max-w-md">{profile.tagline}</p>
+            <p className="text-lg text-foreground/90 max-w-md">{profile.tagline}</p>
           )}
 
           {profile.biography && (
-            <p className="text-white/80 max-w-lg leading-relaxed">{profile.biography}</p>
+            <p className="text-foreground/80 max-w-lg leading-relaxed">{profile.biography}</p>
           )}
 
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-white/60">
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-foreground/60">
             {profile.location && (
               <div className="flex items-center space-x-1">
                 <MapPin className="w-4 h-4" />
@@ -276,13 +276,13 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 {profile.skills.slice(0, 12).map((skill) => (
                   <span
                     key={skill}
-                    className="px-3 py-1 bg-white/10 text-white/90 rounded-full text-xs"
+                    className="px-3 py-1 bg-white/10 text-foreground/90 rounded-full text-xs"
                   >
                     {skill}
                   </span>
                 ))}
                 {profile.skills.length > 12 && (
-                  <span className="px-3 py-1 bg-white/10 text-white/60 rounded-full text-xs">
+                  <span className="px-3 py-1 bg-white/10 text-foreground/60 rounded-full text-xs">
                     +{profile.skills.length - 12} more
                   </span>
                 )}
@@ -296,7 +296,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-1 text-white/60 hover:text-white transition-colors"
+                className="flex items-center space-x-1 text-foreground/60 hover:text-foreground transition-colors"
               >
                 <Globe className="w-4 h-4" />
               </a>
@@ -306,7 +306,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={profile.artstation.startsWith('http') ? profile.artstation : `https://${profile.artstation}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-white transition-colors text-sm"
+                className="text-foreground/60 hover:text-foreground transition-colors text-sm"
               >
                 ArtStation
               </a>
@@ -316,7 +316,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={profile.sketchfab.startsWith('http') ? profile.sketchfab : `https://${profile.sketchfab}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-white transition-colors text-sm"
+                className="text-foreground/60 hover:text-foreground transition-colors text-sm"
               >
                 Sketchfab
               </a>
@@ -326,7 +326,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={profile.behance.startsWith('http') ? profile.behance : `https://${profile.behance}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-white transition-colors text-sm"
+                className="text-foreground/60 hover:text-foreground transition-colors text-sm"
               >
                 Behance
               </a>
@@ -336,7 +336,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={`https://twitter.com/${profile.twitter.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-white transition-colors text-sm"
+                className="text-foreground/60 hover:text-foreground transition-colors text-sm"
               >
                 Twitter
               </a>
@@ -346,7 +346,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
                 href={profile.linkedin.startsWith('http') ? profile.linkedin : `https://${profile.linkedin}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-white transition-colors text-sm"
+                className="text-foreground/60 hover:text-foreground transition-colors text-sm"
               >
                 LinkedIn
               </a>
@@ -547,7 +547,7 @@ function ProfilePage() {
       <div className='text-center items-center justify-center'>
         {profileLoading && (
           <div className="animate-pulse">
-            <div className="bg-black rounded-xl p-6 mb-8">
+            <div className="bg-background rounded-xl p-6 mb-8">
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-white/10 rounded-full"></div>
                 <div className="space-y-2">
@@ -762,7 +762,7 @@ function AddressPage({ address }: { address: string }) {
         
         {profileLoading && (
           <div className="animate-pulse">
-            <div className="bg-black border border-white/20 rounded-xl p-6 mb-8">
+            <div className="bg-background border border-white/20 rounded-xl p-6 mb-8">
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-white/10 rounded-full"></div>
                 <div className="space-y-2">

@@ -1,19 +1,19 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from 'next/link';
-import { HiroWalletContext } from './HiroWalletProvider';
+import { useWallet } from './WalletProvider';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CircleHelp, X, Shield, Upload } from 'lucide-react';
+import { CircleHelp, X, Shield } from 'lucide-react';
 import { createStacksAccount } from '@/lib/stacksWallet';
 import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/PasswordInput';
-import ImportWalletModal from './ConnectModal';
+import ConnectModal from './ConnectModal';
 import { formatStxAddress } from '@/lib/address-utils';
 
 export default function GetInModal({ onClose }: { onClose?: () => void }) {
-  const { authenticate, isWalletConnected } = useContext(HiroWalletContext);
+  const { address } = useWallet();
   const { 
     isWalletEncrypted, 
     isAuthenticated: isEncryptedAuthenticated,
@@ -26,16 +26,16 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
   } = useEncryptedWallet();
   const router = useRouter();
 
-  const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showEncryptedWalletFlow, setShowEncryptedWalletFlow] = useState(false);
   const [encryptedWalletMode, setEncryptedWalletMode] = useState<'unlock' | 'create'>('unlock');
 
   useEffect(() => {
-    if (isWalletConnected && onClose) {
+    if (address && onClose) {
       onClose();
     }
-  }, [isWalletConnected, onClose]);
+  }, [address, onClose]);
 
   useEffect(() => {
     if (isEncryptedAuthenticated && onClose) {
@@ -43,23 +43,6 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
     }
   }, [isEncryptedAuthenticated, onClose]);
 
-  const handleAuthenticate = async () => {
-    setWalletError(null);
-    try {
-      await authenticate();
-    } catch (err: unknown) {
-      const errorMessage =
-        typeof err === "object" && err !== null && "message" in err && typeof (err as { message?: unknown }).message === "string"
-          ? (err as { message: string }).message
-          : "";
-      if (
-        !errorMessage.toLowerCase().includes('user canceled') &&
-        !errorMessage.toLowerCase().includes('user cancelled')
-      ) {
-        setWalletError(errorMessage || 'Failed to connect wallet.');
-      }
-    }
-  };
 
   const handleEncryptedWalletSubmit = async (password: string, email?: string) => {
     try {
@@ -70,7 +53,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           mnemonic,
           privateKey: stxPrivateKey,
           address,
-          label: 'My 4V4 Wallet'
+          label: '4V4 Wallet'
         };
         await createEncryptedWallet(walletData, password);
         
@@ -148,11 +131,11 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-[100] select-none">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] select-none">
       <div
-        className="bg-background rounded-[21px] w-[360px] pt-8 pb-0 px-0 shadow-2xl flex flex-col items-center
+        className="bg-white text-black rounded-[21px] w-[360px] pt-8 pb-0 px-0 shadow-2xl flex flex-col items-center
           transition-all duration-300 ease-out
-          opacity-0 translate-y-[-24px] animate-getinmodal"
+          opacity-0 translate-y-[-24px] animate-getinmodal border border-[#555]"
       >
         {/* Header */}
         <div className="w-full grid grid-cols-3 gap-0 relative mb-6 px-6">
@@ -166,14 +149,14 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               <TooltipContent side="bottom" className="max-w-xs text-sm z-100">
                 <div>
                   Connect or create your account using your wallet or seed phrase.<br />
-                  <span className="text-[#2563eb] underline">
+                  <span className="text-background underline">
                     <a href="/support" target="_blank" rel="noopener noreferrer">Need help? Visit Support</a>
                   </span>
                 </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="title text-center font-semibold text-lg text-foreground tracking-wider flex items-center justify-center select-none">
+          <div className="title text-center font-semibold text-lg text-black tracking-wider flex items-center justify-center select-none">
             Get In
           </div>
           <div className="flex items-center justify-end">
@@ -184,11 +167,12 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
         </div>
         {/* Auth Options - Conditional rendering based on flow */}
         <div className="w-full flex flex-col gap-3 px-6 mb-3">
+          {/* Auth options: Connect Wallet, Encrypted Wallet, Email, Mnemonic */}
           {showEncryptedWalletFlow ? (
             /* Encrypted Wallet Flow */
             <div className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="text-lg font-semibold text-black mb-2">
                   {encryptedWalletMode === 'create' ? 'Secure Your Wallet' : 
                    isSessionLocked ? 'Unlock Your Wallet' : 'Access Your Wallet'}
                 </h3>
@@ -240,18 +224,17 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               {/* Connect Wallet */}
               <div>
                 <Button
-                  onClick={handleAuthenticate}
-                  className="w-full h-12 rounded-[9px] bg-white text-black font-semibold text-base border border-background cursor-pointer flex items-center px-4 hover:bg-background"
+                  onClick={() => setShowImportModal(true)}
+                  className="w-full h-12 rounded-[9px] bg-[#111] text-white font-semibold text-base border border-foreground cursor-pointer flex items-center px-4 hover:bg-[#000]"
                   type="button"
                 >
-                  <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="mr-2"/>
+                  <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="invert mr-2"/>
                   <span className="text-center flex-1">Connect Wallet</span>
                 </Button>
                 {walletError && (
                   <div className="text-red-500 text-xs mt-2 text-center">{walletError}</div>
                 )}
               </div>
-
               {/* Encrypted Wallet Option */}
               <div>
                 <Button
@@ -267,25 +250,13 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
                   </span>
                 </Button>
               </div>
-
-              {/* Connect Account */}
-              <div>
-                <Button
-                  onClick={() => setShowImportModal(true)}
-                  className="w-full h-12 rounded-[9px] bg-background text-foreground font-semibold text-base border border-[#333] cursor-pointer flex items-center px-4 hover:bg-white hover:text-black transition-colors"
-                  type="button"
-                >
-                  <Upload className="w-[18px] h-[18px] mx-[4.5px]"/>
-                  <span className="text-center flex-1">Connect</span>
-                </Button>
-              </div>
             </>
           )}
         </div>
 
         {/* Import Wallet Modal */}
         {showImportModal && (
-          <ImportWalletModal
+          <ConnectModal
             onClose={() => setShowImportModal(false)}
             onSuccess={() => {
               setShowImportModal(false);
@@ -294,8 +265,8 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           />
         )}
         {/* Terms */}
-        <div className="w-full bg-background rounded-b-2xl text-center text-xs text-foreground tracking-wider p-6 px-8">
-          By Signing In, you agree to our <Link href="/terms" className="hover:text-foreground">Terms of Service</Link> and <Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+        <div className="w-full rounded-b-2xl text-center text-xs text-black tracking-wider p-6 px-8">
+          By Signing In, you agree to our <Link href="/terms" className="hover:text-black">Terms of Service</Link> and <Link href="/privacy" className="hover:text-black">Privacy Policy</Link>
         </div>
       </div>
     </div>
