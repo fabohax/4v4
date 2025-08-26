@@ -18,7 +18,7 @@ export const Navbar = () => {
             {/* Logo Section */}
             <div className="flex items-center">
               <Link href="/" className="no-underline">
-                <Button className="text-foreground bg-transparent py-3 cursor-pointer text-2xl hover:bg-[#111]">
+                <Button className="text-foreground bg-transparent py-3 cursor-pointer text-2xl hover:bg-background">
                   <Image 
                     src="/home.svg" 
                     height={27} 

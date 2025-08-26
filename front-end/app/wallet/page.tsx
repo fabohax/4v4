@@ -129,18 +129,27 @@ export default function WalletPage() {
           // eslint-disable-next-line no-console
           console.error('Extension transaction error:', err);
           let errorMsg = 'Extension transaction failed';
+          let isUserCancel = false;
           if (err && typeof err === 'object') {
             if ('message' in err && typeof (err as any).message === 'string') {
               errorMsg = (err as any).message;
+              if (errorMsg.includes('User canceled the request')) {
+                isUserCancel = true;
+              }
             } else if ('error' in err && typeof (err as any).error === 'string') {
               errorMsg = (err as any).error;
+              if (errorMsg.includes('User canceled the request')) {
+                isUserCancel = true;
+              }
             } else {
               try {
                 errorMsg = JSON.stringify(err);
               } catch {}
             }
           }
-          toast.error(errorMsg);
+          if (!isUserCancel) {
+            toast.error(errorMsg);
+          }
         }
         setSendLoading(false);
         return;

@@ -211,17 +211,17 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[101] select-none">
-      <div className="bg-[#181818] rounded-[21px] w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-background flex items-center justify-center z-[101] select-none">
+      <div className="bg-background rounded-[21px] w-[480px] max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white flex items-center">
+          <h2 className="text-xl font-semibold text-foreground flex items-center">
             <Upload className="w-5 h-5 mr-2" />
             Connect Account
           </h2>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-foreground transition-colors"
             aria-label="Close"
           >
             <X className="w-6 h-6" />
@@ -238,7 +238,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   onClick={() => setConnectMode('email')}
                   className={`flex-1 cursor-pointer transition-colors ${
                     connectMode === 'email' 
-                      ? 'text-white border-[#fff]' 
+                      ? 'text-foreground border-foreground' 
                       : 'bg-transparent border-transparent'
                   }`}
                 >
@@ -250,8 +250,8 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   onClick={() => setConnectMode('mnemonic')}
                   className={`flex-1 cursor-pointer transition-colors ${
                     connectMode === 'mnemonic' 
-                      ? 'text-white border-[#fff]' 
-                      : ' border-[1px] border-[#111] text-white'
+                      ? 'text-foreground border-foreground' 
+                      : ' border-[1px] border-background text-foreground'
                   }`}
                 >
                   <Key className="w-4 h-4 mr-2" />
@@ -275,7 +275,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   <Button 
                     onClick={handleEmailConnect} 
                     disabled={!email || isLoading} 
-                    className="w-full cursor-pointer bg-white text-black hover:bg-white hover:text-black transition-colors"
+                    className="w-full cursor-pointer bg-foreground text-black hover:bg-foreground hover:text-black transition-colors"
                   >
                     {isLoading ? 'Sending...' : 'Send Connection Link'}
                   </Button>
@@ -288,26 +288,26 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Wallet Label
                     </label>
                     <Input
                       value={walletLabel}
                       onChange={(e) => setWalletLabel(e.target.value)}
                       placeholder="My Imported Wallet"
-                      className="bg-[#2a2a2a] border-gray-600 text-white"
+                      className="bg-background border-gray-600 text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Mnemonic Phrase (12-24 words)
                     </label>
                     <textarea
                       value={mnemonic}
                       onChange={(e) => setMnemonic(e.target.value)}
                       placeholder="Enter your 12 or 24 word mnemonic phrase..."
-                      className="w-full h-32 p-3 bg-[#2a2a2a] border border-gray-600 rounded-md text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full h-32 p-3 bg-background border border-gray-600 rounded-md text-foreground placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-400 mt-1">
                       Separate words with spaces. Your mnemonic will be encrypted and stored securely.
@@ -323,7 +323,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   <Button
                     onClick={handleMnemonicImport}
                     disabled={isLoading || !mnemonic.trim()}
-                    className="w-full cursor-pointer bg-white text-black hover:bg-white hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-white"
+                    className="w-full cursor-pointer bg-foreground text-black hover:bg-foreground hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-foreground"
                   >
                     {isLoading ? 'Validating...' : 'Import Wallet'}
                   </Button>
@@ -334,14 +334,14 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
             /* Encryption Step */
             <div className="space-y-4">
               <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Secure Your Wallet</h3>
-                <p className="text-gray-300 text-sm">
+                <h3 className="text-lg font-semibold text-foreground mb-2">Secure Your Wallet</h3>
+                <p className="text-foreground text-sm">
                   Create a passphrase to encrypt your wallet. This will be required to access your wallet.
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Passphrase
                 </label>
                 <Input
@@ -349,12 +349,12 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   placeholder="Enter a secure passphrase"
-                  className="bg-[#2a2a2a] border-gray-600 text-white"
+                  className="bg-background border-gray-600 text-foreground"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Confirm Passphrase
                 </label>
                 <Input
@@ -362,7 +362,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
                   placeholder="Confirm your passphrase"
-                  className="bg-[#2a2a2a] border-gray-600 text-white"
+                  className="bg-background border-gray-600 text-foreground"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                 <Button
                   variant="outline"
                   onClick={() => setStep('import')}
-                  className="flex-1 cursor-pointer hover:bg-white hover:text-black transition-colors"
+                  className="flex-1 cursor-pointer hover:bg-foreground hover:text-black transition-colors"
                   disabled={isLoading}
                 >
                   Back
@@ -384,7 +384,7 @@ export default function ConnectModal({ onClose, onSuccess }: ConnectModalProps) 
                 <Button
                   onClick={handleCreateEncryptedWallet}
                   disabled={isLoading || !passphrase || !confirmPassphrase}
-                  className="flex-1 cursor-pointer hover:bg-white hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-white"
+                  className="flex-1 cursor-pointer hover:bg-foreground hover:text-black transition-colors disabled:cursor-not-allowed disabled:hover:bg-gray-600 disabled:hover:text-foreground"
                 >
                   {isLoading ? 'Creating...' : 'Create Wallet'}
                 </Button>

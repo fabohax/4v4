@@ -148,9 +148,9 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] select-none">
+    <div className="fixed inset-0 bg-background flex items-center justify-center z-[100] select-none">
       <div
-        className="bg-[#181818] rounded-[21px] w-[360px] pt-8 pb-0 px-0 shadow-2xl flex flex-col items-center
+        className="bg-background rounded-[21px] w-[360px] pt-8 pb-0 px-0 shadow-2xl flex flex-col items-center
           transition-all duration-300 ease-out
           opacity-0 translate-y-[-24px] animate-getinmodal"
       >
@@ -173,7 +173,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="title text-center font-semibold text-lg text-white tracking-wider flex items-center justify-center select-none">
+          <div className="title text-center font-semibold text-lg text-foreground tracking-wider flex items-center justify-center select-none">
             Get In
           </div>
           <div className="flex items-center justify-end">
@@ -188,7 +188,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
             /* Encrypted Wallet Flow */
             <div className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   {encryptedWalletMode === 'create' ? 'Secure Your Wallet' : 
                    isSessionLocked ? 'Unlock Your Wallet' : 'Access Your Wallet'}
                 </h3>
@@ -241,7 +241,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               <div>
                 <Button
                   onClick={handleAuthenticate}
-                  className="w-full h-12 rounded-[9px] bg-white text-black font-semibold text-base border border-[#eee] cursor-pointer flex items-center px-4 hover:bg-[#f3f3f3]"
+                  className="w-full h-12 rounded-[9px] bg-white text-black font-semibold text-base border border-background cursor-pointer flex items-center px-4 hover:bg-background"
                   type="button"
                 >
                   <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="mr-2"/>
@@ -272,7 +272,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               <div>
                 <Button
                   onClick={() => setShowImportModal(true)}
-                  className="w-full h-12 rounded-[9px] bg-[#333] text-white font-semibold text-base border border-[#333] cursor-pointer flex items-center px-4 hover:bg-white hover:text-black transition-colors"
+                  className="w-full h-12 rounded-[9px] bg-background text-foreground font-semibold text-base border border-[#333] cursor-pointer flex items-center px-4 hover:bg-white hover:text-black transition-colors"
                   type="button"
                 >
                   <Upload className="w-[18px] h-[18px] mx-[4.5px]"/>
@@ -294,8 +294,8 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
           />
         )}
         {/* Terms */}
-        <div className="w-full bg-[#232323] rounded-b-2xl text-center text-xs text-[#aaa] tracking-wider p-6 px-8">
-          By Signing In, you agree to our <Link href="/terms" className="hover:text-white">Terms of Service</Link> and <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+        <div className="w-full bg-background rounded-b-2xl text-center text-xs text-foreground tracking-wider p-6 px-8">
+          By Signing In, you agree to our <Link href="/terms" className="hover:text-foreground">Terms of Service</Link> and <Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link>
         </div>
       </div>
     </div>
