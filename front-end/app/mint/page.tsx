@@ -78,6 +78,7 @@ const getWalletTypeFromContext = (effectiveAddress: string | null) => {
 };
 
 import CenterPanel from '@/components/features/avatar/CenterPanel';
+import GetInModal from '@/components/GetInModal';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,9 @@ export default function MintPage() {
   const effectiveAddress = address ? address : 
     (isEncryptedAuthenticated ? encryptedWallet?.address : currentWallet?.stxAddress || null);
   const isAnyWalletConnected = !!address || isEncryptedAuthenticated || !!currentWallet;
+
+  // Modal state for GetInModal
+  const [showGetInModal, setShowGetInModal] = useState(false);
 
   // Wallet status monitoring (minimal logging)
   useEffect(() => {
@@ -926,6 +930,11 @@ export default function MintPage() {
   };
 
   const handleMint = async () => {
+    // If wallet is not connected, show GetInModal and do not proceed
+    if (!isAnyWalletConnected) {
+      setShowGetInModal(true);
+      return;
+    }
     // Reset states
     setError('');
     setValidationErrors({});
@@ -1225,7 +1234,7 @@ export default function MintPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen dotted-grid-background py-4">
-      <Card className='border-[#333] shadow-md text-white bg-[#000] w-[95%] max-w-7xl py-8'>
+      <Card className='border-[#333] shadow-md text-foreground bg-background w-[95%] max-w-7xl py-8'>
         <CardContent className='grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 w-auto'>
           <div className="flex flex-col">
             <div className="h-[50vh] md:h-[60vh] lg:h-[72vh] min-h-[400px]">
@@ -1243,7 +1252,7 @@ export default function MintPage() {
                   />
                   <label
                     htmlFor="modelFile"
-                    className="bg-[#fff] text-black px-4 py-2 rounded-md cursor-pointer hover:bg-[#fff] hover:text-black hover:border-[#fff] select-none"
+                    className="bg-background text-foreground border border-border px-4 py-2 rounded-md cursor-pointer hover:bg-background hover:text-foreground select-none"
                   >
                     Browse files
                   </label>
@@ -1308,7 +1317,7 @@ export default function MintPage() {
 
             {/* Balance display */}
             {effectiveAddress && (
-              <div className="p-3 bg-[#111] border border-[#333] rounded-lg">
+              <div className="p-3 bg-background text-foreground border border-[#333] rounded-lg">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">STX Balance:</span>
                   <span className={`font-mono ${
@@ -1344,10 +1353,10 @@ export default function MintPage() {
             )}
             
             {loadingState !== 'idle' && (
-              <div className="p-4 bg-[#111] border border-[#333] rounded-lg">
+              <div className="p-4 bg-background border border-[#333] rounded-lg">
                 <div className="flex items-center mb-3">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span className="text-white text-sm font-medium">{getLoadingText()}</span>
+                  <span className="text-foreground text-sm font-medium">{getLoadingText()}</span>
                 </div>
                 
                 {/* Progress indicators */}
@@ -1482,7 +1491,7 @@ export default function MintPage() {
                     className='border-[#333] cursor-pointer'
                   />
                   {imagePreviewUrl && (
-                    <div className="mt-3 p-3 bg-[#111] border border-[#333] rounded-lg">
+                    <div className="mt-3 p-3 bg-background border border-[#333] rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-400">Preview:</span>
                         <button
@@ -1542,7 +1551,7 @@ export default function MintPage() {
                       onClick={addAttributeField}
                       size="sm"
                       variant="outline"
-                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                      className="text-xs border-[#333] hover:bg-background cursor-pointer"
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add
                     </Button>
@@ -1603,7 +1612,7 @@ export default function MintPage() {
                       onClick={addCustomizationField}
                       size="sm"
                       variant="outline"
-                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                      className="text-xs border-[#333] hover:bg-background cursor-pointer"
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add
                     </Button>
@@ -1689,7 +1698,7 @@ export default function MintPage() {
                       onClick={addPropertyField}
                       size="sm"
                       variant="outline"  
-                      className="text-xs border-[#333] hover:bg-[#fff] cursor-pointer"
+                      className="text-xs border-[#333] hover:bg-background cursor-pointer"
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add
                     </Button>
@@ -1793,7 +1802,7 @@ export default function MintPage() {
                       type="button"
                       onClick={handleOpenLocationModal}
                       variant="outline"
-                      className="w-full px-4 py-2 border-[#333] text-gray-300 hover:bg-[#fff] cursor-pointer"
+                      className="w-full px-4 py-2 border-[#333] text-gray-300 hover:bg-background cursor-pointer"
                     >
                       Select on Map
                     </Button>
@@ -1806,17 +1815,22 @@ export default function MintPage() {
             )}
             
             {/* Fixed bottom action buttons */}
-            <div className="flex-shrink-0 mt-4 pt-4 border-t border-[#333] space-y-3 bg-[#000]">
+            <div className="flex-shrink-0 mt-4 pt-4 border-t border-[#333] space-y-3 bg-background">
+
               <Button 
                 onClick={handleMint} 
-                disabled={minting || deployingContract || !effectiveAddress || !isAnyWalletConnected} 
-                className='w-full py-6 bg-white text-black hover:bg-gray-100 border border-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:border-gray-600 disabled:text-white'
+                disabled={minting || deployingContract} 
+                className='w-full py-6 bg-foreground text-background hover:bg-gray-100 border border-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:border-gray-600 disabled:text-foreground'
               >
-                {!effectiveAddress ? 'Connect Wallet First' :
-                 deployingContract ? 'Deploying Contract...' : 
+                {deployingContract ? 'Deploying Contract...' : 
                  minting ? 'Processing...' : 
                  'Mint'}
               </Button>
+
+              {/* Show GetInModal if wallet is not connected and user tries to mint */}
+              {showGetInModal && (
+                <GetInModal onClose={() => setShowGetInModal(false)} />
+              )}
               
               {(minting || deployingContract) && loadingState !== 'minted' && (
                 <Button 
@@ -1830,7 +1844,7 @@ export default function MintPage() {
                     toast.error('Minting process cancelled');
                   }}
                   variant="outline"
-                  className='w-full py-3 bg-red-600 text-white hover:bg-red-700 border border-red-500 cursor-pointer'
+                  className='w-full py-3 bg-red-600 text-foreground hover:bg-red-700 border border-red-500 cursor-pointer'
                 >
                   Cancel Process
                 </Button>

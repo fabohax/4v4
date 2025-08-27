@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Bell, Settings, HelpCircle, LogOut, User } from 'lucide-react';
 import { useWallet } from './WalletProvider';
@@ -15,11 +15,25 @@ interface UserModalProps {
 }
 
 export default function UserModal({ onClose }: UserModalProps) {
-  const { address } = useWallet();
+  const { address, setAddress } = useWallet();
   const [balance, setBalance] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const router = useRouter();
   const currentAddress = address;
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   // Fetch balance from Hiro API (recommended endpoint)
   useEffect(() => {
@@ -81,10 +95,10 @@ export default function UserModal({ onClose }: UserModalProps) {
     // Clear the 4v4 session and wallet address
     if (typeof window !== "undefined") {
       localStorage.removeItem('4v4_session');
+      localStorage.removeItem('walletAddress'); 
       window.dispatchEvent(new Event("4v4-session-update"));
     }
-  // Do NOT clear the wallet address here, so extension session remains open
-  // setAddress(null);
+    setAddress(null); // Also clear in context
     onClose();
     // Always route to index after disconnect
     if (router) {
@@ -97,8 +111,7 @@ export default function UserModal({ onClose }: UserModalProps) {
 
   return (
     <div className="fixed top-10 right-4 z-[200]">
-
-  <div className="relative rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201] opacity-0 translate-y-[-24px] animate-getinmodal backdrop-blur-md border bg-white dark:bg-black border-gray-200 dark:border-white/20 text-gray-900 dark:text-white">
+      <div ref={modalRef} className="relative rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201] opacity-0 translate-y-[-24px] animate-getinmodal backdrop-blur-md border bg-white dark:bg-black border-gray-200 dark:border-white/20 text-gray-900 dark:text-white">
         <div className="flex items-center w-full mb-6">
           {getPersistedNetwork() !== 'mainnet' && (
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center m-3 mt-4">

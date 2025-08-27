@@ -8,6 +8,9 @@ import JoinWaitlistForm from "@/components/JoinWaitlistForm"
 import ModelViewer from "@/components/features/avatar/ModelViewer"
 import { useTheme } from "next-themes"
 import { useAppLoading } from "@/components/AppLoadingProvider"
+import GetInModal from "@/components/GetInModal"
+import { useRouter } from "next/navigation"
+import { useWallet } from "@/components/WalletProvider"
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
@@ -15,10 +18,13 @@ export default function Home() {
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const { loadPage } = useAppLoading()
+  const { address } = useWallet();
+  const router = useRouter();
 
   const [secondaryColor] = useState<string>('#ffffff');
   const [modelUrl] = useState<string | null>('/models/default.glb');
   const [lightIntensity] = useState<number>(11);
+  const [showGetInModal, setShowGetInModal] = useState(false);
 
   // Theme-based background color for ModelViewer
   const getModelBackground = () => {
@@ -139,8 +145,15 @@ export default function Home() {
                   <Button
                     size="lg"
                     className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
+                    onClick={() => {
+                      if (address) {
+                        router.push("/mint");
+                      } else {
+                        setShowGetInModal(true);
+                      }
+                    }}
                   >
-                    <Link href="/mint">Mint</Link>
+                    Mint
                   </Button>
                 </motion.div>
               </div>
@@ -190,6 +203,8 @@ export default function Home() {
       <div className="container mx-auto px-4 py-12">
         <JoinWaitlistForm />
       </div>
+      {/* Show GetInModal if triggered */}
+      {showGetInModal && <GetInModal onClose={() => setShowGetInModal(false)} />}
     </div>
   )
 }

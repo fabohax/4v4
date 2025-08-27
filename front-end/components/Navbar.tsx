@@ -30,11 +30,11 @@ export const Navbar = () => {
               </Link>
               <div className='md:flex hidden'>
                 <div className="relative text-sm">
-                  <Search className="absolute left-3 top-3 text-muted-foreground h-[14px]" />
+                  <Search className="absolute left-3 top-3 text-foreground h-[14px]" />
                   <Input
                     type="text"
                     placeholder="Search for models, collections, or creators..."
-                    className="w-[369px] bg-muted/10 border-border pl-12 py-3 text-lg rounded-lg"
+                    className="w-[369px] bg-muted/10 text-foreground placeholder-foreground border-foreground pl-12 py-3 text-lg rounded-lg"
                   />
                 </div>  
               </div>
