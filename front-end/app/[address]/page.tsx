@@ -577,7 +577,7 @@ function ProfilePage() {
 }
 
 // AddressPage: shows profile for a given address param
-function AddressPage({ address }: { address: string }) {
+function AddressPage({ address, currentAddress }: { address: string, currentAddress?: string }) {
   // List minted NFTs for the given address using Hiro API
   const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
@@ -780,11 +780,10 @@ function AddressPage({ address }: { address: string }) {
             />
           </div>
         )}
-        {!loading && mintedTokens.length === 0 && address && (
+  {!loading && mintedTokens.length === 0 && address && currentAddress && address.toLowerCase() === currentAddress.toLowerCase() && (
           <p className='text-center text-[#555]'>
             No Minted Models yet. <Link href="/mint" className="border-[1px] border-[#222] p-2 rounded-md text-blue-400">Mint here</Link>
           </p>
-          
         )}
       <MintedTokensGrid mintedTokens={mintedTokens} tokenMetadata={tokenMetadata} />
       </div>
@@ -796,12 +795,12 @@ function AddressPage({ address }: { address: string }) {
 export default function Page() {
   const params = useParams();
   const currentAddress = useCurrentAddress();
-  const address =
-    params && typeof params.address === 'string'
-      ? params.address
-      : params && Array.isArray(params.address)
-      ? params.address[0]
-      : null;
+  let address: string | undefined;
+  if (params && typeof params.address === 'string') {
+    address = params.address;
+  } else if (params && Array.isArray(params.address) && typeof params.address[0] === 'string') {
+    address = params.address[0];
+  }
 
   // If no address param, show ProfilePage (current user)
   if (!address) {
@@ -814,5 +813,5 @@ export default function Page() {
   }
 
   // Otherwise, show AddressPage (public profile)
-  return <AddressPage address={address} />;
+  return <AddressPage address={address} currentAddress={currentAddress ?? undefined} />;
 }

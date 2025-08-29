@@ -1820,7 +1820,7 @@ export default function MintPage() {
               <Button 
                 onClick={handleMint} 
                 disabled={minting || deployingContract} 
-                className='w-full py-6 bg-foreground text-background hover:bg-gray-100 border border-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:border-gray-600 disabled:text-foreground'
+                className='w-full py-6 bg-foreground text-background hover:bg-foreground border border-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:border-gray-600 disabled:text-foreground'
               >
                 {deployingContract ? 'Deploying Contract...' : 
                  minting ? 'Processing...' : 
