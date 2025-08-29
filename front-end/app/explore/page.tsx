@@ -272,10 +272,10 @@ export default function ExplorePage() {
       <div className="min-h-screen bg-background my-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-8" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+            <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
               Explore NFTs
             </h1>
-            <div className="text-xl mb-4">Loading NFTs from all users...</div>
+            <div className="mb-4">Loading NFTs from all users...</div>
             {userCount > 0 && (
               <div className="text-sm text-muted-foreground">
                 Processing user {processedUsers} of {userCount}
@@ -298,7 +298,7 @@ export default function ExplorePage() {
       <div className="min-h-screen bg-background py-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-8" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+            <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
               Explore NFTs
             </h1>
             <div className="text-red-400 mb-4">{error}</div>

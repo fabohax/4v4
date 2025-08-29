@@ -106,23 +106,26 @@
 (define-read-only (get-balance (account principal))
   (default-to u0 (map-get? token-count account)))
 
-(define-read-only (get-listing-in-ustx (id uint))
+
+;; Get listing in satoshis
+(define-read-only (get-listing-in-sat (id uint))
   (map-get? market id))
 
-;; Marketplace functions (same as before)
-(define-public (list-in-ustx (id uint) (price uint) (comm-trait <commission-trait>))
+
+;; Marketplace functions (now in satoshis)
+(define-public (list-in-sat (id uint) (price uint) (comm-trait <commission-trait>))
   (let ((listing {price: price, commission: (contract-of comm-trait), royalty: (var-get royalty-percent)}))
     (asserts! (is-owner id tx-sender) (err ERR-NOT-AUTHORIZED))
     (map-set market id listing)
     (ok (print listing))))
 
-(define-public (unlist-in-ustx (id uint))
+(define-public (unlist-in-sat (id uint))
   (begin
     (asserts! (is-owner id tx-sender) (err ERR-NOT-AUTHORIZED))
     (map-delete market id)
-    (ok (print {a: "unlist-in-ustx", id: id}))))
+    (ok (print {a: "unlist-in-sat", id: id}))))
 
-(define-public (buy-in-ustx (id uint) (comm-trait <commission-trait>))
+(define-public (buy-in-sat (id uint) (comm-trait <commission-trait>))
   (let ((owner (unwrap! (nft-get-owner? {NFT_NAME} id) (err ERR-NOT-FOUND)))
         (listing (unwrap! (map-get? market id) (err ERR-LISTING)))
         (price (get price listing))
@@ -134,7 +137,7 @@
     (try! (contract-call? comm-trait pay id price))
     (try! (trnsfr id owner tx-sender))
     (map-delete market id)
-    (ok (print {a: "buy-in-ustx", id: id}))))
+    (ok (print {a: "buy-in-sat", id: id}))))
 
 ;; Private functions
 (define-private (is-owner (token-id uint) (user principal))
