@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { LoaderCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AppLoaderProps {
@@ -23,15 +23,7 @@ export default function AppLoader({ isLoading }: AppLoaderProps) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, duration: 0.5 }}
       >
-        <Image
-          src="/loader.gif"
-          alt="Loading..."
-          width={120}
-          height={120}
-          priority
-          unoptimized
-          className="rounded-lg loader-invert-light"
-        />
+  <LoaderCircle className="animate-spin text-black dark:text-white" size={64} />
       </motion.div>
     </motion.div>
   );

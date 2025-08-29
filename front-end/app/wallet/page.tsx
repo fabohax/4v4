@@ -15,8 +15,7 @@ import { makeSTXTokenTransfer, broadcastTransaction } from "@stacks/transactions
 import { getApiUrl } from "@/lib/stacks-api";
 import { getPersistedNetwork } from "@/lib/network";
 
-import Image from "next/image";
-import { Copy, X } from "lucide-react";
+import { Copy, X, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -261,15 +260,7 @@ export default function WalletPage() {
       <div className="mt-16 flex justify-center">
         <div className="flex items-center gap-3">
           {loading ? (
-            <Image
-              src="/loaderb.gif"
-              alt="Loading..."
-              width={32}
-              height={16}
-              unoptimized
-              style={{ minWidth: 32, minHeight: 16, width: 32, height: 16 }}
-              className="title text-xl inline-block align-middle"
-            />
+            <LoaderCircle className="animate-spin text-black dark:text-white" size={32} />
           ) : (
             <span className="title text-2xl font-bold">{balance} <span className="text-lg">STX</span></span>
           )}
@@ -430,7 +421,7 @@ export default function WalletPage() {
         <div className="bg-background rounded-xl py-4 max-h-96 overflow-y-auto">
           {txLoading ? (
             <div className="flex justify-center items-center py-8">
-              <Image src="/loaderb.gif" alt="Loading..." width={32} height={16} unoptimized />
+              <LoaderCircle className="animate-spin text-black dark:text-white" size={32} />
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center text-gray-500 py-8">No recent transactions found.</div>

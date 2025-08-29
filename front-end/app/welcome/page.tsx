@@ -180,12 +180,12 @@ export default function WelcomePage() {
               </div>
 
               {/* Security Warning */}
-              <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4">
-                <h4 className="text-red-300 font-medium text-sm mb-3 flex items-center">
+              <div className="border border-red-700/50 rounded-lg p-4">
+                <h4 className="text-red-500 font-medium text-sm mb-3 flex items-center">
                   <Shield className="w-4 h-4 mr-2" />
                   Critical Security Information
                 </h4>
-                <ul className="text-red-200/80 text-sm space-y-2">
+                <ul className="text-red-500/80 text-sm space-y-2">
                   <li className="flex items-start">
                     <span className="mr-2 text-red-400">•</span>
                     Never share your recovery phrase with anyone
@@ -247,9 +247,9 @@ export default function WelcomePage() {
             <CardContent className="space-y-6 px-6 pb-6">
               {/* Security Tips */}
               <div className="space-y-4">
-                <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4">
-                  <h4 className="text-green-300 font-medium mb-3">✅ Do This</h4>
-                  <ul className="text-green-200/80 text-sm space-y-2">
+                <div className=" border border-green-700/30 rounded-lg p-4">
+                  <h4 className="text-green-500  font-medium mb-3">✅ Do This</h4>
+                  <ul className="text-green-500/80 text-sm space-y-2">
                     <li>• Use a strong, unique passphrase for your wallet</li>
                     <li>• Enable two-factor authentication where possible</li>
                     <li>• Keep your software updated</li>
@@ -258,9 +258,9 @@ export default function WelcomePage() {
                   </ul>
                 </div>
 
-                <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4">
-                  <h4 className="text-red-300 font-medium mb-3">❌ Avoid This</h4>
-                  <ul className="text-red-200/80 text-sm space-y-2">
+                <div className=" border border-red-700/30 rounded-lg p-4">
+                  <h4 className="text-red-500 font-medium mb-3">❌ Avoid This</h4>
+                  <ul className="text-red-500/80 text-sm space-y-2">
                     <li>• Never enter your seed phrase on suspicious websites</li>
                     <li>• Don&apos;t store your keys in screenshots or cloud storage</li>
                     <li>• Avoid using public WiFi for wallet transactions</li>
@@ -271,20 +271,20 @@ export default function WelcomePage() {
               </div>
 
               {/* Getting Started */}
-              <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4">
-                <h4 className="text-blue-300 font-medium mb-3">Ready to Get Started?</h4>
-                <p className="text-blue-200/80 text-sm mb-3">
+              <div className="border border-blue-700/50 rounded-lg p-4">
+                <h4 className="text-blue-500 font-medium mb-3">Ready to Get Started?</h4>
+                <p className="text-blue-500/80 text-sm mb-3">
                   Your wallet is now set up and ready to use. You can start receiving STX tokens, 
                   deploy smart contracts, and interact with the Stacks ecosystem.
                 </p>
-                <p className="text-blue-200/80 text-sm">
+                <p className="text-blue-500/80 text-sm">
                   Visit your profile to see your wallet details and transaction history.
                 </p>
               </div>
 
               <Button
                 onClick={handleContinue}
-                className="w-full bg-green-600 hover:bg-green-500 text-primary-foreground font-semibold py-3 cursor-pointer"
+                className="w-full bg-green-600 hover:bg-green-500 text-primary-foreground font-semibold py-6 cursor-pointer"
               >
                 Complete Setup
                 <CheckCircle className="w-4 h-4 ml-2" />

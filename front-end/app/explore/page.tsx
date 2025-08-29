@@ -318,8 +318,8 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-background py-16">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-            Explore Models
+          <h1 className="text-4xl md:text-5xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
+            Explore
           </h1>
           <div className="text-sm text-muted-foreground">
             {allNFTs.length} NFTs found from {userCount} users
@@ -349,7 +349,7 @@ export default function ExplorePage() {
                   href={`/${token.contractAddress}/${token.contractName}/${token.tokenId}`}
                   className="block transition-transform hover:scale-[1.02]"
                 >
-                  <div className="bg-[#111] rounded-xl p-4 border border-[#111] shadow cursor-pointer">
+                  <div className="bg-background rounded-xl p-4 border border-foreground shadow cursor-pointer">
                     {/* Square cover image */}
                     {meta?.image ? (
                       <div className="relative w-full pt-[100%]">
@@ -381,7 +381,7 @@ export default function ExplorePage() {
                       </div>
                     ) : (
                       <div className="relative w-full pt-[100%]">
-                        <div className="absolute inset-0 flex items-center justify-center bg-[#101010] border-[1px] border-[#222] rounded-lg text-gray-500">
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted border-[1px] border-muted-foreground rounded-lg text-gray-500">
                           No image
                         </div>
                       </div>

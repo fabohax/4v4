@@ -5,6 +5,7 @@ import { Bell, Settings, HelpCircle, LogOut, User } from 'lucide-react';
 import { useWallet } from './WalletProvider';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
+import { LoaderCircle } from "lucide-react";
 import { getPersistedNetwork } from '@/lib/network';
 import { getApiUrl } from '@/lib/stacks-api';
 import { getProfile, Profile } from '@/lib/profileApi';
@@ -18,6 +19,7 @@ export default function UserModal({ onClose }: UserModalProps) {
   const { address, setAddress } = useWallet();
   const [balance, setBalance] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [usernameLoader, setUsernameLoader] = useState<boolean>(false);
   const router = useRouter();
   const currentAddress = address;
   const modalRef = useRef<HTMLDivElement>(null);
@@ -69,9 +71,10 @@ export default function UserModal({ onClose }: UserModalProps) {
   useEffect(() => {
     if (!currentAddress) {
       setProfile(null);
+      setUsernameLoader(false);
       return;
     }
-    
+    setUsernameLoader(true);
     const fetchProfile = async () => {
       try {
         const profileData = await getProfile(currentAddress);
@@ -79,9 +82,10 @@ export default function UserModal({ onClose }: UserModalProps) {
       } catch (error) {
         console.error('Failed to fetch profile:', error);
         setProfile(null);
+      } finally {
+        setUsernameLoader(false);
       }
     };
-    
     fetchProfile();
   }, [currentAddress]);
 
@@ -110,7 +114,7 @@ export default function UserModal({ onClose }: UserModalProps) {
   };
 
   return (
-    <div className="fixed top-10 right-4 z-[200]">
+    <div className="fixed top-9 right-4 z-[200]">
       <div ref={modalRef} className="relative rounded-3xl p-4 w-[340px] flex flex-col items-center shadow-xl pointer-events-auto z-[201] opacity-0 translate-y-[-24px] animate-getinmodal backdrop-blur-md border bg-white dark:bg-black border-gray-200 dark:border-white/20 text-gray-900 dark:text-white">
         <div className="flex items-center w-full mb-6">
           {getPersistedNetwork() !== 'mainnet' && (
@@ -123,7 +127,9 @@ export default function UserModal({ onClose }: UserModalProps) {
             className="title mr-4 text-right text-gray-900 dark:text-white text-xl font-bold tracking-wider flex-1 cursor-pointer select-none"
             onClick={onClose}
           >
-            {profile?.username || profile?.display_name || truncateMiddle(currentAddress)}
+            {usernameLoader ? (
+              <LoaderCircle className="animate-spin inline-block align-middle text-black dark:text-white" size={22} />
+            ) : (profile?.username || profile?.display_name ? (profile?.username || profile?.display_name) : truncateMiddle(currentAddress))}
           </Link>
           <div className='flex'>
             <button
@@ -171,15 +177,7 @@ export default function UserModal({ onClose }: UserModalProps) {
               style={{ background: "none", border: "none", padding: 0, margin: 0 }}
             >
               {balance === null ? (
-                <Image
-                  src="/loaderb.gif"
-                  alt="Loading..."
-                  width={48}
-                  height={24}
-                  unoptimized
-                  style={{ minWidth: 48, minHeight: 24, width: 48, height: 24 }}
-                  className="inline-block align-middle"
-                />
+                <LoaderCircle className="animate-spin text-black dark:text-white inline-block align-middle" size={32} />
               ) : (
                 <>
                   {balance} <span className="text-lg">STX</span>

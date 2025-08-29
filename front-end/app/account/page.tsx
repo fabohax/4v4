@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+
+import { LoaderCircle } from "lucide-react";
 
 export default function AccountCreatedPage() {
   const router = useRouter();
@@ -41,16 +42,7 @@ export default function AccountCreatedPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh]">
         <div className="flex items-center justify-center w-full mb-4">
-          <Image
-            src="/loader.gif"
-            alt="Loading..."
-            width={75}
-            height={37.7}
-            priority
-            unoptimized
-            style={{ minWidth: 75, minHeight: 37.5, width: 75, height: 37.5 }}
-            className="loader-invert-light"
-          />
+          <LoaderCircle className="animate-spin text-black dark:text-white" size={48} />
         </div>
       </div>
     );
@@ -82,16 +74,7 @@ export default function AccountCreatedPage() {
         >
           {loading ? (
             <span className="flex items-center justify-center w-full">
-              <Image
-                src="/loader.gif"
-                alt="Loading..."
-                width={75}
-                height={38}
-                priority
-                unoptimized
-                style={{ minWidth: 75, minHeight: 38, width: 75, height: 38 }}
-                className="loader-invert-light"
-              />
+              <LoaderCircle className="animate-spin text-black dark:text-white" size={32} />
             </span>
           ) : (
             <>I&apos;ve saved my credentials, continue</>

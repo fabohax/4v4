@@ -9,7 +9,7 @@ import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from '@stacks/transaction
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
-import { User, MapPin, Calendar, Briefcase, Globe, Pen } from 'lucide-react';
+import { User, MapPin, Calendar, Briefcase, Globe, Pen, LoaderCircle } from 'lucide-react';
 import { getIPFSUrl } from '@/lib/pinataUpload';
 
 type TokenMetadata = {
@@ -562,15 +562,7 @@ function ProfilePage() {
       {!address && <p>Please connect your wallet.</p>}
       {loading && (
         <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
-          <Image
-            src="/loader.gif"
-            alt="Loading..."
-            width={120}
-            height={120}
-            priority
-            unoptimized
-            className="rounded-lg"
-          />
+          <LoaderCircle/>
         </div>
       )}
       {!loading && mintedTokens.length === 0 && address && (
