@@ -15,7 +15,7 @@ import { makeSTXTokenTransfer, broadcastTransaction } from "@stacks/transactions
 import { getApiUrl } from "@/lib/stacks-api";
 import { getPersistedNetwork } from "@/lib/network";
 
-import { Copy, X, LoaderCircle } from "lucide-react";
+import { Copy, X, LoaderCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -253,10 +253,13 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-  <div className="max-w-xl mx-auto p-8 bg-accent-background rounded-2xl border-[1px] border-[#333] shadow text-accent-foreground select-none min-w-[100vw] lg:min-w-1/4">
-      
-      <h1 className="title text-3xl font-bold hidden">Wallet</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center">
+
+      <div className="max-w-xl mx-auto p-8 bg-accent-background rounded-2xl border-[1px] border-[#333] shadow text-accent-foreground select-none min-w-[100vw] lg:min-w-1/4">
+        <div className="my-2 flex items-center justify-left">
+          <Wallet className="w-8 h-8 text-foreground" />
+          <h1 className="title text-lg mx-4 font-bold">Wallet</h1>
+        </div>        
       <div className="mt-16 flex justify-center">
         <div className="flex items-center gap-3">
           {loading ? (
