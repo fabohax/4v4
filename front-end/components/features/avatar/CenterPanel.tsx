@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, MutableRefObject } from 'react';
+import { Maximize } from 'lucide-react';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 import { GridMaterial } from 'babylonjs-materials'; // Import GridMaterial directly - NEW IMPORT
@@ -12,6 +13,7 @@ interface CenterPanelProps {
     modelUrl?: string | null;
     lightIntensity: number;
     meshGroundColor?: string;
+    onModelLoaded?: () => void;
 }
 
 export default function CenterPanel({
@@ -19,9 +21,32 @@ export default function CenterPanel({
     secondaryColor,
     modelUrl,
     lightIntensity,
-    meshGroundColor
+    meshGroundColor,
+    onModelLoaded
 }: CenterPanelProps) {
     const mountRef = useRef<HTMLCanvasElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    // Fullscreen handler
+    const handleMaximize = () => {
+        if (!panelRef.current) return;
+        if (!document.fullscreenElement) {
+            panelRef.current.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    // Listen for fullscreen change to update state
+    useEffect(() => {
+        const onFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    }, []);
     const sceneRef = useRef<BABYLON.Scene | null>(null) as MutableRefObject<BABYLON.Scene | null>;
     const modelRef = useRef<BABYLON.AbstractMesh | null>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -240,7 +265,11 @@ export default function CenterPanel({
     }, [meshMaterial]);
 
     useEffect(() => {
-        if (!sceneRef.current || !modelUrl) return;
+        if (!sceneRef.current) return;
+        if (!modelUrl) {
+            if (onModelLoaded) onModelLoaded();
+            return;
+        }
 
         // Load the model when modelUrl changes
         const loadModel = (modelPath: string) => {
@@ -266,6 +295,9 @@ export default function CenterPanel({
 
                     // Add the model to the shadow generator
                     shadowGeneratorRef.current?.addShadowCaster(modelRef.current, true);
+
+                    // Notify parent that model is loaded
+                    if (onModelLoaded) onModelLoaded();
                 }
             }, undefined, undefined, ".glb");
         };
@@ -279,13 +311,22 @@ export default function CenterPanel({
                 modelRef.current = null;
             }
         };
-    }, [modelUrl]);
+    }, [modelUrl, onModelLoaded]);
 
     return (
-        <main className="w-full h-full rounded-3xl">
+        <main ref={panelRef} className="w-full h-full rounded-3xl relative">
+            {/* Maximize Button */}
+            <button
+                onClick={handleMaximize}
+                title={isFullscreen ? 'Exit Fullscreen' : 'Maximize'}
+                className="absolute top-3 right-3 z-20 bg-background/10 hover:bg-background/80 text-mute-foreground rounded-md p-2 shadow-none transition-colors cursor-pointer focus:outline-none"
+                style={{lineHeight:0}}
+            >
+                <Maximize size={22} className='text-mute-foreground'/>
+            </button>
             <canvas
                 ref={mountRef}
-                className="w-full h-full cursor-grab active:cursor-grabbing block rounded-2xl"
+                className="w-full h-full cursor-grab active:cursor-grabbing block rounded-2xl focus:outline-none"
                 onMouseDown={(e) => e.preventDefault()}
             />
             <div

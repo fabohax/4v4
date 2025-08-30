@@ -44,6 +44,23 @@ function extractOkUint(input: unknown): number | null {
   return null;
 }
 
+// Helper to get/set NFT metadata in localStorage
+function getCachedMetadata(key: string): TokenMetadata | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return null;
+}
+
+function setCachedMetadata(key: string, data: TokenMetadata) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+}
+
 export default function ExplorePage() {
   const [allNFTs, setAllNFTs] = useState<MintedToken[]>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
@@ -240,6 +257,12 @@ export default function ExplorePage() {
           if (!token.tokenUri) continue;
 
           const metaKey = `${token.contractAddress}:${token.contractName}:${token.tokenId}`;
+          // Try to get from localStorage first
+          const cached = getCachedMetadata(metaKey);
+          if (cached) {
+            metadata[metaKey] = cached;
+            continue;
+          }
           try {
             // Convert IPFS URIs to HTTP URLs
             let metadataUrl = token.tokenUri;
@@ -248,7 +271,19 @@ export default function ExplorePage() {
             }
 
             const metaResponse = await axios.get(metadataUrl, { timeout: 10000 });
-            metadata[metaKey] = metaResponse.data;
+            const meta = metaResponse.data || {};
+            // Normalize name/description fields and provide better fallbacks
+            let name = meta.name || meta.title || meta['nft_name'] || meta['NFT_NAME'] || 'Unnamed NFT';
+            if (typeof name !== 'string') name = 'Unnamed NFT';
+            let description = meta.description || meta['desc'] || meta['nft_description'] || meta['NFT_DESCRIPTION'] || '';
+            if (typeof description !== 'string') description = '';
+            const normalized = {
+              ...meta,
+              name,
+              description,
+            };
+            metadata[metaKey] = normalized;
+            setCachedMetadata(metaKey, normalized);
           } catch (err) {
             console.log(`Error fetching metadata for ${metaKey}:`, err);
             metadata[metaKey] = { name: 'Unknown NFT', description: 'Unable to load metadata' };

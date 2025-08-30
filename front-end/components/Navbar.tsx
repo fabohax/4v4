@@ -63,7 +63,7 @@ export const Navbar = () => {
             {/* Options Bar (centered) */}
             <div
               id="options-bar"
-              className="md:flex hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/15 backdrop-blur supports-[backdrop-filter]:bg-background/10 px-9 py-1 border border-[#dbdbdb] rounded-full"
+              className="md:flex hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/15 backdrop-blur supports-[backdrop-filter]:bg-background/10 px-9 py-1 border border-[#dbdbdb] dark:border-[#444] rounded-full"
             >
               <button
                 className="flex items-center mr-4 p-1 rounded hover:bg-background transition-colors cursor-pointer"

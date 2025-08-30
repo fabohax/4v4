@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import CenterPanel from '@/components/features/avatar/CenterPanel';
-import { getProfile } from '@/lib/profileApi';
+// import { getProfile } from '@/lib/profileApi';
 import { getNftsByCreator } from '@/lib/nftApi';
 
 type TokenMetadata = {
@@ -74,6 +74,9 @@ export default function NFTDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [modelUrl, setModelUrl] = useState<string>('');
+  const [modelBlobUrl, setModelBlobUrl] = useState<string>('');
+  const modelCacheKey = `nft-model-${address}-${contractName}-${tokenId}`;
+  const modelBlobUrlRef = useRef<string | null>(null);
   const [priceData, setPriceData] = useState<{
     stxPriceUsd: number;
     nftPriceSatoshis: number;
@@ -172,6 +175,17 @@ export default function NFTDetailPage() {
         setLoading(true);
         setError('');
 
+        // Try to load model from localStorage first
+        try {
+          const cached = localStorage.getItem(modelCacheKey);
+          if (cached) {
+            const blob = new Blob([Uint8Array.from(atob(cached), c => c.charCodeAt(0))]);
+            const blobUrl = URL.createObjectURL(blob);
+            setModelBlobUrl(blobUrl);
+            modelBlobUrlRef.current = blobUrl;
+          }
+        } catch { /* ignore */ }
+
         // Try to fetch from API endpoint that queries the contract
         const contractResponse = await fetch(`/api/nft/${address}/${contractName}`);
         if (contractResponse.ok) {
@@ -188,10 +202,31 @@ export default function NFTDetailPage() {
               setMetadata(nftData);
 
               // Set model URL from animation_url or model field
+              let url = '';
               if (nftData.animation_url) {
-                setModelUrl(nftData.animation_url);
+                url = nftData.animation_url;
               } else if (nftData.model) {
-                setModelUrl(nftData.model);
+                url = nftData.model;
+              }
+              setModelUrl(url);
+
+              // If not already cached, fetch and cache the model file
+              if (url && !modelBlobUrlRef.current) {
+                try {
+                  const modelRes = await fetch(url);
+                  if (modelRes.ok) {
+                    const arrayBuffer = await modelRes.arrayBuffer();
+                    const uint8Arr = new Uint8Array(arrayBuffer);
+                    // Store as base64 string in localStorage
+                    const b64 = btoa(String.fromCharCode(...uint8Arr));
+                    localStorage.setItem(modelCacheKey, b64);
+                    // Create blob URL for immediate use
+                    const blob = new Blob([uint8Arr]);
+                    const blobUrl = URL.createObjectURL(blob);
+                    setModelBlobUrl(blobUrl);
+                    modelBlobUrlRef.current = blobUrl;
+                  }
+                } catch { /* ignore */ }
               }
             }
           }
@@ -232,10 +267,30 @@ export default function NFTDetailPage() {
                 setMetadata(res.data);
 
                 // Set model URL from animation_url or model field
+                let url = '';
                 if (res.data.animation_url) {
-                  setModelUrl(res.data.animation_url);
+                  url = res.data.animation_url;
                 } else if (res.data.model) {
-                  setModelUrl(res.data.model);
+                  url = res.data.model;
+                }
+                setModelUrl(url);
+                // If not already cached, fetch and cache the model file
+                if (url && !modelBlobUrlRef.current) {
+                  try {
+                    const modelRes = await fetch(url);
+                    if (modelRes.ok) {
+                      const arrayBuffer = await modelRes.arrayBuffer();
+                      const uint8Arr = new Uint8Array(arrayBuffer);
+                      // Store as base64 string in localStorage
+                      const b64 = btoa(String.fromCharCode(...uint8Arr));
+                      localStorage.setItem(modelCacheKey, b64);
+                      // Create blob URL for immediate use
+                      const blob = new Blob([uint8Arr]);
+                      const blobUrl = URL.createObjectURL(blob);
+                      setModelBlobUrl(blobUrl);
+                      modelBlobUrlRef.current = blobUrl;
+                    }
+                  } catch { /* ignore */ }
                 }
               } catch (err) {
                 console.log('Error fetching metadata:', err);
@@ -299,11 +354,18 @@ export default function NFTDetailPage() {
 
   useEffect(() => {
     const fetchCreatorData = async () => {
-      if (metadata?.creator) {
+      const creatorAddr = deployerAddress || address;
+      if (creatorAddr) {
         try {
-          const profile = await getProfile(metadata.creator);
-          setCreatorProfile(profile);
-          const nfts = await getNftsByCreator(metadata.creator);
+          // Fetch profile from new API route
+          const res = await fetch(`/api/profile/${creatorAddr}`);
+          if (res.ok) {
+            const { profile } = await res.json();
+            setCreatorProfile(profile);
+          } else {
+            setCreatorProfile(null);
+          }
+          const nfts = await getNftsByCreator(creatorAddr);
           setCreatorNfts(nfts.filter(nft => nft.token_id !== tokenId)); // Exclude current NFT
         } catch {
           setCreatorProfile(null);
@@ -312,7 +374,7 @@ export default function NFTDetailPage() {
       }
     };
     fetchCreatorData();
-  }, [metadata, tokenId]);
+  }, [deployerAddress, address, tokenId]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -365,12 +427,12 @@ export default function NFTDetailPage() {
           <div className="col-span-12 lg:col-span-7">
             {/* Media Display */}
             <div className="relative aspect-square rounded-xl overflow-hidden">
-              {modelUrl ? (
+              {(modelBlobUrl || modelUrl) ? (
                 <div className="w-full h-full outline-none">
                   <CenterPanel
                     background={getPanelBackground()}
                     secondaryColor="#333"
-                    modelUrl={modelUrl}
+                    modelUrl={modelBlobUrl || modelUrl}
                     lightIntensity={11}
                     meshGroundColor={getMeshGroundColor()}
                   />
@@ -484,34 +546,37 @@ export default function NFTDetailPage() {
             <div className="sticky top-6 space-y-6">
               {/* Title & Creator */}
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h1 className="title text-3xl my-6">{metadata?.name || `Token #${tokenId}`}</h1>
-                  {metadata?.attributes && Array.isArray(metadata.attributes) && metadata.attributes.find(attr => attr.trait_type === 'Rarity') && (
-                    <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 ml-2">
-                      {metadata.attributes.find(attr => attr.trait_type === 'Rarity')?.value || 'Epic'}
-                    </Badge>
-                  )}
-                </div>
-                {/* Creator & Owner Info */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <div className="text-xs text-muted-foreground">Creator</div>
-                        <div className="text-sm font-medium">
-                          {creatorProfile?.display_name || creatorProfile?.username || (
-                            deployerAddress ? (
-                              <Link href={`/${deployerAddress}`}>{deployerAddress}</Link>
-                            ) : metadata?.creator ? (
-                              <Link href={`/${metadata.creator}`}>{metadata.creator}</Link>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h1 className="title text-3xl my-6">{metadata?.name || `Token #${tokenId}`}</h1>
+                    {metadata?.attributes && Array.isArray(metadata.attributes) && metadata.attributes.find(attr => attr.trait_type === 'Rarity') && (
+                      <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 ml-2">
+                        {metadata.attributes.find(attr => attr.trait_type === 'Rarity')?.value || 'Epic'}
+                      </Badge>
+                    )}
+                  </div>
+                  {/* Creator & Owner Info */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Creator</div>
+                          <div className="text-sm font-medium flex items-center gap-2">
+                            {(deployerAddress || address) ? (
+                              <>
+                                <Link href={`/${deployerAddress || address}`} className="font-mono">
+                                  {(deployerAddress || address).slice(0, 6)}...{(deployerAddress || address).slice(-4)}
+                                </Link>
+                                {creatorProfile?.username && (
+                                  <span className="ml-2 text-xs text-foreground">@{creatorProfile.username}</span>
+                                )}
+                              </>
                             ) : (
-                              <span>Unknown</span>
-                            )
-                          )}
+                              <span className="inline-block h-5 w-24 bg-muted animate-pulse rounded"></span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
                   {owner && (
                     <div className="flex items-center justify-between">
@@ -607,7 +672,7 @@ export default function NFTDetailPage() {
                           onClick={() => copyToClipboard(`${address}.${contractName}`, 'Contract')}
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 cursor-pointer"
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
@@ -628,7 +693,7 @@ export default function NFTDetailPage() {
                             onClick={() => copyToClipboard(owner, 'Owner address')}
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 cursor-pointer"
                           >
                             <Copy className="w-3 h-3" />
                           </Button>

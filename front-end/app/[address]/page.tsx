@@ -500,6 +500,12 @@ function ProfilePage() {
         setMintedTokens(allTokens);
         // Fetch metadata for IPFS CIDs (not https links)
         const metadataPromises = allTokens.map(async (token) => {
+          const metaKey = `${token.contractAddress}:${token.contractName}:${token.tokenId}`;
+          // Try to get from localStorage first
+          const cached = getCachedMetadata(metaKey);
+          if (cached) {
+            return { key: metaKey, metadata: cached };
+          }
           if (!token.tokenUri.startsWith('https')) {
             let cid = token.tokenUri;
             if (cid.startsWith('ipfs://')) {
@@ -508,12 +514,13 @@ function ProfilePage() {
             const url = `https://ipfs.io/ipfs/${cid}`;
             try {
               const res = await axios.get<TokenMetadata>(url, { timeout: 5000 });
-              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: res.data };
+              setCachedMetadata(metaKey, res.data);
+              return { key: metaKey, metadata: res.data };
             } catch {
-              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+              return { key: metaKey, metadata: null };
             }
           }
-          return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+          return { key: metaKey, metadata: null };
         });
         const metadatas = await Promise.all(metadataPromises);
         const metaMap: Record<string, TokenMetadata> = {};
@@ -708,6 +715,12 @@ function AddressPage({ address, currentAddress }: { address: string, currentAddr
         setMintedTokens(allTokens);
         // Fetch metadata for IPFS CIDs (not https links)
         const metadataPromises = allTokens.map(async (token) => {
+          const metaKey = `${token.contractAddress}:${token.contractName}:${token.tokenId}`;
+          // Try to get from localStorage first
+          const cached = getCachedMetadata(metaKey);
+          if (cached) {
+            return { key: metaKey, metadata: cached };
+          }
           if (!token.tokenUri.startsWith('https')) {
             let cid = token.tokenUri;
             if (cid.startsWith('ipfs://')) {
@@ -716,12 +729,13 @@ function AddressPage({ address, currentAddress }: { address: string, currentAddr
             const url = `https://ipfs.io/ipfs/${cid}`;
             try {
               const res = await axios.get<TokenMetadata>(url, { timeout: 5000 });
-              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: res.data };
+              setCachedMetadata(metaKey, res.data);
+              return { key: metaKey, metadata: res.data };
             } catch {
-              return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+              return { key: metaKey, metadata: null };
             }
           }
-          return { key: `${token.contractAddress}:${token.contractName}:${token.tokenId}`, metadata: null };
+          return { key: metaKey, metadata: null };
         });
         const metadatas = await Promise.all(metadataPromises);
         const metaMap: Record<string, TokenMetadata> = {};
@@ -789,6 +803,23 @@ function AddressPage({ address, currentAddress }: { address: string, currentAddr
       </div>
     </div>
   );
+}
+
+// Helper to get/set NFT metadata in localStorage
+function getCachedMetadata(key: string): TokenMetadata | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return null;
+}
+
+function setCachedMetadata(key: string, data: TokenMetadata) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {}
 }
 
 // Main export: decide which page to show based on params

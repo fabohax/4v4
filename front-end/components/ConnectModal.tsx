@@ -256,9 +256,11 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
         <div className="p-6 space-y-6">
           {connectMode === 'wallets' && (
             <>
-              <div className="mb-2 text-gray-700 text-sm">
-                You don&apos;t have unknown wallets in your browser that support this app. You need to install a wallet to proceed.
-              </div>
+              {(wallets.length === 0 || wallets.every(w => !w.installed)) && (
+                <div className="mb-2 text-gray-700 text-sm">
+                  You don&apos;t have unknown wallets in your browser that support this app. You need to install a wallet to proceed.
+                </div>
+              )}
               <div className="space-y-3">
                 {wallets.map(w => (
                   <div key={w.id} className="flex items-center justify-between rounded-lg px-4 py-3">
