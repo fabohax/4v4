@@ -11,7 +11,7 @@ import { useEncryptedWallet } from '@/components/EncryptedWalletProvider';
 export default function WelcomePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const email = searchParams.get('email');
+  const email = searchParams?.get('email');
   const { currentWallet, isAuthenticated } = useEncryptedWallet();
 
   const [showMnemonic, setShowMnemonic] = useState(false);

@@ -40,9 +40,9 @@ export default function NFTDetailPage() {
   const params = useParams();
   const router = useRouter();
 
-  const address = params.address as string;
-  const contractName = params.contractName as string;
-  const tokenId = params.tokenId as string;
+  const address = params?.address as string;
+  const contractName = params?.contractName as string;
+  const tokenId = params?.tokenId as string;
 
   useEffect(() => {
     setMounted(true);
@@ -350,7 +350,7 @@ export default function NFTDetailPage() {
     if (address && contractName && tokenId) {
       initializeData();
     }
-  }, [address, contractName, tokenId, fetchNftPrice]);
+  }, [address, contractName, tokenId, fetchNftPrice, modelCacheKey]);
 
   useEffect(() => {
     const fetchCreatorData = async () => {

@@ -34,8 +34,8 @@ interface NFTMetadata {
 export default function NFTViewerPage() {
   const params = useParams();
   const router = useRouter();
-  const address = params.address as string;
-  const contractName = params.contractName as string;
+  const address = params?.address as string;
+  const contractName = params?.contractName as string;
   
   const [metadata, setMetadata] = useState<NFTMetadata | null>(null);
   const [loading, setLoading] = useState(true);

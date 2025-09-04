@@ -270,7 +270,7 @@ export default function WalletPage() {
         </div>
       </div>
 
-            {/* Network and Address Info - Only show if not mainnet */}
+      {/* Network and Address Info - Only show if not mainnet */}
       {getPersistedNetwork() !== 'mainnet' && (
         <div className="mb-16 p-4 bg-accent-background rounded-lg">
           <div className="flex items-center justify-center text-sm">

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 // GET /api/profile/[address]
-export async function GET(req: NextRequest, { params }: { params: { address: string } }) {
-  const { address } = params;
+export async function GET(req: NextRequest, context: { params: Promise<{ address: string }> }) {
+  const { address } = await context.params;
   if (!address) {
     return NextResponse.json({ error: 'Address is required' }, { status: 400 });
   }

@@ -17,7 +17,7 @@ import { getAddressFromPrivateKey } from '@stacks/transactions';
 export default function WalletRecoveryPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get('token');
+  const token = searchParams?.get('token');
 
   const [isValidating, setIsValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);

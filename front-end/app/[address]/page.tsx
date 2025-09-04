@@ -86,7 +86,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                 </div>
               ) : (
                 <div className="relative w-full pt-[100%]">
-                  <div className="absolute inset-0 flex items-center justify-center bg-background rounded-lg text-gray-500">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background rounded-lg text-gray-500 border border-muted-foreground">
                     No image
                   </div>
                 </div>

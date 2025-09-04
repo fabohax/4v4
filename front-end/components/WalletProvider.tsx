@@ -18,7 +18,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (saved && !address) {
       setAddress(saved);
     }
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     if (address) {
