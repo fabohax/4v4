@@ -66,7 +66,7 @@ export default function LocationMapModal({
       <div className="bg-[#000] border border-[#333] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#333]">
-          <h2 className="text-xl font-semibold text-white">NFT Location</h2>
+          <h2 className="text-xl font-semibold text-white">Model location</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -131,7 +131,7 @@ export default function LocationMapModal({
           {/* Current coordinates display */}
           {currentLat && currentLng && !onLocationSelect && (
             <div className="mb-4 p-3 bg-[#111] border border-[#333] rounded-lg">
-              <p className="text-gray-400 text-sm mb-1">NFT Coordinates:</p>
+              <p className="text-gray-400 text-sm mb-1">Model coordinates:</p>
               <p className="text-white font-mono text-sm">
                 Lat: {parseFloat(currentLat).toFixed(6)}, Lng: {parseFloat(currentLng).toFixed(6)}
               </p>
@@ -143,7 +143,7 @@ export default function LocationMapModal({
             {!currentLat || !currentLng ? (
               <div className="flex items-center justify-center h-full bg-[#111] text-gray-400">
                 <div className="text-center">
-                  <p className="mb-2">No coordinates available for this NFT</p>
+                  <p className="mb-2">No coordinates available for this model</p>
                 </div>
               </div>
             ) : mapError ? (
@@ -171,7 +171,7 @@ export default function LocationMapModal({
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="NFT Location Map"
+                  title="Model location map"
                   onLoad={() => setMapLoading(false)}
                   onError={() => {
                     setMapLoading(false);

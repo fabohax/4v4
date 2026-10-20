@@ -74,7 +74,7 @@ async function checkContractExists(
     const options = {
       contractAddress,
       contractName,
-      functionName: 'get-last-token-id', // Common NFT function
+      functionName: 'get-last-token-id', // Common Upload function
       functionArgs: [],
       senderAddress: contractAddress,
       network: stacksNetwork,
@@ -136,11 +136,11 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('Error fetching NFT data:', error);
+    console.error('Error fetching Upload data:', error);
     
     return NextResponse.json(
       { 
-        error: "Failed to fetch NFT data",
+        error: "Failed to fetch Upload data",
         details: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }

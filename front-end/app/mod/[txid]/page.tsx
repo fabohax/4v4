@@ -36,7 +36,7 @@ export default function NFTPage() {
     setTimeout(() => {
       setMetadata({
         name: "CyberHead",
-        description: "A rare cyberpunk avatar NFT.",
+        description: "A rare cyberpunk avatar model.",
         image: "/01.png",
       });
       setLoading(false);
@@ -47,7 +47,7 @@ export default function NFTPage() {
     <div className="max-w-2xl mx-auto my-24 p-8 bg-black rounded-2xl border-[1px] border-[#333] shadow text-white">
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24">
-          <span className="text-lg text-gray-400">Loading NFT...</span>
+          <span className="text-lg text-gray-400">Loading Upload...</span>
         </div>
       ) : (
         <>
@@ -56,7 +56,7 @@ export default function NFTPage() {
               {metadata?.image ? (
                 <Image
                   src={metadata.image}
-                  alt={metadata.name || "NFT"}
+                  alt={metadata.name || "Upload"}
                   width={256}
                   height={256}
                   className="object-cover w-full h-full"
@@ -66,7 +66,7 @@ export default function NFTPage() {
                 <span className="text-gray-500">No image</span>
               )}
             </div>
-            <h1 className="text-3xl font-bold mb-2">{metadata?.name || "NFT"}</h1>
+            <h1 className="text-3xl font-bold mb-2">{metadata?.name || "Upload"}</h1>
             <div className="text-gray-400 text-sm mb-2 break-all">
               Owner: <span className="font-mono">{address}</span>
             </div>

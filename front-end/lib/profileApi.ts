@@ -62,7 +62,7 @@ export interface Profile {
   banner_cid?: string;
   portfolio_urls?: string[];
   
-  // NFT Platform Specific
+  // Upload Platform Specific
   creator_verified?: boolean;
   verified_artist?: boolean;
   total_nfts_created?: number;

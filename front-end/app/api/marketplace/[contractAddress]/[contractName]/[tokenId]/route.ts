@@ -44,7 +44,7 @@ async function getNftMarketplaceData(
 
   try {
     // Try to get listing information from marketplace contract
-    // This assumes your NFT contract has marketplace functions
+    // This assumes your Upload contract has marketplace functions
     try {
       const listingCV = await fetchCallReadOnlyFunction({
         contractAddress,

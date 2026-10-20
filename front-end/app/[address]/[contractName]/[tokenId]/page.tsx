@@ -163,7 +163,7 @@ export default function NFTDetailPage() {
         nftPriceUsd: priceUsd
       });
     } catch (error) {
-      console.error('Error fetching NFT price:', error);
+      console.error('Error fetching Upload price:', error);
     } finally {
       setPriceLoading(false);
     }
@@ -294,12 +294,12 @@ export default function NFTDetailPage() {
                 }
               } catch (err) {
                 console.log('Error fetching metadata:', err);
-                setError('Failed to load NFT metadata');
+                setError('Failed to load Upload metadata');
               }
             }
           } catch (err) {
             console.log('Error fetching token URI:', err);
-            setError('Failed to load NFT data');
+            setError('Failed to load Upload data');
           }
         }
 
@@ -336,7 +336,7 @@ export default function NFTDetailPage() {
 
       } catch (err) {
         console.log('Error in fetchNFTData:', err);
-        setError('Failed to load NFT data');
+        setError('Failed to load Upload data');
       } finally {
         setLoading(false);
       }
@@ -366,7 +366,7 @@ export default function NFTDetailPage() {
             setCreatorProfile(null);
           }
           const nfts = await getNftsByCreator(creatorAddr);
-          setCreatorNfts(nfts.filter(nft => nft.token_id !== tokenId)); // Exclude current NFT
+          setCreatorNfts(nfts.filter(nft => nft.token_id !== tokenId)); // Exclude current Upload
         } catch {
           setCreatorProfile(null);
           setCreatorNfts([]);
@@ -423,7 +423,7 @@ export default function NFTDetailPage() {
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-12 gap-8 lg:gap-12">
-          {/* Left Column - NFT Media */}
+          {/* Left Column - Upload Media */}
           <div className="col-span-12 lg:col-span-7">
             {/* Media Display */}
             <div className="relative aspect-square rounded-xl overflow-hidden">
@@ -442,7 +442,7 @@ export default function NFTDetailPage() {
                   <div className="text-center text-gray-400">
                     <div className="text-4xl mb-4">🎨</div>
                     <p className="text-lg font-medium">No 3D Model Available</p>
-                    <p className="text-sm mt-2">This NFT doesn&apos;t have a 3D model</p>
+                    <p className="text-sm mt-2">This item doesn&apos;t have a 3D model</p>
                   </div>
                 </div>
               )}
@@ -541,7 +541,7 @@ export default function NFTDetailPage() {
             </div>
           </div>
 
-          {/* Right Column - NFT Info & Actions */}
+          {/* Right Column - Upload Info & Actions */}
           <div className="col-span-12 lg:col-span-5">
             <div className="sticky top-6 space-y-6">
               {/* Title & Creator */}
@@ -719,7 +719,7 @@ export default function NFTDetailPage() {
                   {nft.image ? (
                     <img src={nft.image} alt={nft.name} className="object-cover w-full h-full rounded-lg" />
                   ) : (
-                    <span className="text-white">{nft.name || 'NFT'}</span>
+                    <span className="text-white">{nft.name || 'Untitled model'}</span>
                   )}
                 </Link>
               ))}

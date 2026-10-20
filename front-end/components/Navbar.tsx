@@ -79,6 +79,9 @@ export const Navbar = () => {
                 <Link href="/explore" className='mx-3'>
                   {t('EXPLORE')}
                 </Link>
+                <Link href="/print-request" className='mx-3'>
+                  {t('PRINT')}
+                </Link>
                 <Link href="/mint" className='mx-3' onClick={e => handleProtectedNav(e, '/mint')}>
                   {t('UPLOAD')}
                 </Link>
@@ -103,14 +106,14 @@ export const Navbar = () => {
         <Select value={locale} onValueChange={(value) => setLocale(value as 'en' | 'es' | 'pt')}>
           <SelectTrigger
             aria-label={t('Language')}
-            className="h-9 min-w-20 border-border bg-background text-foreground shadow-md"
+            className="h-9 min-w-20 cursor-pointer border-border bg-background text-foreground shadow-md"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="en">EN</SelectItem>
-            <SelectItem value="es">ES</SelectItem>
-            <SelectItem value="pt">PT</SelectItem>
+            <SelectItem value="en" className="cursor-pointer">EN</SelectItem>
+            <SelectItem value="es" className="cursor-pointer">ES</SelectItem>
+            <SelectItem value="pt" className="cursor-pointer">PT</SelectItem>
           </SelectContent>
         </Select>
       </div>

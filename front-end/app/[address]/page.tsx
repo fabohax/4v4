@@ -71,7 +71,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                       out = out.replace('.mypinata.cloud/ipfs/', '://ipfs.io/ipfs/');
                       return out;
                     })()}
-                    alt={meta?.name || 'NFT Image'}
+                    alt={meta?.name || 'Upload Image'}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="absolute inset-0 object-cover rounded-lg"
@@ -358,7 +358,7 @@ function ProfileDisplay({ profile, address, isOwnProfile, mintedCount = 0 }: {
   );
 }
 
-// ProfilePage: shows connected wallet's profile and NFTs in a grid
+// ProfilePage: shows connected wallet's profile and Uploads in a grid
 function ProfilePage() {
   const address = useCurrentAddress();
   const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>>([]);
@@ -585,7 +585,7 @@ function ProfilePage() {
 
 // AddressPage: shows profile for a given address param
 function AddressPage({ address, currentAddress }: { address: string, currentAddress?: string }) {
-  // List minted NFTs for the given address using Hiro API
+  // List minted Uploads for the given address using Hiro API
   const [mintedTokens, setMintedTokens] = useState<Array<{ contractAddress: string, contractName: string, tokenId: number, tokenUri: string, txId: string }>>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [loading, setLoading] = useState(false);
@@ -780,7 +780,7 @@ function AddressPage({ address, currentAddress }: { address: string, currentAddr
           </div>
         )}
 
-        {/* NFT grid for this address */}
+        {/* Upload grid for this address */}
         {loading && (
           <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
             <Image
@@ -805,7 +805,7 @@ function AddressPage({ address, currentAddress }: { address: string, currentAddr
   );
 }
 
-// Helper to get/set NFT metadata in localStorage
+// Helper to get/set Upload metadata in localStorage
 function getCachedMetadata(key: string): TokenMetadata | null {
   if (typeof window === 'undefined') return null;
   try {

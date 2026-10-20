@@ -11,7 +11,7 @@ interface DeployContractParams {
   royaltyPercent?: number; // Optional royalty percentage (0-1000, representing 0%-10%)
   builderFee?: number; // Optional builder fee (0-1000, representing 0%-10%)
   maxSupply?: number; // Optional maximum supply limit
-  description?: string; // Optional NFT collection description
+  description?: string; // Optional Upload collection description
 }
 
 async function prepareContractCode(params: DeployContractParams) {
@@ -32,16 +32,16 @@ async function prepareContractCode(params: DeployContractParams) {
     console.log('> Template contract loaded successfully');
     console.log('> Original template length:', contractCode.length, 'characters');
     
-    // Validate and sanitize NFT name for Clarity
+    // Validate and sanitize Upload name for Clarity
     const nftName = params.nftName
       .toUpperCase()
-      .replace(/[^A-Z0-9_]/g, '_') // Only allow alphanumeric and underscores in NFT names
+      .replace(/[^A-Z0-9_]/g, '_') // Only allow alphanumeric and underscores in Upload names
       .replace(/_+/g, '_') // Remove consecutive underscores
       .replace(/^_|_$/g, '') // Remove leading/trailing underscores
       .slice(0, 32); // Limit length for Clarity
     
     if (!nftName) {
-      throw new Error('Invalid NFT name - must contain at least one alphanumeric character');
+      throw new Error('Invalid Upload name - must contain at least one alphanumeric character');
     }
     
     // Validate CID format (basic validation)
@@ -56,7 +56,7 @@ async function prepareContractCode(params: DeployContractParams) {
     
     // Replace placeholders with actual values
     console.log('> Replacing template placeholders...');
-    console.log('> NFT Name (sanitized):', nftName);
+    console.log('> Upload Name (sanitized):', nftName);
     console.log('> Initial CID:', params.initialCid);
     
     // Count placeholders before replacement
@@ -82,7 +82,7 @@ async function prepareContractCode(params: DeployContractParams) {
     
     // Verify replacements were successful
     if (!contractCode.includes(nftName)) {
-      throw new Error('NFT name replacement failed - name not found in contract');
+      throw new Error('Upload name replacement failed - name not found in contract');
     }
     
     if (!contractCode.includes(params.initialCid)) {
@@ -91,7 +91,7 @@ async function prepareContractCode(params: DeployContractParams) {
     
     // Basic Clarity syntax validation - check for required elements
     if (!contractCode.includes('define-non-fungible-token')) {
-      throw new Error('Invalid contract: missing NFT token definition');
+      throw new Error('Invalid contract: missing Upload token definition');
     }
     
     return contractCode;
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     
     // Validate Clarity syntax basics
     if (!contractCode.includes('define-non-fungible-token')) {
-      throw new Error('Invalid Clarity contract - missing NFT token definition');
+      throw new Error('Invalid Clarity contract - missing Upload token definition');
     }
     
     // Only check for template placeholders (UPPERCASE), not Clarity record syntax

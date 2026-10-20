@@ -1,13 +1,13 @@
 {
-  "title": "NFT Marketplace dApp",
-  "description": "A full-featured NFT marketplace with minting and trading capabilities built with Clarity smart contracts and Next.js frontend",
+  "title": "3D Model Marketplace",
+  "description": "A marketplace for uploading, publishing, and trading 3D models built with Clarity smart contracts and Next.js",
   "type": "dapp",
   "framework": "clarity, next.js, react.js",
-  "useCase": "nft marketplace",
+  "useCase": "3D model marketplace",
   "complexity": "intermediate",
   "demoUrl": "https://demo.nft-marketplace-dapp.platform.hiro.so",
   "tags": [
-    "nft",
+    "3d models",
     "marketplace",
     "web3",
     "smart-contract",

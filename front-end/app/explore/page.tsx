@@ -45,7 +45,7 @@ function extractOkUint(input: unknown): number | null {
   return null;
 }
 
-// Helper to get/set NFT metadata in localStorage
+// Helper to get/set Upload metadata in localStorage
 function getCachedMetadata(key: string): TokenMetadata | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -101,7 +101,7 @@ export default function ExplorePage() {
         console.log(`Found ${profiles.length} user profiles`);
         setUserCount(profiles.length);
 
-        // 2. For each user address, fetch their minted NFTs (same logic as address page)
+        // 2. For each user address, fetch their minted Uploads (same logic as address page)
         const allTokens: MintedToken[] = [];
         
         for (let i = 0; i < profiles.length; i++) {
@@ -250,7 +250,7 @@ export default function ExplorePage() {
           }
         }
 
-        console.log(`Found ${allTokens.length} total NFTs across all users`);
+        console.log(`Found ${allTokens.length} total Uploads across all users`);
         setAllNFTs(allTokens);
 
         // 4. Fetch metadata for all tokens
@@ -275,8 +275,8 @@ export default function ExplorePage() {
             const metaResponse = await axios.get(metadataUrl, { timeout: 10000 });
             const meta = metaResponse.data || {};
             // Normalize name/description fields and provide better fallbacks
-            let name = meta.name || meta.title || meta['nft_name'] || meta['NFT_NAME'] || 'Unnamed NFT';
-            if (typeof name !== 'string') name = 'Unnamed NFT';
+            let name = meta.name || meta.title || meta['nft_name'] || meta['NFT_NAME'] || 'Untitled model';
+            if (typeof name !== 'string') name = 'Untitled model';
             let description = meta.description || meta['desc'] || meta['nft_description'] || meta['NFT_DESCRIPTION'] || '';
             if (typeof description !== 'string') description = '';
             const normalized = {
@@ -288,14 +288,14 @@ export default function ExplorePage() {
             setCachedMetadata(metaKey, normalized);
           } catch (err) {
             console.log(`Error fetching metadata for ${metaKey}:`, err);
-            metadata[metaKey] = { name: 'Unknown NFT', description: 'Unable to load metadata' };
+            metadata[metaKey] = { name: 'Model unavailable', description: 'Unable to load metadata' };
           }
         }
 
         setTokenMetadata(metadata);
       } catch (error) {
-        console.error('Error fetching NFTs:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load NFTs');
+        console.error('Error fetching Uploads:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load Uploads');
       } finally {
         setLoading(false);
       }
@@ -310,9 +310,9 @@ export default function ExplorePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-              {t('Explore NFTs')}
+              {t('Explore Uploads')}
             </h1>
-            <div className="mb-4">{t('Loading NFTs from all users...')}</div>
+            <div className="mb-4">{t('Loading Uploads from all users...')}</div>
             {userCount > 0 && (
               <div className="text-sm text-muted-foreground">
                 {t('Processing user')} {processedUsers} {t('of')} {userCount}
@@ -336,7 +336,7 @@ export default function ExplorePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-              {t('Explore NFTs')}
+              {t('Explore Uploads')}
             </h1>
             <div className="text-red-400 mb-4">{error}</div>
             <button 
@@ -359,19 +359,19 @@ export default function ExplorePage() {
             {t('Explore')}
           </h1>
           <div className="text-sm text-muted-foreground">
-            {allNFTs.length} {t('NFTs found')} {t('from')} {userCount} {t('users')}
+            {allNFTs.length} {t('Uploads found')} {t('from')} {userCount} {t('users')}
           </div>
         </div>
 
         {allNFTs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-xl text-muted-foreground mb-4">No NFTs found yet.</p>
-            <p className="text-muted-foreground mb-6">Be the first community member to mint an NFT!</p>
+            <p className="text-xl text-muted-foreground mb-4">No Uploads found yet.</p>
+            <p className="text-muted-foreground mb-6">Be the first to upload a 3D model!</p>
             <Link 
               href="/mint" 
               className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
             >
-              {t('Mint your first NFT')}
+              {t('Upload your first model')}
             </Link>
           </div>
         ) : (
@@ -403,7 +403,7 @@ export default function ExplorePage() {
                             out = out.replace('.mypinata.cloud/ipfs/', 'https://ipfs.io/ipfs/');
                             return out;
                           })()}
-                          alt={meta?.name || 'NFT Image'}
+                          alt={meta?.name || '3D model image'}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="absolute inset-0 object-cover rounded-lg"
@@ -426,7 +426,7 @@ export default function ExplorePage() {
                     
                     <div className="mt-4">
                       <div className="font-semibold text-sm truncate">
-                        {meta?.name || 'Unnamed NFT'}
+                        {meta?.name || 'Untitled model'}
                       </div>
                       <div className="text-xs text-gray-400 mb-2 line-clamp-2">
                         {meta?.description || 'No description'}

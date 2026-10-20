@@ -73,11 +73,11 @@ export default function NFTViewerPage() {
         }
         
         // If we get here, contract was not found or has no metadata
-        setError('NFT contract not found or has no metadata available.');
+        setError('Model not found or metadata is unavailable.');
         
       } catch (err) {
-        console.error('Error fetching NFT data:', err);
-        setError('Failed to load NFT data. Contract may not exist or be inaccessible.');
+        console.error('Error fetching Upload data:', err);
+        setError('Failed to load model data. The record may not exist or may be inaccessible.');
       } finally {
         setLoading(false);
       }
@@ -176,8 +176,8 @@ export default function NFTViewerPage() {
     if (!metadata) return;
     
     const shareData = {
-      title: metadata.name || 'Check out this NFT!',
-      text: metadata.description || 'View this amazing 3D NFT',
+      title: metadata.name || 'Check out this 3D model!',
+      text: metadata.description || 'View this 3D model',
       url: window.location.href
     };
 
@@ -201,7 +201,7 @@ export default function NFTViewerPage() {
         <Card className='border-[#333] shadow-lg text-white bg-[#000] p-8'>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
-            <p>Loading NFT data...</p>
+            <p>Loading Upload data...</p>
           </div>
         </Card>
       </div>
@@ -215,8 +215,8 @@ export default function NFTViewerPage() {
         <Card className='border-[#333] shadow-lg text-white bg-[#000] mt-16 p-0 max-w-md'>
           <div className="text-center">
             <div className="text-3xl my-8">🚫</div>
-            <h2 className="text-xl font-bold mb-4">NFT Not Found</h2>
-            <p className="text-red-400 mb-4">{error || 'NFT contract not found'}</p>
+            <h2 className="text-xl font-bold mb-4">Model not found</h2>
+            <p className="text-red-400 mb-4">{error || 'Model record not found'}</p>
             <p className="text-gray-400 text-sm mb-6 break-all">
               The contract {address}.{contractName} does not exist or has no accessible metadata.
             </p>
@@ -268,7 +268,7 @@ export default function NFTViewerPage() {
             </CardContent>
           </Card>
 
-          {/* NFT Details */}
+          {/* Upload Details */}
           <div className="space-y-6">
             <Card className='border-[#333] shadow-lg text-white bg-[#000]'>
               <CardContent className='p-6'>
@@ -278,7 +278,7 @@ export default function NFTViewerPage() {
                   </CardTitle>
                   {metadata.soulbound && (
                     <Badge variant="outline" className="border-purple-500 text-purple-400">
-                      Avatar NFT
+                      Avatar
                     </Badge>
                   )}
                 </div>
@@ -302,7 +302,7 @@ export default function NFTViewerPage() {
                       className="w-full border-[#333] cursor-pointer hover:text-white"
                     >
                       <Share2 className="mr-2 h-4 w-4" />
-                      Share NFT
+                      Share model
                     </Button>
                   </div>
                 )}

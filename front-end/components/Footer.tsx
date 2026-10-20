@@ -53,7 +53,7 @@ export default function Footer() {
             <h3 className="title text-lg font-bold mb-4 text-foreground">Support</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li><Link href="#" className="hover:text-foreground transition-colors">FAQs</Link></li>
-              <li><a href="mailto:support@4v4.xyz" className="hover:text-foreground transition-colors">Ask AI</a></li>
+              <li><a href="mailto:40230@pm.me" className="hover:text-foreground transition-colors">Ask AI</a></li>
             </ul>
           </div>
         </div>

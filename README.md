@@ -2,18 +2,18 @@
 
 # 4V4 — 3D Mod MKT on BTC L2 Stacks
 
-**Explore, upload, and sell 3D assets.**
+**Shop printable 3D models and get custom prints delivered.**
 
 [![Stacks](https://img.shields.io/badge/Blockchain-Stacks-5546FF)](https://www.stacks.co/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000?logo=next.js)](https://nextjs.org/)
 [![Clarity](https://img.shields.io/badge/Contracts-Clarity-5546FF)](https://docs.stacks.co/clarity)
 [![Development status](https://img.shields.io/badge/status-development-orange)](#project-status)
 
-![4V4 NFT Marketplace on BTC L2 Stacks](./4v4-screenshot.png)
+![4V4 3D Model Marketplace on BTC L2 Stacks](./4v4-screenshot.png)
 
 </div>
 
-4V4 is a marketplace for discovering and selling 3D assets, built on Bitcoin L2 Stacks. Model files and JSON metadata live on IPFS. A single shared Clarity contract stores only each asset's model CID, metadata CID, seller, price, and listing state, avoiding a new NFT contract and on-chain metadata for every upload.
+4V4 combines a marketplace for downloadable 3D assets with print-on-demand requests. Customers can browse printable models or submit their own model for a printability review and a quote covering printing and delivery. The digital marketplace is built on Bitcoin L2 Stacks. Marketplace model files and JSON metadata live on IPFS. A single shared Clarity contract stores each asset's model CID, metadata CID, seller, price, and listing state.
 
 > [!WARNING]
 > **Development project:** the smart contracts have not been audited and are not intended for production use.
@@ -29,6 +29,8 @@
 ## Features
 
 - Explore 3D assets from one shared marketplace registry
+- Request a print and delivery quote by submitting a 3D model
+- Receive quote requests at the configured print quote email address
 - Upload model files and metadata to IPFS
 - List assets and accept STX payments through the shared `model-market` contract
 - Change prices and delist assets
@@ -37,6 +39,8 @@
 ## Project status
 
 4V4 is under development and intended for local development and testing. Features and contract behavior may change.
+
+Print quote requests use the Resend API. Configure `RESEND_API_KEY` and optionally `PRINT_QUOTE_EMAIL` and `PRINT_QUOTE_FROM` in the frontend environment. The request form accepts STL, OBJ, 3MF, STEP, and ZIP files up to 10 MB. No payment is collected by the quote form; the team responds with a price before production.
 
 ### Asset storage model
 

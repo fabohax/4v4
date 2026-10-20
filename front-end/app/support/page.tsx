@@ -23,8 +23,8 @@ export default function SupportPage() {
         <h2 className="text-xl font-semibold mb-2">{t('Contact Us')}</h2>
         <p className="text-muted-foreground mb-2">
           {t('For help, questions, or feedback, email us at')}{" "}
-          <a href="mailto:support@4v4.xyz" className="text-blue-400 hover:underline">
-            support@4v4.xyz
+          <a href="mailto:40230@pm.me" className="text-blue-400 hover:underline">
+            40230@pm.me
           </a>
         </p>
         <p className="text-muted-foreground text-sm">

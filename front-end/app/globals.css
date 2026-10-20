@@ -61,19 +61,19 @@
   --card-foreground: oklch(0.09 0.005 264.52);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.09 0.005 264.52);
-  --primary: oklch(0.41 0.196 264.52);
-  --primary-foreground: oklch(0.98 0.002 264.52);
+  --primary: #00ff41;
+  --primary-foreground: #000000;
   --secondary: oklch(0.96 0.006 264.52);
   --secondary-foreground: oklch(0.15 0.006 264.52);
   --muted: oklch(0.96 0.006 264.52);
   --muted-foreground: oklch(0.46 0.006 264.52);
-  --accent: oklch(0.96 0.006 264.52);
-  --accent-foreground: oklch(0.15 0.006 264.52);
+  --accent: #00ff41;
+  --accent-foreground: #000000;
   --destructive: oklch(0.65 0.15 27.33);
   --destructive-foreground: oklch(0.98 0.013 264.52);
   --border: oklch(0.92 0.005 264.52);
   --input: oklch(0.92 0.005 264.52);
-  --ring: oklch(0.41 0.196 264.52);
+  --ring: #00ff41;
   
   /* Chart colors - accessible and harmonious */
   --chart-1: oklch(0.55 0.15 264.52);
@@ -85,12 +85,12 @@
   /* Sidebar colors */
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.09 0.005 264.52);
-  --sidebar-primary: oklch(0.41 0.196 264.52);
-  --sidebar-primary-foreground: oklch(0.98 0.002 264.52);
+  --sidebar-primary: #00ff41;
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: oklch(0.96 0.006 264.52);
   --sidebar-accent-foreground: oklch(0.15 0.006 264.52);
   --sidebar-border: oklch(0.92 0.005 264.52);
-  --sidebar-ring: oklch(0.41 0.196 264.52);
+  --sidebar-ring: #00ff41;
   
   /* Custom app colors */
   --surface-primary: oklch(1 0 0);
@@ -115,19 +115,19 @@
   --card-foreground: oklch(0.98 0.002 264.52);
   --popover: oklch(0.12 0.006 264.52);
   --popover-foreground: oklch(0.98 0.002 264.52);
-  --primary: oklch(0.70 0.14 264.52);
-  --primary-foreground: oklch(0.09 0.005 264.52);
+  --primary: #00ff41;
+  --primary-foreground: #000000;
   --secondary: oklch(0.16 0.006 264.52);
   --secondary-foreground: oklch(0.98 0.002 264.52);
   --muted: oklch(0.16 0.006 264.52);
   --muted-foreground: oklch(0.66 0.005 264.52);
-  --accent: oklch(0.16 0.006 264.52);
-  --accent-foreground: oklch(0.98 0.002 264.52);
+  --accent: #00ff41;
+  --accent-foreground: #000000;
   --destructive: oklch(0.75 0.15 27.33);
   --destructive-foreground: oklch(0.98 0.013 264.52);
   --border: oklch(0.18 0.006 264.52);
   --input: oklch(0.18 0.006 264.52);
-  --ring: oklch(0.70 0.14 264.52);
+  --ring: #00ff41;
   
   /* Chart colors - accessible dark variants */
   --chart-1: oklch(0.65 0.15 264.52);
@@ -139,12 +139,12 @@
   /* Sidebar colors */
   --sidebar: oklch(0.12 0.006 264.52);
   --sidebar-foreground: oklch(0.98 0.002 264.52);
-  --sidebar-primary: oklch(0.70 0.14 264.52);
-  --sidebar-primary-foreground: oklch(0.09 0.005 264.52);
+  --sidebar-primary: #00ff41;
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: oklch(0.16 0.006 264.52);
   --sidebar-accent-foreground: oklch(0.98 0.002 264.52);
   --sidebar-border: oklch(0.18 0.006 264.52);
-  --sidebar-ring: oklch(0.70 0.14 264.52);
+  --sidebar-ring: #00ff41;
   
   /* Custom app colors for dark theme */
   --surface-primary: oklch(0.09 0.005 264.52);
@@ -172,6 +172,10 @@ html, body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  form :is(button, [data-slot="button"])[type="submit"] {
+    height: 6rem;
   }
   
   /* Global text selection styling */

@@ -110,7 +110,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                {t('Explore, Upload & Sell 3D Assets')}
+                {t('Printable 3D models, made real')}
               </motion.h1>
               <motion.p
                 className="text-lg md:text-xl text-muted-foreground mb-8 font-light"
@@ -118,7 +118,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                {t('Discover 3D assets, publish your work to IPFS, and sell directly to collectors.')}
+                {t('Shop ready-to-print digital models, or send us your file for a print quote with delivery.')}
               </motion.p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center text-center gap-3 sm:gap-4 w-full">
@@ -133,7 +133,20 @@ export default function Home() {
                       size="lg"
                       className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
                     >
-                      {t('Explore')}
+                      {t('Browse printable models')}
+                    </Button>
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  className="w-full sm:w-auto"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.65, duration: 0.5 }}
+                >
+                  <Link href="/print-request">
+                    <Button size="lg" className="w-full sm:w-auto text-base sm:text-lg bg-foreground text-background px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:opacity-90 cursor-pointer">
+                      {t('Get a print & delivery quote')}
                     </Button>
                   </Link>
                 </motion.div>
@@ -155,7 +168,7 @@ export default function Home() {
                       }
                     }}
                   >
-                      {t('Upload an asset')}
+                      {t('Sell a printable model')}
                   </Button>
                 </motion.div>
               </div>
@@ -183,16 +196,21 @@ export default function Home() {
             )}
           </div>
           <div className="py-12 md:py-24 lg:py-36 select-none">
-            <span className="relative w-auto text-[8px] my-4 bg-muted text-muted-foreground rounded-full px-4 py-2">AVATAR</span>
+            <span className="relative w-auto text-[8px] my-4 bg-muted text-muted-foreground rounded-full px-4 py-2">DIGITAL MODEL</span>
             <h1 className="text-3xl md:text-5xl font-bold my-4" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>AMZ Shooter</h1>
             <p style={{ fontFamily: 'Chakra Petch, sans-serif' }}>by CYMODS</p>
             <p className="my-2 pr-0 md:pr-20 text-base md:text-xl">
-              A heavy-duty combat mech avatar built for open metaverse warfare. Equipped with missile arrays and reinforced armor.
+              {t('Find downloadable 3D files for your own printer, or send us a model and we’ll review it, price the print, and deliver it to you.')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
               <Link href="/mint" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-                  Buy
+                  {t('Browse models')}
+                </Button>
+              </Link>
+              <Link href="/print-request" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-4 sm:mt-6 cursor-pointer">
+                  {t('Request a printed part')}
                 </Button>
               </Link>
             </div>
@@ -202,7 +220,7 @@ export default function Home() {
 
         
       </section>
-      <div className="container mx-auto px-4 py-12">
+      <div className="w-full px-4 py-12">
         <JoinWaitlistForm />
       </div>
       {/* Show GetInModal if triggered */}

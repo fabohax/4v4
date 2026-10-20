@@ -43,7 +43,7 @@ export default function JoinWaitlistForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 p-12 bg-card rounded-lg shadow-lg border border-border w-full max-w-md mx-auto">
+    <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-4 p-6 sm:p-12 bg-card rounded-lg shadow-lg border border-border">
       <h2 className="title text-xl font-bold mb-2 text-foreground">Join the Waitlist</h2>
       <input
         type="email"

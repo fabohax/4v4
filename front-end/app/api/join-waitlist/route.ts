@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: "onboarding@resend.dev",
         to: email,
-        cc: "40230@protonmail.com",
+        cc: "40230@pm.me",
         subject: "Welcome to the Waitlist!",
         html: `
           <div style="background:#18181b;padding:32px 24px;border-radius:16px;color:#fff;font-family:Chakra Petch,sans-serif;text-align:center;max-width:480px;margin:auto;">

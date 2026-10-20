@@ -759,7 +759,7 @@ export default function MintPage() {
         // Validate the deployment data if provided
         if (result.validation) {
           if (!result.validation.hasNftDefinition) {
-            throw new Error('Invalid contract - missing NFT token definition');
+            throw new Error('Invalid contract - missing Upload token definition');
           }
           
           if (!result.validation.noPlaceholders) {
@@ -1087,10 +1087,10 @@ export default function MintPage() {
       setLoadingState('minted');
       setContractDeploymentStep('Contract deployed successfully!');
 
-      toast.success('NFT Contract deployed successfully! Redirecting...');
+      toast.success('Your model is live! Redirecting...');
 
       // Redirect using contractAddress and contractName
-  // Redirect to NFT detail page, defaulting to tokenId 1 if not present
+  // Redirect to Upload detail page, defaulting to tokenId 1 if not present
   const tokenId = responseData.tokenId || responseData.token_id || responseData.id || 1;
   const redirectPath = `/${deployResult.contractAddress}/${deployResult.contractName}/${tokenId}`;
   router.push(redirectPath);
@@ -1214,7 +1214,7 @@ export default function MintPage() {
       case 'verifying':
         return contractDeploymentStep || 'Verifying transaction...';
       case 'minted':
-        return 'NFT minted successfully!';
+        return 'Model uploaded successfully!';
       default:
         return '';
     }
@@ -1280,7 +1280,7 @@ export default function MintPage() {
             {/* Fixed header */}
             <div className="flex-shrink-0 mb-4">
               <CardTitle className="text-2xl font-bold" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-                Mint NFT
+                Upload & publish
               </CardTitle>
             </div>
             
@@ -1429,7 +1429,7 @@ export default function MintPage() {
                     setValidationErrors(prev => ({ ...prev, name: '' }));
                   }
                 }}
-                placeholder="NFT Name *"
+                placeholder="Model name *"
                 className={`border-[#333] p-6 text-lg ${validationErrors.name ? 'border-red-500' : ''}`}
                 maxLength={23}
               />
@@ -1807,7 +1807,7 @@ export default function MintPage() {
                       Select on Map
                     </Button>
                     <p className="text-gray-400 text-xs">
-                      Optional: Add location coordinates for your NFT. Leave empty if not needed.
+                      Optional: Add location coordinates for your model. Leave empty if not needed.
                     </p>
                   </div>
                 </div>
