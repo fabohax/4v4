@@ -77,7 +77,7 @@ export const Navbar = () => {
                   EXPLORE
                 </Link>
                 <Link href="/mint" className='mx-3' onClick={e => handleProtectedNav(e, '/mint')}>
-                  MINT
+                  UPLOAD
                 </Link>
                 <Link
                   href={address ? `/${address}` : '/'}

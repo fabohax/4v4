@@ -8,8 +8,8 @@ cache_dir = './.cache'
 [accounts.deployer]
 mnemonic = "prison help inch era stage soon raise despair burger advice empty shift flight stand keep index symptom waste shrimp assist north warm again zoo"
 
-[contracts.claim]
-path = 'contracts/claim.clar'
+[contracts.model-market]
+path = 'contracts/model-market.clar'
 clarity_version = 3
 epoch = 3.1
 

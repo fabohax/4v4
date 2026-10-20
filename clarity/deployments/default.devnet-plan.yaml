@@ -9,10 +9,10 @@ plan:
     - id: 0
       transactions:
         - contract-publish:
-            contract-name: claim
+            contract-name: model-market
             expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 90640
-            path: contracts/claim.clar
+            cost: 100000
+            path: contracts/model-market.clar
             anchor-block-only: true
             clarity-version: 3
       epoch: "3.1"

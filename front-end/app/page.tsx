@@ -108,7 +108,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                Mint & Collect 3D Models
+                Explore, Upload & Sell 3D Assets
               </motion.h1>
               <motion.p
                 className="text-lg md:text-xl text-muted-foreground mb-8 font-light"
@@ -116,7 +116,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                Explore, buy, and showcase high-quality 3D models from talented creators worldwide.
+                Discover 3D assets, publish your work to IPFS, and sell directly to collectors.
               </motion.p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center text-center gap-3 sm:gap-4 w-full">
@@ -153,7 +153,7 @@ export default function Home() {
                       }
                     }}
                   >
-                    Mint
+                      Upload an asset
                   </Button>
                 </motion.div>
               </div>
