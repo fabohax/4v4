@@ -26,6 +26,7 @@ export async function verifyPassphraseForSettings(address: string, passphrase: s
   }
 }
 import CryptoJS from 'crypto-js';
+import { useI18n } from '@/lib/i18n';
 
 declare global {
   interface Window {
@@ -49,6 +50,7 @@ type ConnectMode = 'wallets' | 'email' | 'mnemonic';
 
 // Destructure props at the top of your component
 export default function ConnectModal({ onClose, onSuccess, onError }: ConnectModalProps) {
+  const { t } = useI18n();
   const [connectMode, setConnectMode] = useState<ConnectMode>('wallets');
   const [wallets, setWallets] = useState<Array<{id: string, name: string, url: string, installed: boolean}>>([]);
   React.useEffect(() => {
@@ -398,7 +400,7 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
               </div>
               <div className="flex items-center my-4">
                 <div className="flex-grow border-t border-gray-200"></div>
-                <span className="mx-2 text-xs text-gray-400">or</span>
+                <span className="mx-2 text-xs text-gray-400">{t('or')}</span>
                 <div className="flex-grow border-t border-gray-200"></div>
               </div>
               <Button
@@ -407,7 +409,7 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
                 type="button"
               >
                 <Mail className="w-5 h-5 mr-2" />
-                Sign In with Email
+                {t('Sign In with Email')}
               </Button>
               <Button
                 onClick={() => setConnectMode('mnemonic')}
@@ -415,7 +417,7 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
                 type="button"
               >
                 <Key className="w-5 h-5 mr-2" />
-                Import with Mnemonic
+                {t('Import with Mnemonic')}
               </Button>
             </>
           )}
@@ -427,7 +429,7 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
+                    placeholder={t('Enter your email address')}
                     className="bg-white border border-gray-300 text-gray-900 cursor-pointer"
                   />
               </div>
@@ -436,7 +438,7 @@ export default function ConnectModal({ onClose, onSuccess, onError }: ConnectMod
                 disabled={!email || isLoading} 
                 className="w-full cursor-pointer bg-foreground text-background hover:bg-foreground hover:text-black transition-colors border border-[#555]"
               >
-                {isLoading ? 'Sending...' : 'Send Connection Link'}
+                {isLoading ? t('Sending...') : t('Send Connection Link')}
               </Button>
               {emailMessage && (
                 <div style={{ color: emailStatus === 'error' ? 'red' : 'green', marginTop: 8 }} className="text-sm">

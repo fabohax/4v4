@@ -20,8 +20,10 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { fetchRecentTransactions } from "@/lib/fetchRecentTransactions";
+import { useI18n } from '@/lib/i18n';
 
 export default function WalletPage() {
+  const { t } = useI18n();
   const address = useCurrentAddress() || "";
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -238,15 +240,15 @@ export default function WalletPage() {
   if (!address) {
     return (
       <div className="max-w-xl mx-auto my-24 p-8 rounded-2xl border-[1px] shadow flex flex-col items-center justify-center select-none bg-white dark:bg-black border-gray-200 dark:border-[#333] text-gray-900 dark:text-white">
-        <h1 className="text-3xl font-bold mb-6">Wallet</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('Wallet')}</h1>
         <p className="mb-8 text-lg text-gray-600 dark:text-gray-300 text-center">
-          Please connect your wallet to manage your funds.
+          {t('Please connect your wallet to manage your funds.')}
         </p>
         <Link
           href="/"
           className="py-3 px-6 rounded-xl border-[1px] bg-blue-600 text-white hover:bg-white hover:text-blue-600 border-blue-600 dark:border-[#333] transition-all duration-200 focus:outline-none cursor-pointer select-none"
         >
-          Connect Wallet
+          {t('Connect Wallet')}
         </Link>
       </div>
     );
@@ -258,7 +260,7 @@ export default function WalletPage() {
       <div className="max-w-xl mx-auto p-8 bg-accent-background rounded-2xl border-[1px] border-[#333] shadow text-accent-foreground select-none min-w-[100vw] lg:min-w-1/4">
         <div className="my-2 flex items-center justify-left">
           <Wallet className="w-8 h-8 text-foreground" />
-          <h1 className="title text-lg mx-4 font-bold">Wallet</h1>
+          <h1 className="title text-lg mx-4 font-bold">{t('Wallet')}</h1>
         </div>        
       <div className="mt-16 flex justify-center">
         <div className="flex items-center gap-3">
@@ -373,7 +375,7 @@ export default function WalletPage() {
                 <X className="h-[18px]" />
               </button>
             </div>
-            <h2 className="text-xl font-bold mb-6">Receive</h2>
+            <h2 className="text-xl font-bold mb-6">{t('Receive')}</h2>
             <div className="mb-6">
               {address ? (
                 <div className="w-full p-6 flex items-center justify-center rounded-xl bg-background">
@@ -420,14 +422,14 @@ export default function WalletPage() {
 
       {/* Recent Transactions */}
       <div className="mt-10">
-        <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
+        <h2 className="text-lg font-semibold mb-4">{t('Recent Transactions')}</h2>
         <div className="bg-background rounded-xl py-4 max-h-96 overflow-y-auto">
           {txLoading ? (
             <div className="flex justify-center items-center py-8">
               <LoaderCircle className="animate-spin text-black dark:text-white" size={32} />
             </div>
           ) : transactions.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">No recent transactions found.</div>
+            <div className="text-center text-gray-500 py-8">{t('No recent transactions found.')}</div>
           ) : (
             <ul className="space-y-4">
               {transactions.map((tx) => (

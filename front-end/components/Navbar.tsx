@@ -12,6 +12,8 @@ import GetInModal from './GetInModal';
 import { useWallet } from './WalletProvider';
 import { useEncryptedWallet } from './EncryptedWalletProvider';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -19,6 +21,7 @@ export const Navbar = () => {
   const { address } = useWallet();
   const { isAuthenticated } = useEncryptedWallet();
   const router = useRouter();
+  const { locale, setLocale, t } = useI18n();
 
   // Helper to check if any wallet is connected
   const isWalletConnected = !!address || isAuthenticated;
@@ -55,7 +58,7 @@ export const Navbar = () => {
             {/* Search Button (always visible) */}
             <button
               className="md:hidden p-2 rounded hover:bg-background transition-colors cursor-pointer"
-              aria-label="Open search"
+              aria-label={t('Open search')}
               onClick={() => setSearchOpen(true)}
             >
               <Search className="text-foreground h-[12px] w-[12px] cursor-pointer" />
@@ -67,17 +70,17 @@ export const Navbar = () => {
             >
               <button
                 className="flex items-center mr-4 p-1 rounded hover:bg-background transition-colors cursor-pointer"
-                aria-label="Open search"
+                aria-label={t('Open search')}
                 onClick={() => setSearchOpen(true)}
               >
                 <Search className="my-1 text-foreground h-[18px] w-[18px] cursor-pointer" />
               </button>
               <div className='flex gap-4 m-4 text-sm'>
                 <Link href="/explore" className='mx-3'>
-                  EXPLORE
+                  {t('EXPLORE')}
                 </Link>
                 <Link href="/mint" className='mx-3' onClick={e => handleProtectedNav(e, '/mint')}>
-                  UPLOAD
+                  {t('UPLOAD')}
                 </Link>
                 <Link
                   href={address ? `/${address}` : '/'}
@@ -89,13 +92,28 @@ export const Navbar = () => {
                     }
                   }}
                 >
-                  MANAGE
+                  {t('MANAGE')}
                 </Link>
               </div>
             </div>
           </div>
         </div>
       </nav>
+      <div className="fixed bottom-4 left-4 z-40">
+        <Select value={locale} onValueChange={(value) => setLocale(value as 'en' | 'es' | 'pt')}>
+          <SelectTrigger
+            aria-label={t('Language')}
+            className="h-9 min-w-20 border-border bg-background text-foreground shadow-md"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="en">EN</SelectItem>
+            <SelectItem value="es">ES</SelectItem>
+            <SelectItem value="pt">PT</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       {getInOpen && <GetInModal onClose={() => setGetInOpen(false)} />}
     </>

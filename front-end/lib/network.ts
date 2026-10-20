@@ -1,5 +1,17 @@
 export type Network = 'mainnet' | 'testnet' | 'devnet';
 
+export function getConfiguredNetwork(): Network {
+  const configuredNetwork = process.env.NEXT_PUBLIC_STACKS_NETWORK;
+  if (
+    configuredNetwork === 'mainnet' ||
+    configuredNetwork === 'testnet' ||
+    configuredNetwork === 'devnet'
+  ) {
+    return configuredNetwork;
+  }
+  return 'devnet';
+}
+
 export function getPersistedNetwork(): Network {
   if (typeof window !== 'undefined') {
     try {
@@ -15,7 +27,7 @@ export function getPersistedNetwork(): Network {
       console.error('Failed to access network from localStorage:', error);
     }
   }
-  return (process.env.NEXT_PUBLIC_STACKS_NETWORK as Network) || 'testnet';
+  return getConfiguredNetwork();
 }
 
 export function persistNetwork(newNetwork: Network): void {

@@ -79,10 +79,10 @@ git clone https://github.com/fabohax/4v4.git
 cd 4v4
 
 cd clarity
-npm install
+npm ci
 
 cd ../front-end
-npm install
+npm ci
 cp .env.example .env
 ```
 
@@ -101,6 +101,34 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Validate changes
+
+From the repository root, run the contract checks and frontend checks with the matching project dependencies:
+
+```bash
+cd clarity
+npm ci
+npm run test
+clarinet check
+
+cd ../front-end
+npm ci
+npm run lint
+npm run build
+```
+
+The contract tests run against Clarinet Simnet and target the `model-market` contract. Keep `NEXT_PUBLIC_STACKS_NETWORK=devnet` for local development; configure testnet explicitly for a testnet deployment.
+
+### Prepare a testnet deployment
+
+Create `clarity/settings/Testnet.toml` locally with a dedicated testnet deployer account. This file is gitignored and must not be committed. From `clarity/`, generate a plan for the contracts in `Clarinet.toml`:
+
+```bash
+clarinet deployments generate --testnet --manual-cost
+```
+
+Review the generated plan and contract address before applying it. Do not use a mainnet account or plan for development and testnet work.
 
 ## License
 

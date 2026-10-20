@@ -9,7 +9,7 @@ import UserModal from './UserModal';
 import { User } from 'lucide-react';
 import Image from 'next/image';
 import { getProfile, Profile } from '@/lib/profileApi';
-import { getIPFSUrl } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 
 interface GetInButtonProps {
   children?: React.ReactNode;

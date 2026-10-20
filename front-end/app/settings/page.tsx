@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
 import { BannerImageUpload } from "@/components/BannerImageUpload";
 import { toast } from "sonner";
+import { useI18n } from '@/lib/i18n';
 
 interface SkillCategory {
   category: string;
@@ -22,6 +23,7 @@ interface SkillCategory {
 }
 
 export default function SettingsPage() {
+  const { t } = useI18n();
   const address = useCurrentAddress();
   // const { currentWallet, isWalletEncrypted } = useEncryptedWallet(); // not needed
   
@@ -220,15 +222,15 @@ export default function SettingsPage() {
   if (!address) {
     return (
   <div className="max-w-2xl mx-auto my-24 p-8 rounded-2xl border text-center bg-accent-background border-gray-200 dark:border-gray-800 text-accent-foreground">
-        <h1 className="text-2xl font-bold mb-4">Connect Your Wallet</h1>
-  <p className="text-accent-foreground">Please connect your wallet to access settings.</p>
+        <h1 className="text-2xl font-bold mb-4">{t('Connect Your Wallet')}</h1>
+  <p className="text-accent-foreground">{t('Please connect your wallet to access settings.')}</p>
       </div>
     );
   }
 
   return (
   <div className="max-w-4xl mx-auto my-24 p-8 rounded-2xl border bg-accent-background border-gray-200 dark:border-gray-800 text-accent-foreground">
-      <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+      <h1 className="text-3xl font-bold mb-8">{t('Profile Settings')}</h1>
       
       <Tabs defaultValue="profile" className="w-full">
         <TabsList
@@ -264,7 +266,7 @@ export default function SettingsPage() {
           <TabsContent value="profile" className="space-y-6 mt-6">
             <Card className="bg-accent-background border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>{t('Basic Information')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {error && <div className="text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/20 p-3 rounded">{error}</div>}
@@ -272,7 +274,7 @@ export default function SettingsPage() {
                 
                 {/* Profile Picture Section */}
                 <div>
-                  <label className="block mb-3 text-sm font-medium">Profile Picture</label>
+                  <label className="block mb-3 text-sm font-medium">{t('Profile Picture')}</label>
                   {address && (
                     <ProfilePictureUpload
                       currentAvatarUrl={avatarUrl}
@@ -319,7 +321,7 @@ export default function SettingsPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Username</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Username')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
@@ -332,7 +334,7 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Email</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Email')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="email"
@@ -343,7 +345,7 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Display Name</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Display Name')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
@@ -355,7 +357,7 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Location</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Location')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
@@ -368,7 +370,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <label className="block mb-2 text-sm font-medium">Tagline</label>
+                  <label className="block mb-2 text-sm font-medium">{t('Tagline')}</label>
                   <input
                     className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     type="text"
@@ -381,7 +383,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <label className="block mb-2 text-sm font-medium">Biography</label>
+                  <label className="block mb-2 text-sm font-medium">{t('Biography')}</label>
                   <textarea
                     className="w-full px-4 py-2 rounded-lg bg-accent-background dark:bg-accent-background text-gray-900 dark:text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={biography}
@@ -399,12 +401,12 @@ export default function SettingsPage() {
           <TabsContent value="social" className="space-y-6 mt-6">
             <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
-                <CardTitle>Social Links</CardTitle>
+                <CardTitle>{t('Social Links')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Website</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Website')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="url"
@@ -536,12 +538,12 @@ export default function SettingsPage() {
           <TabsContent value="professional" className="space-y-6 mt-6">
             <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
-                <CardTitle>Professional Information</CardTitle>
+                <CardTitle>{t('Professional Information')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Occupation</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Occupation')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
@@ -552,7 +554,7 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Company</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Company')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="text"
@@ -563,7 +565,7 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block mb-2 text-sm font-medium">Years of Experience</label>
+                    <label className="block mb-2 text-sm font-medium">{t('Years of Experience')}</label>
                     <input
                       className="w-full px-4 py-2 rounded-lg bg-accent-background text-accent-foreground border border-[#222] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       type="number"
@@ -577,7 +579,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <label className="block mb-4 text-sm font-medium">Skills & Software</label>
+                  <label className="block mb-4 text-sm font-medium">{t('Skills & Software')}</label>
                   <div className="space-y-4">
                     {skillCategories.map((category) => (
                       <div key={category.category}>
@@ -624,14 +626,14 @@ export default function SettingsPage() {
           <TabsContent value="privacy" className="space-y-6 mt-6">
             <Card className="bg-accent-background border-gray-200 dark:border-gray-700 text-accent-foreground">
               <CardHeader>
-                <CardTitle>Privacy Settings</CardTitle>
+                <CardTitle>{t('Privacy Settings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium">Public Profile</h4>
-                      <p className="text-xs text-gray-400">Make your profile visible to everyone</p>
+                      <h4 className="text-sm font-medium">{t('Public Profile')}</h4>
+                      <p className="text-xs text-gray-400">{t('Make your profile visible to everyone')}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <Checkbox
@@ -645,8 +647,8 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium">Show Email</h4>
-                      <p className="text-xs text-gray-400">Display your email on your public profile</p>
+                      <h4 className="text-sm font-medium">{t('Show Email')}</h4>
+                      <p className="text-xs text-gray-400">{t('Display your email on your public profile')}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <Checkbox
@@ -660,8 +662,8 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium">Show Location</h4>
-                      <p className="text-xs text-gray-400">Display your location on your profile</p>
+                      <h4 className="text-sm font-medium">{t('Show Location')}</h4>
+                      <p className="text-xs text-gray-400">{t('Display your location on your profile')}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <Checkbox
@@ -675,8 +677,8 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium">Allow Direct Messages</h4>
-                      <p className="text-xs text-gray-400">Let other users send you direct messages</p>
+                      <h4 className="text-sm font-medium">{t('Allow Direct Messages')}</h4>
+                      <p className="text-xs text-gray-400">{t('Let other users send you direct messages')}</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <Checkbox
@@ -692,12 +694,12 @@ export default function SettingsPage() {
                 <hr className="border-gray-700" />
                 
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Notification Preferences</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('Notification Preferences')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-medium">Email Notifications</h4>
-                        <p className="text-xs text-gray-400">Receive notifications via email</p>
+                        <h4 className="text-sm font-medium">{t('Email Notifications')}</h4>
+                        <p className="text-xs text-gray-400">{t('Receive notifications via email')}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <Checkbox
@@ -711,8 +713,8 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-medium">Push Notifications</h4>
-                        <p className="text-xs text-gray-400">Receive push notifications in browser</p>
+                        <h4 className="text-sm font-medium">{t('Push Notifications')}</h4>
+                        <p className="text-xs text-gray-400">{t('Receive push notifications in browser')}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <Checkbox
@@ -726,8 +728,8 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-medium">Marketing Emails</h4>
-                        <p className="text-xs text-gray-400">Receive updates about new features and promotions</p>
+                        <h4 className="text-sm font-medium">{t('Marketing Emails')}</h4>
+                        <p className="text-xs text-gray-400">{t('Receive updates about new features and promotions')}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <Checkbox

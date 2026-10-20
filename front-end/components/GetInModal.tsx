@@ -11,8 +11,10 @@ import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/PasswordInput';
 import ConnectModal from './ConnectModal';
 import { formatStxAddress } from '@/lib/address-utils';
+import { useI18n } from '@/lib/i18n';
 
 export default function GetInModal({ onClose }: { onClose?: () => void }) {
+  const { t } = useI18n();
   const { address } = useWallet();
   const { 
     isWalletEncrypted, 
@@ -148,9 +150,9 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs text-sm z-100">
                 <div>
-                  Connect or create your account using your wallet or seed phrase.<br />
+                  {t('Connect or create your account using your wallet or seed phrase.')}<br />
                   <span className="text-background underline">
-                    <a href="/support" target="_blank" rel="noopener noreferrer">Need help? Visit Support</a>
+                    <a href="/support" target="_blank" rel="noopener noreferrer">{t('Need help? Visit Support')}</a>
                   </span>
                 </div>
               </TooltipContent>
@@ -229,7 +231,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
                   type="button"
                 >
                   <Image src="/wallet-ico.svg" alt="Wallet" width={18} height={18} className="invert mr-2"/>
-                  <span className="text-center flex-1">Connect Wallet</span>
+                  <span className="text-center flex-1">{t('Connect Wallet')}</span>
                 </Button>
                 {walletError && (
                   <div className="text-red-500 text-xs mt-2 text-center">{walletError}</div>
@@ -266,7 +268,7 @@ export default function GetInModal({ onClose }: { onClose?: () => void }) {
         )}
         {/* Terms */}
         <div className="w-full rounded-b-2xl text-center text-xs text-black tracking-wider p-6 px-8">
-          By Signing In, you agree to our <Link href="/terms" className="hover:text-black">Terms of Service</Link> and <Link href="/privacy" className="hover:text-black">Privacy Policy</Link>
+          {t('By Signing In, you agree to our')} <Link href="/terms" className="hover:text-black">{t('Terms of Service')}</Link> {t('and')} <Link href="/privacy" className="hover:text-black">{t('Privacy Policy')}</Link>
         </div>
       </div>
     </div>

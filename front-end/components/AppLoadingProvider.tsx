@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import AssetPreloader from '@/utils/AssetPreloader';
 import AppLoader from '@/components/AppLoader';
 
@@ -30,17 +30,8 @@ export function AppLoadingProvider({
   skipInitialLoading = false 
 }: AppLoadingProviderProps) {
   const [isAppLoaded, setIsAppLoaded] = useState(skipInitialLoading);
-  const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    if (!skipInitialLoading && !isAppLoaded) {
-      initializeApp();
-    }
-  }, [skipInitialLoading, isAppLoaded]);
-
-  const initializeApp = async () => {
-    setIsLoading(true);
-    
+  const initializeApp = useCallback(async () => {
     const preloader = AssetPreloader.getInstance();
     
     try {
@@ -48,9 +39,7 @@ export function AppLoadingProvider({
       const criticalAssets = [
         '/loader.gif',
         '/loaderb.gif',
-        '/home.svg',
-        '/4V4-DIY.svg',
-        '/4V4-DIY.png'
+        '/home.svg'
       ];
 
       // Load home page assets as well since it's the landing page
@@ -73,9 +62,13 @@ export function AppLoadingProvider({
       console.warn('App initialization completed with some errors:', error);
     }
     
-    setIsAppLoaded(true);
-    setIsLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!skipInitialLoading && !isAppLoaded) {
+      void initializeApp().then(() => setIsAppLoaded(true));
+    }
+  }, [initializeApp, skipInitialLoading, isAppLoaded]);
 
   const loadPage = async (pageName: string, additionalAssets: string[] = []) => {
     const preloader = AssetPreloader.getInstance();
@@ -109,7 +102,7 @@ export function AppLoadingProvider({
   return (
     <AppLoadingContext.Provider value={contextValue}>
       {!isAppLoaded && (
-        <AppLoader isLoading={isLoading || !isAppLoaded} />
+        <AppLoader isLoading={!isAppLoaded} />
       )}
       {isAppLoaded && children}
     </AppLoadingContext.Provider>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToPinata, unpinFromPinata, getIPFSUrl } from '@/lib/pinataUpload';
+import { uploadFileToPinata, unpinFromPinata } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 import { supabase } from '@/lib/supabaseClient';
 
 export async function POST(request: NextRequest) {

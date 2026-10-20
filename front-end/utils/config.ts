@@ -1,9 +1,7 @@
-// utils/config.ts
-import { PinataSDK } from "pinata";
+import 'server-only';
+
 import axios from 'axios';
 
-const pinataApiKey = process.env.PINATA_API_KEY;
-const pinataSecretKey = process.env.PINATA_SECRET_KEY;
 const pinataJwt = process.env.PINATA_JWT;
 const pinataGateway = process.env.PINATA_GATEWAY_URL; 
 

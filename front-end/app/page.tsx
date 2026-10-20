@@ -11,8 +11,10 @@ import { useAppLoading } from "@/components/AppLoadingProvider"
 import GetInModal from "@/components/GetInModal"
 import { useRouter } from "next/navigation"
 import { useWallet } from "@/components/WalletProvider"
+import { useI18n } from '@/lib/i18n'
 
 export default function Home() {
+  const { t } = useI18n();
   const [isLoaded, setIsLoaded] = useState(false)
   const [modelLoading, setModelLoading] = useState(true);
   const { theme, resolvedTheme } = useTheme()
@@ -108,7 +110,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                Explore, Upload & Sell 3D Assets
+                {t('Explore, Upload & Sell 3D Assets')}
               </motion.h1>
               <motion.p
                 className="text-lg md:text-xl text-muted-foreground mb-8 font-light"
@@ -116,7 +118,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                Discover 3D assets, publish your work to IPFS, and sell directly to collectors.
+                {t('Discover 3D assets, publish your work to IPFS, and sell directly to collectors.')}
               </motion.p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center text-center gap-3 sm:gap-4 w-full">
@@ -131,7 +133,7 @@ export default function Home() {
                       size="lg"
                       className="w-full sm:w-auto text-base sm:text-lg bg-surface-primary border-1 border-foreground text-foreground px-6 py-3 sm:px-8 sm:py-4 lg:px-12 lg:py-6 rounded-md mt-2 sm:mt-6 hover:bg-muted hover:text-foreground cursor-pointer select-none"
                     >
-                      Explore
+                      {t('Explore')}
                     </Button>
                   </Link>
                 </motion.div>
@@ -153,7 +155,7 @@ export default function Home() {
                       }
                     }}
                   >
-                      Upload an asset
+                      {t('Upload an asset')}
                   </Button>
                 </motion.div>
               </div>
@@ -168,7 +170,7 @@ export default function Home() {
               <div className="flex items-center justify-center w-full h-96">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading 3D Model...</p>
+                  <p className="text-muted-foreground">{t('Loading 3D Model...')}</p>
                 </div>
               </div>
             ) : (

@@ -10,7 +10,7 @@ import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
 import { User, MapPin, Calendar, Briefcase, Globe, Pen, LoaderCircle } from 'lucide-react';
-import { getIPFSUrl } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 
 type TokenMetadata = {
   name?: string;
@@ -61,7 +61,7 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                   <Image
                     src={(() => {
                       const img = meta?.image as string;
-                      if (!img) return '/4V4-DIY.png';
+                      if (!img) return '/home.svg';
                       let out = img;
                       if (img.startsWith('ipfs://')) {
                         out = `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
@@ -78,8 +78,8 @@ function MintedTokensGrid({ mintedTokens, tokenMetadata }: {
                     unoptimized
                     onError={(e) => {
                       const imgEl = e.currentTarget as HTMLImageElement;
-                      if (imgEl && imgEl.src !== window.location.origin + '/4V4-DIY.png') {
-                        imgEl.src = '/4V4-DIY.png';
+                      if (imgEl && imgEl.src !== window.location.origin + '/home.svg') {
+                        imgEl.src = '/home.svg';
                       }
                     }}
                   />

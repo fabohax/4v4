@@ -116,15 +116,8 @@ export class AssetPreloader {
     return [
       '/models/default.glb',
       '/home.svg',
-      '/4V4-DIY.svg',
-      '/4V4-DIY.png',
       '/loader.gif',
       '/loaderb.gif',
-      '/delta-logo.svg',
-      '/delta-logo.png',
-      // Add fonts if they're critical
-      '/fonts/ChakraPetch-Regular.woff2',
-      '/fonts/ChakraPetch-Bold.woff2',
     ];
   }
 

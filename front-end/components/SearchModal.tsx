@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getAllUsernames } from '@/lib/allProfilesApi';
 import { X, Search } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface SearchModalProps {
   open: boolean;
@@ -10,6 +11,7 @@ interface SearchModalProps {
 
 
 export const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [usernames, setUsernames] = useState<{ username: string; address: string }[]>([]);
@@ -58,20 +60,20 @@ export const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search..."
+            placeholder={`${t('Search')}...`}
             className="flex-1 bg-neutral-800 text-white rounded px-3 py-2 outline-none"
           />
           <button
             onClick={onClose}
             className="ml-2 p-1 rounded hover:bg-neutral-800 transition-colors cursor-pointer"
-            aria-label="Close search"
+            aria-label={t('Close search')}
           >
             <X className="text-neutral-400" size={20} />
           </button>
         </div>
         <div className="text-neutral-200 text-sm">
-          <div className="mb-2 text-neutral-500 text-xs">PEOPLE</div>
-          {loading && <div className="mb-2">Loading...</div>}
+          <div className="mb-2 text-neutral-500 text-xs">{t('PEOPLE')}</div>
+          {loading && <div className="mb-2">{t('Loading...')}</div>}
           {error && <div className="mb-2 text-red-400">{error}</div>}
           <div className="grid grid-cols-2 gap-2">
             {usernames.map(u => (

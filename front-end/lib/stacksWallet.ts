@@ -3,6 +3,7 @@ import {
   generateWallet,
   getStxAddress,
 } from '@stacks/wallet-sdk';
+import { getConfiguredNetwork } from './network';
 
 /**
  * Creates a Stacks wallet and returns key details.
@@ -11,7 +12,7 @@ import {
  */
 export async function createStacksAccount(
   password = 'default-password',
-  network: 'mainnet' | 'testnet' | 'devnet' | 'mocknet' = (process.env.NEXT_PUBLIC_STACKS_NETWORK as 'mainnet' | 'testnet' | 'devnet') || 'mainnet'
+  network: 'mainnet' | 'testnet' | 'devnet' | 'mocknet' = getConfiguredNetwork()
 ) {
   const secretKey = generateSecretKey(); // 24-word mnemonic
   const wallet = await generateWallet({ secretKey, password });

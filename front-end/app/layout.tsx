@@ -8,6 +8,7 @@ import { WalletProvider } from '@/components/WalletProvider';
 import { Toaster } from "@/components/ui/sonner"
 import AppLoadingProvider from "@/components/AppLoadingProvider";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
+import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -47,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${chakraPetch.variable} antialiased`}>
+        <I18nProvider>
         <GlobalErrorHandler />
         <WalletProvider>
           <Providers>
@@ -61,6 +63,7 @@ export default function RootLayout({
           </Providers>
         </WalletProvider>
         <Toaster />
+        </I18nProvider>
       </body>
     </html>
   );

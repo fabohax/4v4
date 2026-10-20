@@ -1,8 +1,12 @@
+'use client';
+
 import { ModeToggle } from './modeToggle';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useI18n } from '@/lib/i18n';
 
 export default function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="bg-surface-primary/50 text-foreground py-12 select-none border-t border-border">
       <div className="container mx-auto px-4">
@@ -15,32 +19,32 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Marketplace Section */}
           <div>
-            <h3 className="title text-lg font-bold mb-4 text-foreground">Marketplace</h3>
+            <h3 className="title text-lg font-bold mb-4 text-foreground">{t('Marketplace')}</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link href="/mint" className="hover:text-foreground transition-colors">Create</Link></li>
-              <li><Link href="/explore" className="hover:text-foreground transition-colors">Top Collections</Link></li>
-              <li><Link href="/explore" className="hover:text-foreground transition-colors">Listings</Link></li>
-              <li><Link href="/explore" className="hover:text-foreground transition-colors">Auctions</Link></li>
+              <li><Link href="/mint" className="hover:text-foreground transition-colors">{t('Create')}</Link></li>
+              <li><Link href="/explore" className="hover:text-foreground transition-colors">{t('Top Collections')}</Link></li>
+              <li><Link href="/explore" className="hover:text-foreground transition-colors">{t('Listings')}</Link></li>
+              <li><Link href="/explore" className="hover:text-foreground transition-colors">{t('Auctions')}</Link></li>
             </ul>
           </div>
 
           {/* Resources Section */}
           <div>
-            <h3 className="title text-lg font-bold mb-4 text-foreground">Resources</h3>
+            <h3 className="title text-lg font-bold mb-4 text-foreground">{t('Resources')}</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground transition-colors">Calendar</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition-colors">Newsletter</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition-colors">Learn</Link></li>
+              <li><Link href="#" className="hover:text-foreground transition-colors">{t('Calendar')}</Link></li>
+              <li><Link href="#" className="hover:text-foreground transition-colors">{t('Newsletter')}</Link></li>
+              <li><Link href="#" className="hover:text-foreground transition-colors">{t('Learn')}</Link></li>
             </ul>
           </div>
 
           {/* Legal Section */}
           <div>
-            <h3 className="title text-lg font-bold mb-4 text-foreground">Legal</h3>
+            <h3 className="title text-lg font-bold mb-4 text-foreground">{t('Legal')}</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Use</Link></li>
-              <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/creator-terms" className="hover:text-foreground transition-colors">Creator Terms of Use</Link></li>
+              <li><Link href="/terms" className="hover:text-foreground transition-colors">{t('Terms of Use')}</Link></li>
+              <li><Link href="/privacy" className="hover:text-foreground transition-colors">{t('Privacy Policy')}</Link></li>
+              <li><Link href="/creator-terms" className="hover:text-foreground transition-colors">{t('Creator Terms of Use')}</Link></li>
             </ul>
           </div>
 
@@ -55,7 +59,7 @@ export default function Footer() {
         </div>
 
         <div className="text-sm mt-12 flex flex-col md:flex-row justify-between items-center text-muted-foreground">
-          <p className="text-foreground">🄯 2025 4V4</p>
+          <p className="text-secondary text-">🄯 2026 4V4 OPEN SOURCE</p>
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             <Link href="#" className="hover:text-foreground transition-colors">X</Link>
             <Link href="#" className="hover:text-foreground transition-colors">Discord</Link>

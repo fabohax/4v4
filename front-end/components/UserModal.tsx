@@ -9,7 +9,7 @@ import { LoaderCircle } from "lucide-react";
 import { getPersistedNetwork } from '@/lib/network';
 import { getApiUrl } from '@/lib/stacks-api';
 import { getProfile, Profile } from '@/lib/profileApi';
-import { getIPFSUrl } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 
 interface UserModalProps {
   onClose: () => void;

@@ -1,95 +1,97 @@
-# 4V4 — hoja de ruta: de MVP a mainnet
+# 4V4 — Roadmap from MVP to mainnet
 
-## Objetivo
+[Read this roadmap in Spanish](devroad.es.md).
 
-Llevar 4V4 desde el prototipo actual —un marketplace de modelos 3D en Stacks, con archivos y metadatos en IPFS— hasta una dapp pequeña, segura y operable en mainnet. Cada etapa termina con criterios verificables; avanzar de etapa no implica desplegar en mainnet automáticamente.
+## Goal
 
-## Estado de partida
+Take 4V4 from its current prototype—a Stacks marketplace for 3D models, with files and metadata on IPFS—to a small, secure, operable mainnet dapp. Each phase ends with verifiable exit criteria; completing a phase does not automatically authorize a mainnet deployment.
 
-- El frontend usa Next.js y ya contiene páginas de exploración, cuenta y carga, además de rutas API para archivos y servicios auxiliares.
-- `clarity/contracts/model-market.clar` implementa publicación, cambio de precio, retiro, compra en STX y consulta de una publicación.
-- Hay cambios de desarrollo en curso. Los tests de Clarinet todavía hacen referencia a contratos y funciones anteriores, así que no son una señal confiable del estado del contrato actual hasta alinearlos.
-- El archivo `clarity/Clarinet.toml` contiene una frase de recuperación de cuenta de desarrollo. Tratarla como expuesta: invalidar esa cuenta y retirar el secreto del archivo y del historial antes de usar cualquier cuenta o credencial con valor real.
+## Starting point
 
-## Etapas
+- The Next.js frontend already has explore, account, and upload pages, plus API routes for files and supporting services.
+- `clarity/contracts/model-market.clar` implements listing, price updates, delisting, STX purchases, and listing reads.
+- Development changes are in progress. Clarinet tests still refer to older contracts and functions, so they cannot reliably validate the current contract until they are aligned.
+- `clarity/Clarinet.toml` contains a development account recovery phrase. Treat it as exposed: invalidate that account and remove the secret from the file and repository history before using any account or credential with real value.
 
-### 0. Asegurar la base de desarrollo
+## Phases
 
-**Trabajo**
+### 0. Secure the development foundation
 
-- Invalidar la frase de recuperación expuesta; usar cuentas nuevas por entorno y secretos fuera del repositorio.
-- Definir la fuente de verdad del producto: el contrato `model-market` y el formato de CID/metadata que consumen frontend e indexación.
-- Alinear los tests y scripts de Clarinet con el contrato actual. Hacer que instalación, pruebas de contrato, lint y build frontend sean reproducibles desde una guía única.
-- Separar configuración local, testnet y mainnet; impedir que una build de prueba apunte por accidente a mainnet.
+**Work**
 
-**Salida**: repositorio sin secretos activos, contrato y tests coherentes, y pasos reproducibles para levantar el entorno local.
+- Invalidate the exposed recovery phrase; use new accounts per environment and keep secrets outside the repository.
+- Set the product source of truth: the `model-market` contract and the CID/metadata format used by the frontend and indexer.
+- Align Clarinet tests and scripts with the current contract. Make installation, contract checks, linting, and frontend builds reproducible from one guide.
+- Separate local, testnet, and mainnet configuration; prevent test builds from accidentally targeting mainnet.
 
-### 1. MVP funcional en local/Devnet
+**Exit criteria:** no active secrets in the repository, contract and tests agree, and local setup is reproducible.
 
-**Alcance mínimo**
+### 1. Functional local/Devnet MVP
 
-- Conectar y desconectar una wallet Stacks; mostrar la red y dirección activas.
-- Subir modelo, preview y JSON de metadata a IPFS con validación de tipo y tamaño. Guardar las credenciales de Pinata solo en servidor.
-- Publicar una ficha desde la wallet y mostrar estados de transacción: pendiente, confirmada o fallida.
-- Explorar fichas activas, ver el modelo 3D y su información, comprar en STX, cambiar precio y retirar la publicación.
-- Permitir reintentar carga/consulta si la transacción o el gateway falla, sin duplicar publicaciones silenciosamente.
+**Minimum scope**
 
-**Salida**: una persona puede completar el flujo de publicación y otra puede comprarlo en Devnet; el estado que ve la UI coincide con el estado confirmado en Stacks.
+- Connect and disconnect a Stacks wallet; show the active network and address.
+- Upload a model, preview, and metadata JSON to IPFS with type and size validation. Keep Pinata credentials on the server only.
+- Submit a listing from the wallet and show transaction states: pending, confirmed, or failed.
+- Browse active listings, view the 3D model and its details, buy in STX, update the price, and delist.
+- Allow upload or read retries when a transaction or gateway fails, without silently creating duplicate listings.
 
-### 2. MVP de producto y datos
+**Exit criteria:** one user can list an asset and another can buy it on Devnet; the UI matches the state confirmed on Stacks.
 
-- Documentar y fijar el esquema de metadata, límites de CID, formatos 3D admitidos, licencia del contenido y reglas de moderación.
-- Añadir persistencia o indexación para búsqueda y navegación del catálogo. El contrato sigue siendo la autoridad para propiedad, precio y actividad; el índice se puede reconstruir desde eventos/estado de cadena.
-- Diseñar estados vacíos, errores de wallet, transacciones reemplazadas, latencia de indexación y fichas con contenido no disponible.
-- Añadir paginación y límites de consulta. No confiar en datos del navegador para precio, vendedor o autorización.
-- Definir política de pinning y recuperación de archivos; un CID por sí solo no garantiza disponibilidad.
+### 2. Product and data MVP
 
-**Salida**: catálogo usable con datos recuperables y tratamiento claro de contenido roto, latencia y errores.
+- Document and fix the metadata schema, CID limits, supported 3D formats, content license, and moderation rules.
+- Add persistence or indexing for catalog search and browsing. The contract remains authoritative for ownership, price, and activity; the index can be rebuilt from chain events/state.
+- Design empty states and handle wallet errors, replaced transactions, indexing delays, and unavailable content.
+- Add pagination and query limits. Never trust browser data for price, seller, or authorization.
+- Define pinning and file-recovery policies; a CID alone does not guarantee availability.
 
-### 3. Endurecimiento de contratos y seguridad
+**Exit criteria:** the catalog is usable, its data can be recovered, and broken content, latency, and errors are handled clearly.
 
-- Revisar el modelo económico y de propiedad: hoy una compra cambia el vendedor registrado y cierra la publicación; no crea un NFT transferible ni aplica comisión/royalty. Confirmar si ese comportamiento satisface el producto antes de congelar la interfaz.
-- Especificar invariantes y errores: autorización del vendedor, precio positivo, compra propia, doble compra, retiro, re-listado y transferencias exactas de STX.
-- Añadir pruebas de unidad y de propiedades/casos límite para todas las funciones públicas y lecturas; comprobar reversiones y que un fallo no deje estado parcial.
-- Revisar límites de longitud/validación de CID y evitar parámetros que el contrato no pueda verificar pero que la UI presente como validados.
-- Solicitar revisión independiente del contrato y corregir hallazgos. Congelar el código y artefactos de despliegue después de la revisión.
+### 3. Contract hardening and security
 
-**Salida**: especificación aprobada, suite de contrato completa y revisión externa sin hallazgos críticos o altos pendientes.
+- Review the ownership and economic model: a purchase currently changes the recorded seller and closes the listing; it does not create a transferable NFT or apply a commission/royalty. Confirm this meets the product requirements before freezing the UI.
+- Specify invariants and errors: seller authorization, positive prices, self-purchases, duplicate purchases, delisting, relisting, and exact STX transfers.
+- Add unit and property/edge-case tests for every public function and read; verify rollback behavior and ensure failures cannot leave partial state.
+- Review CID length and validation limits. Do not present parameters as verified by the UI when the contract cannot verify them.
+- Obtain an independent contract review and resolve its findings. Freeze the source and deployment artifacts after review.
 
-### 4. Testnet y ensayo operativo
+**Exit criteria:** approved specification, complete contract test suite, and no unresolved critical or high findings from the independent review.
 
-- Desplegar el candidato en Stacks testnet con una cuenta de despliegue dedicada y fondos de prueba.
-- Probar de extremo a extremo con wallets reales de testnet: publicación, compra, retiro, cambio de precio y recuperación tras errores.
-- Validar enlaces del explorador, lectura de eventos/estado, estimación de comisiones, configuración RPC/API y persistencia de IPFS.
-- Ejecutar un ensayo de despliegue documentado y comprobar que una versión del frontend identifica claramente red y dirección del contrato.
-- Preparar monitoreo de fallos de API, disponibilidad de gateway/IPFS y transacciones; definir responsable y procedimiento de respuesta.
+### 4. Testnet and operational rehearsal
 
-**Salida**: ensayo repetible, operaciones documentadas y cero defectos bloqueantes en flujos críticos.
+- Deploy the candidate to Stacks testnet with a dedicated deployment account and test funds.
+- Test end to end with real testnet wallets: listing, purchase, delisting, price update, and recovery from errors.
+- Validate explorer links, event/state reads, fee estimation, RPC/API configuration, and IPFS persistence.
+- Run a documented deployment rehearsal and ensure the frontend clearly identifies the network and contract address.
+- Prepare monitoring for API failures, gateway/IPFS availability, and transactions; assign an owner and response procedure.
 
-### 5. Puerta de entrada a mainnet
+**Exit criteria:** repeatable rehearsal, documented operations, and no blocking defects in critical flows.
 
-Antes de desplegar, exigir todos estos puntos:
+### 5. Mainnet launch gate
 
-- Aprobación explícita de alcance, modelo de propiedad, comisiones y términos de contenido.
-- Revisión/auditoría independiente cerrada y código fuente exactamente igual al artefacto verificado.
-- Claves de despliegue protegidas, separadas de las claves de operación y con procedimiento de recuperación; ningún secreto en Git o en el cliente.
-- Direcciones de contrato, red, enlaces de explorador, límites y parámetros comprobados por dos personas.
-- Plan de despliegue, verificación y comunicación; mecanismo de pausa/contención si el contrato lo permite. Si el contrato es inmutable, documentar que no hay pausa ni migración automática.
-- Política de soporte, contacto de seguridad, monitoreo, copias/retención de datos y respuesta a incidentes lista.
+Require every item below before deployment:
 
-**Salida**: checklist firmada por responsables técnicos y de producto. El despliegue a mainnet es una decisión separada y consciente.
+- Explicit approval of scope, ownership model, fees, and content terms.
+- Independent review/audit completed, with source code matching the reviewed artifact exactly.
+- Protected deployment keys, separated from operational keys, with a recovery procedure; no secrets in Git or the client.
+- Contract addresses, network, explorer links, limits, and parameters checked by two people.
+- Deployment, verification, and communication plan; pause/containment mechanism if the contract supports it. If the contract is immutable, document that there is no automatic pause or migration.
+- Support policy, security contact, monitoring, data retention/backups, and incident response ready.
 
-### 6. Lanzamiento controlado y mantenimiento
+**Exit criteria:** checklist signed by technical and product owners. Mainnet deployment remains a separate, deliberate decision.
 
-- Publicar primero con alcance limitado y límites operativos acordes al soporte disponible.
-- Verificar la dirección del contrato y hacer una transacción de prueba de bajo riesgo antes de anunciar el lanzamiento.
-- Vigilar errores de transacción, indexación y disponibilidad de contenido; publicar incidencias y cambios de estado con transparencia.
-- Mantener un proceso para responder a reportes, retirar contenido según política y actualizar frontend/API sin cambiar silenciosamente las reglas on-chain.
+### 6. Controlled launch and maintenance
 
-## No incluido en el MVP
+- Launch with limited scope and operational limits that match available support.
+- Verify the contract address and make a low-risk test transaction before announcing the launch.
+- Monitor transaction errors, indexing, and content availability; communicate incidents and status changes clearly.
+- Maintain a process for reports, content removal under the policy, and frontend/API updates that do not silently change on-chain rules.
 
-Subastas, royalties, tokens NFT estándar, pagos en otros activos, mensajería social y gobernanza. Cada uno amplía el alcance de contratos y revisión de seguridad; incorporarlos solo con una decisión de producto y una nueva evaluación.
+## Out of MVP scope
 
-## Definición de “mainnet-ready”
+Auctions, royalties, standard NFT tokens, payments in other assets, social messaging, and governance. Each expands contract scope and security review; add it only after a product decision and a new assessment.
 
-No significa únicamente que el contrato compile o que la página cargue. Significa que los flujos críticos están probados en testnet, los activos y secretos se gestionan con controles operativos, el contrato tiene revisión independiente, los límites del producto son visibles y existe un plan real para incidentes y soporte.
+## Definition of “mainnet-ready”
+
+It does not just mean the contract compiles or the site loads. Critical flows must be tested on testnet, assets and secrets must be managed with operational controls, the contract must receive an independent review, product limits must be visible, and there must be a real incident and support plan.

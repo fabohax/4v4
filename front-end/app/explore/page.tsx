@@ -6,8 +6,9 @@ import { fetchCallReadOnlyFunction, uintCV, cvToJSON } from '@stacks/transaction
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import axios from 'axios';
 import Image from 'next/image';
-import { getIPFSUrl } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/i18n';
 
 type TokenMetadata = {
   name?: string;
@@ -62,6 +63,7 @@ function setCachedMetadata(key: string, data: TokenMetadata) {
 }
 
 export default function ExplorePage() {
+  const { t } = useI18n();
   const [allNFTs, setAllNFTs] = useState<MintedToken[]>([]);
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [loading, setLoading] = useState(true);
@@ -308,12 +310,12 @@ export default function ExplorePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-              Explore NFTs
+              {t('Explore NFTs')}
             </h1>
-            <div className="mb-4">Loading NFTs from all users...</div>
+            <div className="mb-4">{t('Loading NFTs from all users...')}</div>
             {userCount > 0 && (
               <div className="text-sm text-muted-foreground">
-                Processing user {processedUsers} of {userCount}
+                {t('Processing user')} {processedUsers} {t('of')} {userCount}
               </div>
             )}
             <div className="w-full max-w-md mx-auto mt-4 bg-gray-200 rounded-full h-2">
@@ -334,14 +336,14 @@ export default function ExplorePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-              Explore NFTs
+              {t('Explore NFTs')}
             </h1>
             <div className="text-red-400 mb-4">{error}</div>
             <button 
               onClick={() => window.location.reload()} 
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              {t('Try Again')}
             </button>
           </div>
         </div>
@@ -354,10 +356,10 @@ export default function ExplorePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold my-16" style={{ fontFamily: 'Chakra Petch, sans-serif' }}>
-            Explore
+            {t('Explore')}
           </h1>
           <div className="text-sm text-muted-foreground">
-            {allNFTs.length} NFTs found from {userCount} users
+            {allNFTs.length} {t('NFTs found')} {t('from')} {userCount} {t('users')}
           </div>
         </div>
 
@@ -369,7 +371,7 @@ export default function ExplorePage() {
               href="/mint" 
               className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Mint your first NFT
+              {t('Mint your first NFT')}
             </Link>
           </div>
         ) : (
@@ -391,7 +393,7 @@ export default function ExplorePage() {
                         <Image
                           src={(() => {
                             const img = meta?.image as string;
-                            if (!img) return '/4V4-DIY.png';
+                            if (!img) return '/home.svg';
                             let out = img;
                             if (img.startsWith('ipfs://')) {
                               out = `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}`;
@@ -408,8 +410,8 @@ export default function ExplorePage() {
                           unoptimized
                           onError={(e) => {
                             const imgEl = e.currentTarget as HTMLImageElement;
-                            if (imgEl && imgEl.src !== window.location.origin + '/4V4-DIY.png') {
-                              imgEl.src = '/4V4-DIY.png';
+                            if (imgEl && imgEl.src !== window.location.origin + '/home.svg') {
+                              imgEl.src = '/home.svg';
                             }
                           }}
                         />

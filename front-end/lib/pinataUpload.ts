@@ -1,3 +1,4 @@
+import 'server-only';
 import axios from 'axios';
 
 export interface PinataUploadResponse {
@@ -21,7 +22,7 @@ export async function uploadFileToPinata(
   try {
     // Validate environment variables - use JWT token (preferred) or fallback to API keys
     const pinataJWT = process.env.PINATA_JWT;
-    const pinataApiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.PINATA_API_KEY;
+    const pinataApiKey = process.env.PINATA_API_KEY;
     const pinataSecretApiKey = process.env.PINATA_SECRET_KEY;
 
     if (!pinataJWT && (!pinataApiKey || !pinataSecretApiKey)) {
@@ -158,29 +159,6 @@ export async function uploadFileToPinata(
       error: 'Upload failed. Please try again.'
     };
   }
-}
-
-/**
- * Get IPFS URL from CID
- */
-export function getIPFSUrl(cid: string): string {
-  const gatewayUrl = process.env.PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud';
-  return `${gatewayUrl}/ipfs/${cid}`;
-}
-
-/**
- * Get optimized IPFS URL from CID with query parameters
- */
-export function getOptimizedIPFSUrl(cid: string, width?: number, height?: number, quality?: number): string {
-  const gatewayUrl = process.env.PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud';
-  const baseUrl = `${gatewayUrl}/ipfs/${cid}`;
-  const params = new URLSearchParams();
-  
-  if (width) params.append('img-width', width.toString());
-  if (height) params.append('img-height', height.toString());
-  if (quality) params.append('img-quality', quality.toString());
-  
-  return params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
 }
 
 /**

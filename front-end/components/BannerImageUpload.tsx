@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
-import { getIPFSUrl } from '@/lib/pinataUpload';
+import { getIPFSUrl } from '@/lib/ipfs';
 
 interface BannerImageUploadProps {
   currentBannerUrl?: string;

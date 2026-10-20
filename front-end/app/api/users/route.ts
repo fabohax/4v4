@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 
-import { supabaseAdmin } from "@/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET() {
   // Fetch addresses from connected_accounts
